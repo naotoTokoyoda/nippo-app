@@ -1,5 +1,15 @@
 export const getEnvironment = () => {
-  return process.env.NEXT_PUBLIC_ENV || 'development';
+  // 環境変数の優先順位
+  if (process.env.NEXT_PUBLIC_ENV_DEVELOPMENT) {
+    return process.env.NEXT_PUBLIC_ENV_DEVELOPMENT;
+  }
+  if (process.env.NEXT_PUBLIC_ENV_STAGING) {
+    return process.env.NEXT_PUBLIC_ENV_STAGING;
+  }
+  if (process.env.NEXT_PUBLIC_ENV_PRODUCTION) {
+    return process.env.NEXT_PUBLIC_ENV_PRODUCTION;
+  }
+  return 'development';
 };
 
 export const isDevelopment = () => {
