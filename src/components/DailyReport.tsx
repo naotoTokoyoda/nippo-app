@@ -277,8 +277,11 @@ export default function DailyReport() {
         <div className="mt-6 text-center">
           <button
             onClick={addWorkItem}
-            className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors flex items-center justify-center mx-auto"
           >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
             作業を追加
           </button>
         </div>
@@ -327,7 +330,7 @@ export default function DailyReport() {
         <button
           onClick={handleSubmit}
           disabled={isSubmitting || (totalHours < 8 && showValidation)}
-          className="px-8 py-4 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg font-semibold"
+          className="px-8 py-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg font-semibold"
         >
           {isSubmitting ? '送信中...' : '日報を送信'}
         </button>
