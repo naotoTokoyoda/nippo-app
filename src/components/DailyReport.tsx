@@ -5,6 +5,7 @@ import WorkItem from '@/components/WorkItem';
 import { useReports } from '@/contexts/ReportContext';
 import { useRouter } from 'next/navigation';
 import { calculateWorkTime, formatTime, formatDecimalTime } from '@/utils/timeCalculation';
+import { validateDailyReport, ValidationError } from '@/utils/validation';
 
 export interface WorkItemData {
   id: string;
@@ -42,6 +43,10 @@ export default function DailyReport() {
   const { addReport } = useReports();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [showSuccess, setShowSuccess] = useState(false);
+  
   const [reportData, setReportData] = useState<DailyReportData>({
     date: new Date().toISOString().split('T')[0],
     workerName: '',
@@ -103,13 +108,12 @@ export default function DailyReport() {
   const totalDecimal = formatDecimalTime(totalHours);
 
   const handleSubmit = () => {
-    if (!reportData.workerName) {
-      alert('作業者名を選択してください');
-      return;
-    }
-
-    if (reportData.workItems.length === 0) {
-      alert('作業項目を追加してください');
+    // バリデーション実行
+    const validation = validateDailyReport(reportData);
+    
+    if (!validation.success) {
+      setShowValidation(true);
+      setValidationErrors(validation.errors || []);
       return;
     }
 
@@ -118,11 +122,13 @@ export default function DailyReport() {
     // 送信処理
     addReport(reportData);
     
-    // 成功メッセージ
-    alert('日報を送信しました！');
+    // 成功メッセージを表示
+    setShowSuccess(true);
     
-    // 一覧ページに遷移
-    router.push('/reports');
+    // 3秒後に一覧ページに遷移
+    setTimeout(() => {
+      router.push('/reports');
+    }, 3000);
   };
 
   return (
@@ -155,8 +161,17 @@ export default function DailyReport() {
             type="date"
             value={reportData.date}
             onChange={(e) => setReportData(prev => ({ ...prev, date: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+              showValidation && validationErrors.some(err => err.field === 'date')
+                ? 'border-red-500 focus:ring-red-500'
+                : 'border-gray-300 focus:ring-blue-500'
+            }`}
           />
+          {showValidation && validationErrors.some(err => err.field === 'date') && (
+            <p className="text-xs text-red-600 mt-1">
+              {validationErrors.find(err => err.field === 'date')?.message}
+            </p>
+          )}
         </div>
         
         <div>
@@ -166,15 +181,57 @@ export default function DailyReport() {
           <select
             value={reportData.workerName}
             onChange={(e) => setReportData(prev => ({ ...prev, workerName: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+              showValidation && validationErrors.some(err => err.field === 'workerName')
+                ? 'border-red-500 focus:ring-red-500'
+                : 'border-gray-300 focus:ring-blue-500'
+            }`}
           >
             <option value="">選択してください</option>
             {WORKER_OPTIONS.map(worker => (
               <option key={worker} value={worker}>{worker}</option>
             ))}
           </select>
+          {showValidation && validationErrors.some(err => err.field === 'workerName') && (
+            <p className="text-xs text-red-600 mt-1">
+              {validationErrors.find(err => err.field === 'workerName')?.message}
+            </p>
+          )}
         </div>
       </div>
+
+      {/* バリデーションエラー表示 */}
+      {showValidation && validationErrors.length > 0 && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-center mb-2">
+            <svg className="w-5 h-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <h3 className="text-sm font-medium text-red-800">入力内容に誤りがあります</h3>
+          </div>
+          <ul className="text-sm text-red-700 space-y-1">
+            {validationErrors.map((error, index) => (
+              <li key={index} className="flex items-start">
+                <span className="mr-2">•</span>
+                <span>{error.message}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* 成功メッセージ表示 */}
+      {showSuccess && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <div className="flex items-center mb-2">
+            <svg className="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            <h3 className="text-sm font-medium text-green-800">日報を送信しました！</h3>
+          </div>
+          <p className="text-sm text-green-700">3秒後に一覧ページに移動します...</p>
+        </div>
+      )}
 
       {/* 作業項目 */}
       <div className="mb-6">
@@ -188,6 +245,7 @@ export default function DailyReport() {
               index={index + 1}
               onUpdate={(updates) => updateWorkItem(item.id, updates)}
               onRemove={() => removeWorkItem(item.id)}
+              showValidation={showValidation}
             />
           ))}
         </div>

@@ -2,12 +2,15 @@
 
 import { WorkItemData } from './DailyReport';
 import { generateTimeOptions, isValidTimeIncrement } from '@/utils/timeCalculation';
+import { validateWorkItem, ValidationError, fieldNameMap } from '@/utils/validation';
+import { useState, useEffect } from 'react';
 
 interface WorkItemProps {
   item: WorkItemData;
   index: number;
   onUpdate: (updates: Partial<WorkItemData>) => void;
   onRemove: () => void;
+  showValidation?: boolean;
 }
 
 const MACHINE_TYPES = [
@@ -25,13 +28,43 @@ const MACHINE_TYPES = [
   '該当なし'
 ];
 
-export default function WorkItem({ item, index, onUpdate, onRemove }: WorkItemProps) {
+export default function WorkItem({ item, index, onUpdate, onRemove, showValidation = false }: WorkItemProps) {
   // 現場のメイン稼働時間（8:00-17:00）とその他に分ける
   const mainWorkTimes = generateTimeOptions(8, 17); // 8:00-17:00
   const otherTimes = [
     ...generateTimeOptions(0, 7),   // 0:00-7:45
     ...generateTimeOptions(18, 23)  // 18:00-23:45
   ];
+
+  const [errors, setErrors] = useState<ValidationError[]>([]);
+
+  // バリデーション実行
+  useEffect(() => {
+    if (showValidation) {
+      const validation = validateWorkItem(item);
+      if (!validation.success && validation.errors) {
+        setErrors(validation.errors);
+      } else {
+        setErrors([]);
+      }
+    } else {
+      setErrors([]);
+    }
+  }, [item, showValidation]);
+
+  // エラーメッセージを取得
+  const getErrorMessage = (fieldName: string): string | null => {
+    const error = errors.find(err => err.field === fieldName);
+    return error ? error.message : null;
+  };
+
+  // フィールドにエラークラスを適用
+  const getFieldClassName = (fieldName: string, baseClassName: string): string => {
+    const hasError = errors.some(err => err.field === fieldName);
+    return hasError 
+      ? `${baseClassName} border-red-500 focus:ring-red-500` 
+      : baseClassName;
+  };
 
   return (
     <div className="border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
@@ -55,9 +88,12 @@ export default function WorkItem({ item, index, onUpdate, onRemove }: WorkItemPr
             type="text"
             value={item.customerName}
             onChange={(e) => onUpdate({ customerName: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={getFieldClassName('customerName', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
           />
           <p className="text-xs text-gray-500 mt-1">客先名のない作業は「クオール市原」とご記入ください。</p>
+          {getErrorMessage('customerName') && (
+            <p className="text-xs text-red-600 mt-1">{getErrorMessage('customerName')}</p>
+          )}
         </div>
 
         {/* 工番（前番） */}
@@ -90,6 +126,9 @@ export default function WorkItem({ item, index, onUpdate, onRemove }: WorkItemPr
             </label>
           </div>
           <p className="text-xs text-gray-500 mt-1">どちらかを選択してください。</p>
+          {getErrorMessage('workNumberFront') && (
+            <p className="text-xs text-red-600 mt-1">{getErrorMessage('workNumberFront')}</p>
+          )}
         </div>
 
         {/* 工番（後番） */}
@@ -101,9 +140,12 @@ export default function WorkItem({ item, index, onUpdate, onRemove }: WorkItemPr
             type="text"
             value={item.workNumberBack}
             onChange={(e) => onUpdate({ workNumberBack: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={getFieldClassName('workNumberBack', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
           />
           <p className="text-xs text-gray-500 mt-1">工番のない作業は「なし」とご記入ください。</p>
+          {getErrorMessage('workNumberBack') && (
+            <p className="text-xs text-red-600 mt-1">{getErrorMessage('workNumberBack')}</p>
+          )}
         </div>
 
         {/* 名称 */}
@@ -115,9 +157,12 @@ export default function WorkItem({ item, index, onUpdate, onRemove }: WorkItemPr
             type="text"
             value={item.name}
             onChange={(e) => onUpdate({ name: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={getFieldClassName('name', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
           />
           <p className="text-xs text-gray-500 mt-1">工番表と同じ名称をご記入ください。</p>
+          {getErrorMessage('name') && (
+            <p className="text-xs text-red-600 mt-1">{getErrorMessage('name')}</p>
+          )}
         </div>
 
         {/* 作業開始時間 */}
@@ -128,7 +173,7 @@ export default function WorkItem({ item, index, onUpdate, onRemove }: WorkItemPr
           <select
             value={item.startTime}
             onChange={(e) => onUpdate({ startTime: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={getFieldClassName('startTime', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
           >
             <option value="">時間を選択してください</option>
             <optgroup label="メイン稼働時間 (8:00-17:00)">
@@ -142,6 +187,9 @@ export default function WorkItem({ item, index, onUpdate, onRemove }: WorkItemPr
               ))}
             </optgroup>
           </select>
+          {getErrorMessage('startTime') && (
+            <p className="text-xs text-red-600 mt-1">{getErrorMessage('startTime')}</p>
+          )}
         </div>
 
         {/* 作業終了時間 */}
@@ -152,7 +200,7 @@ export default function WorkItem({ item, index, onUpdate, onRemove }: WorkItemPr
           <select
             value={item.endTime}
             onChange={(e) => onUpdate({ endTime: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={getFieldClassName('endTime', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
           >
             <option value=""></option>
             <optgroup label="メイン稼働時間 (8:00-17:00)">
@@ -166,6 +214,9 @@ export default function WorkItem({ item, index, onUpdate, onRemove }: WorkItemPr
               ))}
             </optgroup>
           </select>
+          {getErrorMessage('endTime') && (
+            <p className="text-xs text-red-600 mt-1">{getErrorMessage('endTime')}</p>
+          )}
         </div>
 
         {/* 機械種類 */}
@@ -176,7 +227,7 @@ export default function WorkItem({ item, index, onUpdate, onRemove }: WorkItemPr
           <select
             value={item.machineType}
             onChange={(e) => onUpdate({ machineType: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={getFieldClassName('machineType', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
           >
             <option value="">選択してください</option>
             {MACHINE_TYPES.map(type => (
@@ -184,6 +235,9 @@ export default function WorkItem({ item, index, onUpdate, onRemove }: WorkItemPr
             ))}
           </select>
           <p className="text-xs text-gray-500 mt-1">作業時間を明確にするため、使用した機械の記入を必ずお願いします。</p>
+          {getErrorMessage('machineType') && (
+            <p className="text-xs text-red-600 mt-1">{getErrorMessage('machineType')}</p>
+          )}
         </div>
       </div>
 
