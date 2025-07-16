@@ -196,7 +196,7 @@ export default function ReportsPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {report.workItems.map((item, index) => {
+                        {report.workItems.map((item) => {
                           const workTime = calculateWorkTime(item.startTime, item.endTime, item.remarks);
                           const rowClass = getRowBackgroundClass(item.machineType, item.customerName);
                           return (

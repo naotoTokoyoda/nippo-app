@@ -60,4 +60,35 @@ export function formatTime(hours: number): string {
  */
 export function formatDecimalTime(hours: number): string {
   return hours.toFixed(2);
+}
+
+/**
+ * 15分刻みの時間選択肢を生成
+ * @param startHour 開始時間（時）
+ * @param endHour 終了時間（時）
+ * @returns 15分刻みの時間配列 (HH:MM 形式)
+ */
+export function generateTimeOptions(startHour: number = 0, endHour: number = 23): string[] {
+  const options: string[] = [];
+  
+  for (let hour = startHour; hour <= endHour; hour++) {
+    for (let minute = 0; minute < 60; minute += 15) {
+      const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+      options.push(timeString);
+    }
+  }
+  
+  return options;
+}
+
+/**
+ * 時間が15分刻みかどうかをチェック
+ * @param time 時間文字列 (HH:MM 形式)
+ * @returns 15分刻みの場合はtrue
+ */
+export function isValidTimeIncrement(time: string): boolean {
+  if (!time) return true;
+  
+  const [hours, minutes] = time.split(':').map(Number);
+  return minutes % 15 === 0;
 } 
