@@ -1,13 +1,18 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useReports } from '@/contexts/ReportContext';
 import { useRouter } from 'next/navigation';
 import { calculateWorkTime, formatTime, formatDecimalTime } from '@/utils/timeCalculation';
 import { getRowBackgroundClass } from '@/utils/conditionalFormatting';
+import { useReportStore } from '@/stores/reportStore';
 
 export default function ReportsPage() {
-  const { reports, deleteReport } = useReports();
+  const reports = useReportStore((state) => state.reports);
+  const deleteReport = useReportStore((state) => state.deleteReport);
+  const loadTestData = useReportStore((state) => state.loadTestData);
+  const clearAllData = useReportStore((state) => state.clearAllData);
+  const isTestDataLoaded = useReportStore((state) => state.isTestDataLoaded);
+  
   const router = useRouter();
   
   // フィルタリング状態

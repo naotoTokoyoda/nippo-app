@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import WorkItem from '@/components/WorkItem';
-import { useReports } from '@/contexts/ReportContext';
 import { useRouter } from 'next/navigation';
 import { calculateWorkTime, formatTime, formatDecimalTime } from '@/utils/timeCalculation';
 import { validateDailyReport, ValidationError } from '@/utils/validation';
+import { useReportStore } from '@/stores/reportStore';
 
 export interface WorkItemData {
   id: string;
@@ -40,7 +40,7 @@ const WORKER_OPTIONS = [
 ];
 
 export default function DailyReport() {
-  const { addReport } = useReports();
+  const addReport = useReportStore((state) => state.addReport);
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showValidation, setShowValidation] = useState(false);

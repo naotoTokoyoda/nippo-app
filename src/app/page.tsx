@@ -1,10 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useReports } from '@/contexts/ReportContext';
+import { useReportStore } from '@/stores/reportStore';
 
 export default function Home() {
-  const { loadTestData, clearAllData, isTestDataLoaded, reports } = useReports();
+  const loadTestData = useReportStore((state) => state.loadTestData);
+  const clearAllData = useReportStore((state) => state.clearAllData);
+  const isTestDataLoaded = useReportStore((state) => state.isTestDataLoaded);
+  const reports = useReportStore((state) => state.reports);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
