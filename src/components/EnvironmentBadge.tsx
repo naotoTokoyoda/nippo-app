@@ -5,16 +5,17 @@ import { getEnvironment } from '@/utils/env';
 export default function EnvironmentBadge() {
   const env = getEnvironment();
   
-  if (env === 'development') {
-    return null; // 開発環境では表示しない
+  // 本番環境ではバッジを表示しない
+  if (env === 'production') {
+    return null;
   }
   
   const getBadgeStyle = () => {
     switch (env) {
       case 'staging':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'production':
-        return 'bg-red-100 text-red-800 border-red-200';
+      case 'development':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -24,8 +25,8 @@ export default function EnvironmentBadge() {
     switch (env) {
       case 'staging':
         return 'STAGING';
-      case 'production':
-        return 'PRODUCTION';
+      case 'development':
+        return 'DEVELOPMENT';
       default:
         return 'UNKNOWN';
     }

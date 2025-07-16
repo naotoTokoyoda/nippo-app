@@ -21,7 +21,7 @@ export const getApiUrl = () => {
     case 'development':
       return 'http://localhost:3000/api';
     case 'staging':
-      return 'https://nippo-app-staging.vercel.app/api';
+      return 'https://nippo-app-stg.vercel.app/api';
     case 'production':
       return 'https://nippo-app.vercel.app/api';
     default:
@@ -36,7 +36,7 @@ export const getAppUrl = () => {
     case 'development':
       return 'http://localhost:3000';
     case 'staging':
-      return 'https://nippo-app-staging.vercel.app';
+      return 'https://nippo-app-stg.vercel.app';
     case 'production':
       return 'https://nippo-app.vercel.app';
     default:
