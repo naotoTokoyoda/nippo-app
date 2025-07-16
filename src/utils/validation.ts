@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isZeroWorkTime } from './timeCalculation';
+import { isZeroWorkTime, calculateWorkTime } from './timeCalculation';
 
 // 作業項目のバリデーションスキーマ
 export const WorkItemSchema = z.object({
@@ -28,6 +28,18 @@ export const DailyReportSchema = z.object({
   date: z.string().min(1, '日付は必須です'),
   workerName: z.string().min(1, '作業者名は必須です'),
   workItems: z.array(WorkItemSchema).min(1, '作業項目は1つ以上必要です')
+}).refine((data) => {
+  // 合計時間を計算
+  const totalHours = data.workItems.reduce((total, item) => {
+    const workTime = calculateWorkTime(item.startTime, item.endTime, item.remarks);
+    return total + workTime;
+  }, 0);
+  
+  // 8時間以上であることをチェック
+  return totalHours >= 8;
+}, {
+  message: '合計作業時間が8時間未満です。8時間以上になるように作業時間を調整してください。',
+  path: ['workItems'] // エラーメッセージを作業項目フィールドに表示
 });
 
 // バリデーションエラーの型
@@ -77,4 +89,23 @@ export const fieldNameMap: Record<string, string> = {
   'date': '日付',
   'workerName': '作業者名',
   'workItems': '作業項目'
-}; 
+};
+
+// 基本情報のバリデーション関数
+export function validateBasicInfo(data: { date: string; workerName: string }): { success: boolean; errors?: ValidationError[] } {
+  const errors: ValidationError[] = [];
+  
+  if (!data.date) {
+    errors.push({ field: 'date', message: '日付は必須です' });
+  }
+  
+  if (!data.workerName) {
+    errors.push({ field: 'workerName', message: '作業者名は必須です' });
+  }
+  
+  if (errors.length > 0) {
+    return { success: false, errors };
+  }
+  
+  return { success: true };
+} 

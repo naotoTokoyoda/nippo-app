@@ -4,8 +4,9 @@ import { useState } from 'react';
 import WorkItem from '@/components/WorkItem';
 import { useRouter } from 'next/navigation';
 import { calculateWorkTime, formatTime, formatDecimalTime } from '@/utils/timeCalculation';
-import { validateDailyReport, ValidationError } from '@/utils/validation';
+import { validateDailyReport, validateBasicInfo, ValidationError } from '@/utils/validation';
 import { useReportStore } from '@/stores/reportStore';
+import React from 'react'; // Added missing import for React
 
 export interface WorkItemData {
   id: string;
@@ -45,6 +46,7 @@ export default function DailyReport() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [basicInfoErrors, setBasicInfoErrors] = useState<ValidationError[]>([]);
   const [showSuccess, setShowSuccess] = useState(false);
   
   const [reportData, setReportData] = useState<DailyReportData>({
@@ -107,6 +109,43 @@ export default function DailyReport() {
   const totalHours = calculateTotalTime();
   const totalDecimal = formatDecimalTime(totalHours);
 
+  // 基本情報のリアルタイムバリデーション
+  React.useEffect(() => {
+    // 最初にページを開いた時はエラーメッセージを表示しない
+    if (!showValidation) {
+      setBasicInfoErrors([]);
+      return;
+    }
+    
+    const validation = validateBasicInfo({
+      date: reportData.date,
+      workerName: reportData.workerName
+    });
+    
+    if (!validation.success && validation.errors) {
+      setBasicInfoErrors(validation.errors);
+    } else {
+      setBasicInfoErrors([]);
+    }
+  }, [reportData.date, reportData.workerName, showValidation]);
+
+  // 作業項目のリアルタイムバリデーション
+  React.useEffect(() => {
+    // 最初にページを開いた時はエラーメッセージを表示しない
+    if (!showValidation) {
+      setValidationErrors([]);
+      return;
+    }
+    
+    const validation = validateDailyReport(reportData);
+    
+    if (!validation.success && validation.errors) {
+      setValidationErrors(validation.errors);
+    } else {
+      setValidationErrors([]);
+    }
+  }, [reportData.workItems, showValidation]);
+
   const handleSubmit = () => {
     // バリデーション実行
     const validation = validateDailyReport(reportData);
@@ -133,6 +172,7 @@ export default function DailyReport() {
 
   return (
     <div className="max-w-6xl mx-auto p-6 bg-white">
+
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-800">日報</h1>
         <div className="flex gap-2">
@@ -161,15 +201,16 @@ export default function DailyReport() {
             type="date"
             value={reportData.date}
             onChange={(e) => setReportData(prev => ({ ...prev, date: e.target.value }))}
+            data-field="date"
             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-              showValidation && validationErrors.some(err => err.field === 'date')
+              basicInfoErrors.some(err => err.field === 'date')
                 ? 'border-red-500 focus:ring-red-500'
                 : 'border-gray-300 focus:ring-blue-500'
             }`}
           />
-          {showValidation && validationErrors.some(err => err.field === 'date') && (
+          {basicInfoErrors.some(err => err.field === 'date') && (
             <p className="text-xs text-red-600 mt-1">
-              {validationErrors.find(err => err.field === 'date')?.message}
+              {basicInfoErrors.find(err => err.field === 'date')?.message}
             </p>
           )}
         </div>
@@ -181,8 +222,9 @@ export default function DailyReport() {
           <select
             value={reportData.workerName}
             onChange={(e) => setReportData(prev => ({ ...prev, workerName: e.target.value }))}
+            data-field="workerName"
             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-              showValidation && validationErrors.some(err => err.field === 'workerName')
+              basicInfoErrors.some(err => err.field === 'workerName')
                 ? 'border-red-500 focus:ring-red-500'
                 : 'border-gray-300 focus:ring-blue-500'
             }`}
@@ -192,33 +234,15 @@ export default function DailyReport() {
               <option key={worker} value={worker}>{worker}</option>
             ))}
           </select>
-          {showValidation && validationErrors.some(err => err.field === 'workerName') && (
+          {basicInfoErrors.some(err => err.field === 'workerName') && (
             <p className="text-xs text-red-600 mt-1">
-              {validationErrors.find(err => err.field === 'workerName')?.message}
+              {basicInfoErrors.find(err => err.field === 'workerName')?.message}
             </p>
           )}
         </div>
       </div>
 
-      {/* バリデーションエラー表示 */}
-      {showValidation && validationErrors.length > 0 && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <div className="flex items-center mb-2">
-            <svg className="w-5 h-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-            <h3 className="text-sm font-medium text-red-800">入力内容に誤りがあります</h3>
-          </div>
-          <ul className="text-sm text-red-700 space-y-1">
-            {validationErrors.map((error, index) => (
-              <li key={index} className="flex items-start">
-                <span className="mr-2">•</span>
-                <span>{error.message}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+
 
       {/* 成功メッセージ表示 */}
       {showSuccess && (
@@ -262,12 +286,16 @@ export default function DailyReport() {
 
       {/* 合計時間 */}
       {reportData.workItems.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-blue-50 rounded-lg mb-8">
+        <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 p-6 rounded-lg mb-8 ${
+          totalHours < 8 && showValidation ? 'bg-red-50 border border-red-200' : 'bg-blue-50'
+        }`}>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               合計時間
             </label>
-            <div className="text-2xl font-bold text-blue-600">
+            <div className={`text-2xl font-bold ${
+              totalHours < 8 && showValidation ? 'text-red-600' : 'text-blue-600'
+            }`}>
               {formatTime(totalHours)}
             </div>
           </div>
@@ -276,10 +304,21 @@ export default function DailyReport() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               10進数
             </label>
-            <div className="text-2xl font-bold text-blue-600">
+            <div className={`text-2xl font-bold ${
+              totalHours < 8 && showValidation ? 'text-red-600' : 'text-blue-600'
+            }`}>
               {totalDecimal} 時間
             </div>
           </div>
+          
+          {/* 説明文 */}
+          <div className="md:col-span-2">
+            <p className="text-xs text-gray-500 mt-2">
+              合計作業時間は8時間以上である必要があります。昼休憩時間（12:00-13:00）は自動的に差し引かれます。
+            </p>
+          </div>
+          
+
         </div>
       )}
 
@@ -287,11 +326,16 @@ export default function DailyReport() {
       <div className="text-center">
         <button
           onClick={handleSubmit}
-          disabled={isSubmitting}
+          disabled={isSubmitting || (totalHours < 8 && showValidation)}
           className="px-8 py-4 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg font-semibold"
         >
           {isSubmitting ? '送信中...' : '日報を送信'}
         </button>
+        {(validationErrors.length > 0 || basicInfoErrors.length > 0) && (
+          <p className="text-xs text-red-600 mt-2">
+            入力内容にエラーがあります。各項目をご確認ください。
+          </p>
+        )}
       </div>
     </div>
   );
