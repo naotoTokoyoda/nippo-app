@@ -1,7 +1,7 @@
 'use client';
 
 import { WorkItemData } from './DailyReport';
-import { generateTimeOptions, isValidTimeIncrement } from '@/utils/timeCalculation';
+import { generateTimeOptions, isValidTimeIncrement, isZeroWorkTime } from '@/utils/timeCalculation';
 import { validateWorkItem, ValidationError, fieldNameMap } from '@/utils/validation';
 import { useState, useEffect } from 'react';
 
@@ -40,7 +40,8 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
 
   // バリデーション実行
   useEffect(() => {
-    if (showValidation) {
+    // 開始時間と終了時間の両方が入力されている場合、またはshowValidationがtrueの場合にバリデーションを実行
+    if (showValidation || (item.startTime && item.endTime)) {
       const validation = validateWorkItem(item);
       if (!validation.success && validation.errors) {
         setErrors(validation.errors);
@@ -264,6 +265,11 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
           {(!isValidTimeIncrement(item.startTime) || !isValidTimeIncrement(item.endTime)) && (
             <div className="text-xs text-orange-600 mt-1">
               ※ 時間は15分刻みで設定することをお勧めします
+            </div>
+          )}
+          {isZeroWorkTime(item.startTime, item.endTime) && (
+            <div className="text-xs text-red-600 mt-1">
+              ※ 0分の作業時間は記録しないでください
             </div>
           )}
         </div>

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isZeroWorkTime } from './timeCalculation';
 
 // 作業項目のバリデーションスキーマ
 export const WorkItemSchema = z.object({
@@ -11,6 +12,15 @@ export const WorkItemSchema = z.object({
   endTime: z.string().min(1, '作業終了時間は必須です'),
   machineType: z.string().min(1, '機械種類は必須です'),
   remarks: z.string().optional() // 備考は任意
+}).refine((data) => {
+  // 開始時間と終了時間が入力されている場合のみ0分チェックを実行
+  if (data.startTime && data.endTime) {
+    return !isZeroWorkTime(data.startTime, data.endTime);
+  }
+  return true;
+}, {
+  message: '作業開始時間と作業終了時間が同じです。作業時間は0分以上である必要があります。',
+  path: ['endTime'] // エラーメッセージを終了時間フィールドに表示
 });
 
 // 日報データのバリデーションスキーマ

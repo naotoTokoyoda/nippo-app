@@ -91,4 +91,29 @@ export function isValidTimeIncrement(time: string): boolean {
   
   const [hours, minutes] = time.split(':').map(Number);
   return minutes % 15 === 0;
+}
+
+/**
+ * 作業時間が0分かどうかをチェック
+ * @param startTime 開始時間 (HH:MM 形式)
+ * @param endTime 終了時間 (HH:MM 形式)
+ * @returns 作業時間が0分の場合はtrue
+ */
+export function isZeroWorkTime(startTime: string, endTime: string): boolean {
+  if (!startTime || !endTime) return false;
+  
+  // 時間をDateオブジェクトに変換
+  const start = new Date(`2000-01-01T${startTime}:00`);
+  const end = new Date(`2000-01-01T${endTime}:00`);
+
+  // 終了時間が開始時間より前の場合は日をまたいでいると仮定
+  if (end < start) {
+    end.setDate(end.getDate() + 1);
+  }
+
+  // 作業時間を計算（ミリ秒）
+  const workTimeMs = end.getTime() - start.getTime();
+  
+  // 0分かどうかをチェック（1分未満を0分とみなす）
+  return workTimeMs < 60 * 1000; // 1分 = 60秒 * 1000ミリ秒
 } 
