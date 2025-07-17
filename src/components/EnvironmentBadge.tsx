@@ -1,9 +1,14 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { getEnvironment } from '@/utils/env';
 
 export default function EnvironmentBadge() {
-  const env = getEnvironment();
+  const [env, setEnv] = useState<string>('development');
+  
+  useEffect(() => {
+    setEnv(getEnvironment());
+  }, []);
   
   // 本番環境ではバッジを表示しない
   if (env === 'production') {
@@ -12,6 +17,8 @@ export default function EnvironmentBadge() {
   
   const getBadgeStyle = () => {
     switch (env) {
+      case 'local':
+        return 'bg-green-100 text-green-800 border-green-200';
       case 'staging':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'development':
@@ -23,6 +30,8 @@ export default function EnvironmentBadge() {
   
   const getEnvLabel = () => {
     switch (env) {
+      case 'local':
+        return 'LOCAL';
       case 'staging':
         return 'STAGING';
       case 'development':

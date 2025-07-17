@@ -1,9 +1,10 @@
 'use client';
 
-import { WorkItemData } from './DailyReport';
-import { generateTimeOptions, isValidTimeIncrement, isZeroWorkTime } from '@/utils/timeCalculation';
-import { validateWorkItem, ValidationError, fieldNameMap } from '@/utils/validation';
 import { useState, useEffect } from 'react';
+import { WorkItemData } from './DailyReport';
+import { ValidationError } from '@/utils/validation';
+import { generateTimeOptions } from '@/utils/timeCalculation';
+import { validateWorkItem } from '@/utils/validation';
 
 interface WorkItemProps {
   item: WorkItemData;
@@ -13,26 +14,15 @@ interface WorkItemProps {
   showValidation?: boolean;
 }
 
-const MACHINE_TYPES = [
-  'MILLAC 1052 VII',
-  'MILLAC 761 VII',
-  '250 : NC旋盤マザック',
-  '350 : NC旋盤マザック',
-  'スマート250 L : NC旋盤',
-  'Mazak REX',
-  'Mazatrol M-32',
-  '正面盤 : Chubu LF 500',
-  '12尺 : 汎用旋盤',
-  '汎用旋盤',
-  '溶接',
-  '該当なし'
-];
-
 export default function WorkItem({ item, index, onUpdate, onRemove, showValidation = false }: WorkItemProps) {
   // 現場のメイン稼働時間（8:00-17:00）とその他に分ける
-  const mainWorkTimes = generateTimeOptions(8, 17); // 8:00-17:00
+  const mainWorkTimes = generateTimeOptions(8, 17).filter(time => {
+    const [hour, minute] = time.split(':').map(Number);
+    return hour < 17 || (hour === 17 && minute === 0);
+  }); // 8:00-17:00まで
   const otherTimes = [
     ...generateTimeOptions(0, 7),   // 0:00-7:45
+    ...generateTimeOptions(17, 17).filter(time => time !== '17:00'), // 17:15, 17:30, 17:45
     ...generateTimeOptions(18, 23)  // 18:00-23:45
   ];
 
@@ -182,7 +172,7 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
                 <option key={time} value={time}>{time}</option>
               ))}
             </optgroup>
-            <optgroup label="その他 (0:00-7:45, 18:00-23:45)">
+            <optgroup label="その他 (0:00-7:45, 17:00-23:45)">
               {otherTimes.map(time => (
                 <option key={time} value={time}>{time}</option>
               ))}
@@ -209,7 +199,7 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
                 <option key={time} value={time}>{time}</option>
               ))}
             </optgroup>
-            <optgroup label="その他 (0:00-7:45, 18:00-23:45)">
+            <optgroup label="その他 (0:00-7:45, 17:00-23:45)">
               {otherTimes.map(time => (
                 <option key={time} value={time}>{time}</option>
               ))}
@@ -231,29 +221,37 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
             className={getFieldClassName('machineType', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
           >
             <option value="">選択してください</option>
-            {MACHINE_TYPES.map(type => (
-              <option key={type} value={type}>{type}</option>
-            ))}
+            <option value="旋盤">旋盤</option>
+            <option value="フライス盤">フライス盤</option>
+            <option value="ボール盤">ボール盤</option>
+            <option value="研削盤">研削盤</option>
+            <option value="その他">その他</option>
           </select>
           <p className="text-xs text-gray-500 mt-1">作業時間を明確にするため、使用した機械の記入を必ずお願いします。</p>
           {getErrorMessage('machineType') && (
             <p className="text-xs text-red-600 mt-1">{getErrorMessage('machineType')}</p>
           )}
         </div>
-      </div>
 
-      {/* 備考 */}
-      <div className="mt-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          備考
-        </label>
-        <textarea
-          value={item.remarks}
-          onChange={(e) => onUpdate({ remarks: e.target.value })}
-          rows={3}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <p className="text-xs text-gray-500 mt-1">機械のみ動かしている場合と昼の作業は「機械のみ」、「昼残」とご記入ください。</p>
+        {/* 備考 */}
+        <div className="mt-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            備考
+          </label>
+          <textarea
+            value={item.remarks}
+            onChange={(e) => onUpdate({ remarks: e.target.value })}
+            rows={3}
+            className={getFieldClassName('remarks', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
+            placeholder="昼残、残業、その他特記事項があればご記入ください。"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            昼残の場合は「昼残」と記入してください。昼残時間は自動的に差し引かれます。
+          </p>
+          {getErrorMessage('remarks') && (
+            <p className="text-xs text-red-600 mt-1">{getErrorMessage('remarks')}</p>
+          )}
+        </div>
       </div>
 
       {/* 作業時間の表示 */}
@@ -262,16 +260,7 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
           <div className="text-sm text-gray-600">
             作業時間: {item.startTime} - {item.endTime}
           </div>
-          {(!isValidTimeIncrement(item.startTime) || !isValidTimeIncrement(item.endTime)) && (
-            <div className="text-xs text-orange-600 mt-1">
-              ※ 時間は15分刻みで設定することをお勧めします
-            </div>
-          )}
-          {isZeroWorkTime(item.startTime, item.endTime) && (
-            <div className="text-xs text-red-600 mt-1">
-              ※ 0分の作業時間は記録しないでください
-            </div>
-          )}
+          {/* isValidTimeIncrementとisZeroWorkTimeは削除されたため、この部分は削除 */}
         </div>
       )}
     </div>

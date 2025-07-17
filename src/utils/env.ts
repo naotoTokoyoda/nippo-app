@@ -1,4 +1,9 @@
 export const getEnvironment = () => {
+  // ローカル環境かどうかを判定（クライアントサイドでのみ）
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    return 'local';
+  }
+  
   // 環境変数の優先順位
   if (process.env.NEXT_PUBLIC_ENV_DEVELOPMENT) {
     return process.env.NEXT_PUBLIC_ENV_DEVELOPMENT;
