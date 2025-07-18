@@ -25,51 +25,38 @@ export default function ReportsPage() {
     machineType: ''
   });
 
-  // フィルタリングされたレポート
-  const filteredReports = useMemo(() => {
-    return reports.filter(report => {
-      if (filters.date && report.date !== filters.date) return false;
-      if (filters.workerName && report.workerName !== filters.workerName) return false;
+  // 全作業項目をフラット化して取得
+  const allWorkItems = useMemo(() => {
+    return reports.flatMap(report => 
+      report.workItems.map(item => ({
+        ...item,
+        reportId: report.id,
+        reportDate: report.date,
+        workerName: report.workerName
+      }))
+    );
+  }, [reports]);
+
+  // フィルタリングされた作業項目
+  const filteredWorkItems = useMemo(() => {
+    return allWorkItems.filter(item => {
+      if (filters.date && item.reportDate !== filters.date) return false;
+      if (filters.workerName && item.workerName !== filters.workerName) return false;
       if (filters.customerName) {
-        const hasCustomer = report.workItems.some(item => 
-          item.customerName.toLowerCase().includes(filters.customerName.toLowerCase())
-        );
-        if (!hasCustomer) return false;
+        if (!item.customerName.toLowerCase().includes(filters.customerName.toLowerCase())) return false;
       }
-      if (filters.workNumberFront) {
-        const hasWorkNumber = report.workItems.some(item => 
-          item.workNumberFront === filters.workNumberFront
-        );
-        if (!hasWorkNumber) return false;
-      }
-      if (filters.workNumberBack) {
-        const hasWorkNumberBack = report.workItems.some(item => 
-          item.workNumberBack === filters.workNumberBack
-        );
-        if (!hasWorkNumberBack) return false;
-      }
-      if (filters.machineType) {
-        const hasMachineType = report.workItems.some(item => 
-          item.machineType === filters.machineType
-        );
-        if (!hasMachineType) return false;
-      }
+      if (filters.workNumberFront && item.workNumberFront !== filters.workNumberFront) return false;
+      if (filters.workNumberBack && item.workNumberBack !== filters.workNumberBack) return false;
+      if (filters.machineType && item.machineType !== filters.machineType) return false;
       return true;
     });
-  }, [reports, filters]);
+  }, [allWorkItems, filters]);
 
   // ユニークな値の取得
   const uniqueWorkers = [...new Set(reports.map(r => r.workerName))].filter(Boolean);
-  const uniqueWorkNumbers = [...new Set(reports.flatMap(r => r.workItems.map(w => w.workNumberFront)))].filter(Boolean);
-  const uniqueWorkNumbersBack = [...new Set(reports.flatMap(r => r.workItems.map(w => w.workNumberBack)))].filter(Boolean);
-  const uniqueMachineTypes = [...new Set(reports.flatMap(r => r.workItems.map(w => w.machineType)))].filter(Boolean);
-
-  const calculateTotalTime = (workItems: { startTime: string; endTime: string; remarks: string }[]) => {
-    return workItems.reduce((total, item) => {
-      const workTime = calculateWorkTime(item.startTime, item.endTime, item.remarks);
-      return total + workTime;
-    }, 0);
-  };
+  const uniqueWorkNumbers = [...new Set(allWorkItems.map(w => w.workNumberFront))].filter(Boolean);
+  const uniqueWorkNumbersBack = [...new Set(allWorkItems.map(w => w.workNumberBack))].filter(Boolean);
+  const uniqueMachineTypes = [...new Set(allWorkItems.map(w => w.machineType))].filter(Boolean);
 
   const clearFilters = () => {
     setFilters({
@@ -113,7 +100,7 @@ export default function ReportsPage() {
                 type="date"
                 value={filters.date}
                 onChange={(e) => setFilters(prev => ({ ...prev, date: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
               />
             </div>
             
@@ -122,7 +109,7 @@ export default function ReportsPage() {
               <select
                 value={filters.workerName}
                 onChange={(e) => setFilters(prev => ({ ...prev, workerName: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
               >
                 <option value="">すべて</option>
                 {uniqueWorkers.map(worker => (
@@ -137,7 +124,7 @@ export default function ReportsPage() {
                 type="text"
                 value={filters.customerName}
                 onChange={(e) => setFilters(prev => ({ ...prev, customerName: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
                 placeholder="部分一致検索"
               />
             </div>
@@ -147,7 +134,7 @@ export default function ReportsPage() {
               <select
                 value={filters.workNumberFront}
                 onChange={(e) => setFilters(prev => ({ ...prev, workNumberFront: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
               >
                 <option value="">すべて</option>
                 {uniqueWorkNumbers.map(number => (
@@ -161,7 +148,7 @@ export default function ReportsPage() {
               <select
                 value={filters.workNumberBack}
                 onChange={(e) => setFilters(prev => ({ ...prev, workNumberBack: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
               >
                 <option value="">すべて</option>
                 {uniqueWorkNumbersBack.map(number => (
@@ -175,7 +162,7 @@ export default function ReportsPage() {
               <select
                 value={filters.machineType}
                 onChange={(e) => setFilters(prev => ({ ...prev, machineType: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
               >
                 <option value="">すべて</option>
                 {uniqueMachineTypes.map(type => (
@@ -197,82 +184,68 @@ export default function ReportsPage() {
 
         {/* 結果件数 */}
         <div className="mb-4 text-sm text-gray-600">
-          {filteredReports.length}件の日報が見つかりました
+          {filteredWorkItems.length}件の作業項目が見つかりました
         </div>
 
-        {/* 日報一覧 */}
-        <div className="space-y-4">
-          {filteredReports.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              日報が見つかりません
-            </div>
-          ) : (
-            filteredReports.map((report) => {
-              const totalHours = calculateTotalTime(report.workItems);
-              return (
-                <div key={report.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-800">
-                        {report.date} - {report.workerName}
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        作業項目: {report.workItems.length}件 | 合計時間: {formatTime(totalHours)} ({formatDecimalTime(totalHours)}時間)
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => deleteReport(report.id!)}
-                        className="px-3 py-1 text-red-600 hover:bg-red-50 rounded-md transition-colors text-sm"
-                      >
-                        削除
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {/* 作業項目の詳細表示 */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="bg-gray-50">
-                          <th className="px-2 py-2 text-left">客先名</th>
-                          <th className="px-2 py-2 text-left">工番（前番）</th>
-                          <th className="px-2 py-2 text-left">工番（後番）</th>
-                          <th className="px-2 py-2 text-left">名称</th>
-                          <th className="px-2 py-2 text-left">開始時間</th>
-                          <th className="px-2 py-2 text-left">終了時間</th>
-                          <th className="px-2 py-2 text-left">機械種類</th>
-                          <th className="px-2 py-2 text-left">備考</th>
-                          <th className="px-2 py-2 text-left">作業時間</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {report.workItems.map((item) => {
-                          const workTime = calculateWorkTime(item.startTime, item.endTime, item.remarks);
-                          const rowClass = getRowBackgroundClass(item.machineType, item.customerName);
-                          return (
-                            <tr key={item.id} className={`${rowClass} border-b border-gray-100`}>
-                              <td className="px-2 py-2">{item.customerName || '未入力'}</td>
-                              <td className="px-2 py-2">{item.workNumberFront}</td>
-                              <td className="px-2 py-2">{item.workNumberBack}</td>
-                              <td className="px-2 py-2">{item.name || '未入力'}</td>
-                              <td className="px-2 py-2">{item.startTime || '未入力'}</td>
-                              <td className="px-2 py-2">{item.endTime || '未入力'}</td>
-                              <td className="px-2 py-2">{item.machineType || '未入力'}</td>
-                              <td className="px-2 py-2">{item.remarks || '-'}</td>
-                              <td className="px-2 py-2 font-medium">
-                                {workTime > 0 ? `${formatTime(workTime)} (${formatDecimalTime(workTime)}時間)` : '0:00 (0.00時間)'}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              );
-            })
-          )}
+        {/* 作業項目一覧テーブル */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm border border-gray-200">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-200">
+                <th className="px-3 py-3 text-left font-medium text-gray-700">日付</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-700">作業者名</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-700">客先名</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-700">工番（前番）</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-700">工番（後番）</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-700">名称</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-700">開始時間</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-700">終了時間</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-700">機械種類</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-700">備考</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-700">作業時間</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-700">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredWorkItems.length === 0 ? (
+                <tr>
+                  <td colSpan={12} className="px-3 py-8 text-center text-gray-500">
+                    作業項目が見つかりません
+                  </td>
+                </tr>
+              ) : (
+                filteredWorkItems.map((item) => {
+                  const workTime = calculateWorkTime(item.startTime, item.endTime, item.remarks);
+                  const rowClass = getRowBackgroundClass(item.machineType, item.customerName);
+                  return (
+                    <tr key={`${item.reportId}-${item.id}`} className={`${rowClass} border-b border-gray-100 hover:bg-gray-50`}>
+                      <td className="px-3 py-3 text-gray-900">{item.reportDate}</td>
+                      <td className="px-3 py-3 text-gray-900">{item.workerName}</td>
+                      <td className="px-3 py-3 text-gray-900">{item.customerName || '未入力'}</td>
+                      <td className="px-3 py-3 text-gray-900">{item.workNumberFront}</td>
+                      <td className="px-3 py-3 text-gray-900">{item.workNumberBack}</td>
+                      <td className="px-3 py-3 text-gray-900">{item.name || '未入力'}</td>
+                      <td className="px-3 py-3 text-gray-900">{item.startTime || '未入力'}</td>
+                      <td className="px-3 py-3 text-gray-900">{item.endTime || '未入力'}</td>
+                      <td className="px-3 py-3 text-gray-900">{item.machineType || '未入力'}</td>
+                      <td className="px-3 py-3 text-gray-900">{item.remarks || '-'}</td>
+                      <td className="px-3 py-3 font-medium text-gray-900">
+                        {workTime > 0 ? `${formatTime(workTime)} (${formatDecimalTime(workTime)}時間)` : '0:00 (0.00時間)'}
+                      </td>
+                      <td className="px-3 py-3">
+                        <button
+                          onClick={() => deleteReport(item.reportId!)}
+                          className="px-2 py-1 text-red-600 hover:bg-red-50 rounded text-xs transition-colors"
+                        >
+                          削除
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
