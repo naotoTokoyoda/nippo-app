@@ -20,7 +20,9 @@ export default function ReportsPage() {
     date: '',
     workerName: '',
     customerName: '',
-    workNumberFront: ''
+    workNumberFront: '',
+    workNumberBack: '',
+    machineType: ''
   });
 
   // フィルタリングされたレポート
@@ -40,6 +42,18 @@ export default function ReportsPage() {
         );
         if (!hasWorkNumber) return false;
       }
+      if (filters.workNumberBack) {
+        const hasWorkNumberBack = report.workItems.some(item => 
+          item.workNumberBack === filters.workNumberBack
+        );
+        if (!hasWorkNumberBack) return false;
+      }
+      if (filters.machineType) {
+        const hasMachineType = report.workItems.some(item => 
+          item.machineType === filters.machineType
+        );
+        if (!hasMachineType) return false;
+      }
       return true;
     });
   }, [reports, filters]);
@@ -47,6 +61,8 @@ export default function ReportsPage() {
   // ユニークな値の取得
   const uniqueWorkers = [...new Set(reports.map(r => r.workerName))].filter(Boolean);
   const uniqueWorkNumbers = [...new Set(reports.flatMap(r => r.workItems.map(w => w.workNumberFront)))].filter(Boolean);
+  const uniqueWorkNumbersBack = [...new Set(reports.flatMap(r => r.workItems.map(w => w.workNumberBack)))].filter(Boolean);
+  const uniqueMachineTypes = [...new Set(reports.flatMap(r => r.workItems.map(w => w.machineType)))].filter(Boolean);
 
   const calculateTotalTime = (workItems: { startTime: string; endTime: string; remarks: string }[]) => {
     return workItems.reduce((total, item) => {
@@ -60,7 +76,9 @@ export default function ReportsPage() {
       date: '',
       workerName: '',
       customerName: '',
-      workNumberFront: ''
+      workNumberFront: '',
+      workNumberBack: '',
+      machineType: ''
     });
   };
 
@@ -88,7 +106,7 @@ export default function ReportsPage() {
         {/* フィルター */}
         <div className="bg-gray-50 p-4 rounded-lg mb-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">フィルター</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">日付</label>
               <input
@@ -134,6 +152,34 @@ export default function ReportsPage() {
                 <option value="">すべて</option>
                 {uniqueWorkNumbers.map(number => (
                   <option key={number} value={number}>{number}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">工番（後番）</label>
+              <select
+                value={filters.workNumberBack}
+                onChange={(e) => setFilters(prev => ({ ...prev, workNumberBack: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">すべて</option>
+                {uniqueWorkNumbersBack.map(number => (
+                  <option key={number} value={number}>{number}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">機械種類</label>
+              <select
+                value={filters.machineType}
+                onChange={(e) => setFilters(prev => ({ ...prev, machineType: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">すべて</option>
+                {uniqueMachineTypes.map(type => (
+                  <option key={type} value={type}>{type}</option>
                 ))}
               </select>
             </div>
