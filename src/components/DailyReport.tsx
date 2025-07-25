@@ -171,7 +171,7 @@ export default function DailyReport() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 bg-white">
+    <div className="max-w-7xl mx-auto p-10 bg-white">
 
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-800">日報</h1>
