@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { calculateWorkTime, formatTime, formatDecimalTime } from '@/utils/timeCalculation';
 import { getRowBackgroundClass } from '@/utils/conditionalFormatting';
 import { useReportStore } from '@/stores/reportStore';
+import DatabaseClientNameInput from './DatabaseClientNameInput';
 
 export default function ReportsList() {
   const reports = useReportStore((state) => state.reports);
@@ -54,6 +55,7 @@ export default function ReportsList() {
 
   // ユニークな値の取得
   const uniqueWorkers = [...new Set(reports.map(r => r.workerName))].filter(Boolean);
+  const uniqueCustomerNames = [...new Set(allWorkItems.map(w => w.customerName))].filter(Boolean);
   const uniqueWorkNumbers = [...new Set(allWorkItems.map(w => w.workNumberFront))].filter(Boolean);
   const uniqueWorkNumbersBack = [...new Set(allWorkItems.map(w => w.workNumberBack))].filter(Boolean);
   const uniqueMachineTypes = [...new Set(allWorkItems.map(w => w.machineType))].filter(Boolean);
@@ -119,12 +121,12 @@ export default function ReportsList() {
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">客先名</label>
-            <input
-              type="text"
+            <DatabaseClientNameInput
               value={filters.customerName}
-              onChange={(e) => setFilters(prev => ({ ...prev, customerName: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
-              placeholder="部分一致検索"
+              onChange={(value) => setFilters(prev => ({ ...prev, customerName: value }))}
+              availableNames={uniqueCustomerNames}
+              placeholder="客先名を入力"
+              className="text-gray-900"
             />
           </div>
           

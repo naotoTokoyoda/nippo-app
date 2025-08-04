@@ -5,6 +5,7 @@ import { WorkItemData } from './DailyReport';
 import { ValidationError } from '@/utils/validation';
 import { generateTimeOptions } from '@/utils/timeCalculation';
 import { validateWorkItem } from '@/utils/validation';
+import ClientNameInput from './ClientNameInput';
 
 interface WorkItemProps {
   item: WorkItemData;
@@ -75,10 +76,10 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
           <label className="block text-sm font-medium text-gray-700 mb-2">
             客先名
           </label>
-          <input
-            type="text"
+          <ClientNameInput
             value={item.customerName}
-            onChange={(e) => onUpdate({ customerName: e.target.value })}
+            onChange={(value) => onUpdate({ customerName: value })}
+            placeholder="客先名を入力"
             className={getFieldClassName('customerName', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
           />
           <p className="text-xs text-gray-500 mt-1">客先名のない作業は「クオール市原」とご記入ください。</p>
