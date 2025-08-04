@@ -166,7 +166,7 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
             onChange={(e) => onUpdate({ startTime: e.target.value })}
             className={getFieldClassName('startTime', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
           >
-            <option value="">時間を選択してください</option>
+            <option value=""></option>
             <optgroup label="メイン稼働時間 (8:00-17:00)">
               {mainWorkTimes.map(time => (
                 <option key={time} value={time}>{time}</option>
@@ -220,7 +220,7 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
             onChange={(e) => onUpdate({ machineType: e.target.value })}
             className={getFieldClassName('machineType', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
           >
-            <option value="">選択してください</option>
+            <option value=""></option>
             <option value="旋盤">旋盤</option>
             <option value="フライス盤">フライス盤</option>
             <option value="ボール盤">ボール盤</option>
@@ -243,7 +243,7 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
             onChange={(e) => onUpdate({ remarks: e.target.value })}
             rows={3}
             className={getFieldClassName('remarks', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
-            placeholder="昼残、残業、その他特記事項があればご記入ください。"
+            style={{ color: item.remarks ? '#111827' : '#6b7280' }}
           />
           <p className="text-xs text-gray-500 mt-1">
             昼残の場合は「昼残」と記入してください。昼残時間は自動的に差し引かれます。

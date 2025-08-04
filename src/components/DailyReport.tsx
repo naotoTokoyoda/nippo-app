@@ -229,7 +229,7 @@ export default function DailyReport() {
                 : 'border-gray-300 focus:ring-blue-500'
             }`}
           >
-            <option value="">選択してください</option>
+            <option value=""></option>
             {WORKER_OPTIONS.map(worker => (
               <option key={worker} value={worker}>{worker}</option>
             ))}
