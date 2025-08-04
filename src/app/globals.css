@@ -56,3 +56,14 @@ textarea:not(:empty),
 select:not([value=""]) {
   color: #111827 !important; /* gray-900 - even darker for content */
 }
+
+/* Make radio button labels darker and more visible */
+input[type="radio"] + label,
+label:has(input[type="radio"]) {
+  color: #374151 !important; /* gray-700 - darker text for radio labels */
+}
+
+/* Ensure radio button labels are dark */
+label input[type="radio"] {
+  color: #374151 !important;
+}

@@ -93,7 +93,7 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
             工番（前番）
           </label>
           <div className="flex gap-4">
-            <label className="flex items-center">
+            <label className="flex items-center text-gray-700">
               <input
                 type="radio"
                 name={`workNumberFront-${item.id}`}
@@ -104,7 +104,7 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
               />
               5927（前期）
             </label>
-            <label className="flex items-center">
+            <label className="flex items-center text-gray-700">
               <input
                 type="radio"
                 name={`workNumberFront-${item.id}`}
