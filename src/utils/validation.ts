@@ -10,7 +10,7 @@ export const WorkItemSchema = z.object({
   name: z.string().min(1, '名称は必須です'),
   startTime: z.string().min(1, '作業開始時間は必須です'),
   endTime: z.string().min(1, '作業終了時間は必須です'),
-  machineType: z.string().min(1, '機械種類は必須です'),
+  machineType: z.string().min(1, '機械種類はまたは該当なしは必須です'),
   remarks: z.string().optional() // 備考は任意
 }).refine((data) => {
   // 開始時間と終了時間が入力されている場合のみ0分チェックを実行
@@ -28,18 +28,6 @@ export const DailyReportSchema = z.object({
   date: z.string().min(1, '日付は必須です'),
   workerName: z.string().min(1, '作業者名は必須です'),
   workItems: z.array(WorkItemSchema).min(1, '作業項目は1つ以上必要です')
-}).refine((data) => {
-  // 合計時間を計算
-  const totalHours = data.workItems.reduce((total, item) => {
-    const workTime = calculateWorkTime(item.startTime, item.endTime, item.remarks);
-    return total + workTime;
-  }, 0);
-  
-  // 8時間以上であることをチェック
-  return totalHours >= 8;
-}, {
-  message: '合計作業時間が8時間未満です。8時間以上になるように作業時間を調整してください。',
-  path: ['workItems'] // エラーメッセージを作業項目フィールドに表示
 });
 
 // バリデーションエラーの型
@@ -82,7 +70,7 @@ export const fieldNameMap: Record<string, string> = {
   'customerName': '客先名',
   'workNumberFront': '工番（前番）',
   'workNumberBack': '工番（後番）',
-  'name': '名称',
+  'name': '作業名称',
   'startTime': '作業開始時間',
   'endTime': '作業終了時間',
   'machineType': '機械種類',

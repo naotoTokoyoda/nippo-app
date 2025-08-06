@@ -5,6 +5,8 @@ import { WorkItemData } from './DailyReport';
 import { ValidationError } from '@/utils/validation';
 import { generateTimeOptions } from '@/utils/timeCalculation';
 import { validateWorkItem } from '@/utils/validation';
+import { checkTimeContinuity, TimeContinuityCheck } from '@/utils/timeValidation';
+import { useReportStore } from '@/stores/reportStore';
 import ClientNameInput from './ClientNameInput';
 
 interface WorkItemProps {
@@ -13,9 +15,14 @@ interface WorkItemProps {
   onUpdate: (updates: Partial<WorkItemData>) => void;
   onRemove: () => void;
   showValidation?: boolean;
+  workerName?: string;
+  currentDate?: string;
+  hideControls?: boolean;
 }
 
-export default function WorkItem({ item, index, onUpdate, onRemove, showValidation = false }: WorkItemProps) {
+export default function WorkItem({ item, index, onUpdate, onRemove, showValidation = false, workerName, currentDate, hideControls = false }: WorkItemProps) {
+  const reports = useReportStore((state) => state.reports);
+  
   // 現場のメイン稼働時間（8:00-17:00）とその他に分ける
   const mainWorkTimes = generateTimeOptions(8, 17).filter(time => {
     const [hour, minute] = time.split(':').map(Number);
@@ -28,6 +35,7 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
   ];
 
   const [errors, setErrors] = useState<ValidationError[]>([]);
+  const [timeContinuityCheck, setTimeContinuityCheck] = useState<TimeContinuityCheck | null>(null);
 
   // バリデーション実行
   useEffect(() => {
@@ -44,6 +52,16 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
     }
   }, [item, showValidation]);
 
+  // 時間継続性チェック
+  useEffect(() => {
+    if (item.startTime && item.endTime && workerName && currentDate) {
+      const check = checkTimeContinuity(item.startTime, item.endTime, workerName, reports, currentDate);
+      setTimeContinuityCheck(check);
+    } else {
+      setTimeContinuityCheck(null);
+    }
+  }, [item.startTime, item.endTime, workerName, currentDate, reports]);
+
   // エラーメッセージを取得
   const getErrorMessage = (fieldName: string): string | null => {
     const error = errors.find(err => err.field === fieldName);
@@ -59,16 +77,18 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
   };
 
   return (
-    <div className="border border-gray-200 rounded-lg p-6 bg-white shadow-sm">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold text-gray-800">作業 {index}</h3>
-        <button
-          onClick={onRemove}
-          className="px-3 py-1 text-red-600 hover:bg-red-50 rounded-md transition-colors"
-        >
-          削除
-        </button>
-      </div>
+    <div className="border border-gray-200 rounded-lg p-6 bg-white">
+      {!hideControls && (
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-gray-800">作業 {index}</h3>
+          <button
+            onClick={onRemove}
+            className="px-3 py-1 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+          >
+            削除
+          </button>
+        </div>
+      )}
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* 客先名 */}
@@ -93,30 +113,16 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
           <label className="block text-sm font-medium text-gray-700 mb-2">
             工番（前番）
           </label>
-          <div className="flex gap-4">
-            <label className="flex items-center text-gray-700">
-              <input
-                type="radio"
-                name={`workNumberFront-${item.id}`}
-                value="5927"
-                checked={item.workNumberFront === "5927"}
-                onChange={(e) => onUpdate({ workNumberFront: e.target.value })}
-                className="mr-2"
-              />
-              5927（前期）
-            </label>
-            <label className="flex items-center text-gray-700">
-              <input
-                type="radio"
-                name={`workNumberFront-${item.id}`}
-                value="6028"
-                checked={item.workNumberFront === "6028"}
-                onChange={(e) => onUpdate({ workNumberFront: e.target.value })}
-                className="mr-2"
-              />
-              6028（当期）
-            </label>
-          </div>
+          <select
+            value={item.workNumberFront}
+            onChange={(e) => onUpdate({ workNumberFront: e.target.value })}
+            className={getFieldClassName('workNumberFront', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
+          >
+            <option value=""></option>
+            <option value="5927">5927（前期）</option>
+            <option value="6028">6028（当期）</option>
+            <option value="6129">6129（次期）</option>
+          </select>
           <p className="text-xs text-gray-500 mt-1">どちらかを選択してください。</p>
           {getErrorMessage('workNumberFront') && (
             <p className="text-xs text-red-600 mt-1">{getErrorMessage('workNumberFront')}</p>
@@ -140,10 +146,10 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
           )}
         </div>
 
-        {/* 名称 */}
+        {/* 作業名称 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            名称
+            作業名称
           </label>
           <input
             type="text"
@@ -222,11 +228,18 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
             className={getFieldClassName('machineType', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
           >
             <option value=""></option>
-            <option value="旋盤">旋盤</option>
-            <option value="フライス盤">フライス盤</option>
-            <option value="ボール盤">ボール盤</option>
-            <option value="研削盤">研削盤</option>
-            <option value="その他">その他</option>
+            <option value="MILLAC 1052 VII">MILLAC 1052 VII</option>
+            <option value="MILLAC 761 VII">MILLAC 761 VII</option>
+            <option value="250 : NC旋盤マザック">250 : NC旋盤マザック</option>
+            <option value="350 : NC旋盤マザック">350 : NC旋盤マザック</option>
+            <option value="スマート250 L : NC旋盤">スマート250 L : NC旋盤</option>
+            <option value="Mazak REX">Mazak REX</option>
+            <option value="Mazatrol M-32">Mazatrol M-32</option>
+            <option value="正面盤 : Chubu LF 500">正面盤 : Chubu LF 500</option>
+            <option value="12尺 : 汎用旋盤">12尺 : 汎用旋盤</option>
+            <option value="汎用旋盤">汎用旋盤</option>
+            <option value="溶接">溶接</option>
+            <option value="該当なし">該当なし</option>
           </select>
           <p className="text-xs text-gray-500 mt-1">作業時間を明確にするため、使用した機械の記入を必ずお願いします。</p>
           {getErrorMessage('machineType') && (
@@ -235,14 +248,14 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
         </div>
 
         {/* 備考 */}
-        <div className="mt-4">
+        <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             備考
           </label>
           <textarea
             value={item.remarks}
             onChange={(e) => onUpdate({ remarks: e.target.value })}
-            rows={3}
+            rows={1}
             className={getFieldClassName('remarks', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
             style={{ color: item.remarks ? '#111827' : '#6b7280' }}
           />
@@ -261,7 +274,27 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
           <div className="text-sm text-gray-600">
             作業時間: {item.startTime} - {item.endTime}
           </div>
-          {/* isValidTimeIncrementとisZeroWorkTimeは削除されたため、この部分は削除 */}
+        </div>
+      )}
+
+      {/* 時間継続性チェックの表示（エラーの場合のみ） */}
+      {timeContinuityCheck && !timeContinuityCheck.isValid && (
+        <div className="mt-3 p-3 rounded-md bg-red-50 border border-red-200">
+          <div className="flex items-start">
+            <svg className="w-5 h-5 mr-2 mt-0.5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <div className="text-sm">
+              <p className="font-medium text-red-800">
+                {timeContinuityCheck.message}
+              </p>
+              {timeContinuityCheck.suggestedStartTime && (
+                <p className="text-xs text-gray-600 mt-1">
+                  推奨開始時間: {timeContinuityCheck.suggestedStartTime}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
