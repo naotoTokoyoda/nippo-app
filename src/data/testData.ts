@@ -306,58 +306,36 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
     workItems: [
       {
         id: '9-1',
-        customerName: '㈱TMT',
+        customerName: '客先名',
         workNumberFront: '5927',
-        workNumberBack: '13343',
-        name: 'テーパープラグ',
+        workNumberBack: '後番',
+        name: '作業名称',
         startTime: '08:00',
-        endTime: '12:00',
-        machineType: 'スマート250 L : NC旋盤',
-        remarks: ''
-      },
-      {
-        id: '9-2',
-        customerName: '㈱TMT',
-        workNumberFront: '5927',
-        workNumberBack: '13278',
-        name: 'スリーブ',
-        startTime: '13:00',
-        endTime: '17:00',
-        machineType: '350 : NC旋盤マザック',
-        remarks: ''
-      }
-    ],
-    submittedAt: '2025-08-06T17:30:00Z'
-  },
-  {
-    id: '10',
-    date: '2025-08-06',
-    workerName: '常世田博',
-    workItems: [
-      {
-        id: '10-1',
-        customerName: '㈱天昌電機社',
-        workNumberFront: '5927',
-        workNumberBack: '13314',
-        name: 'ピン',
-        startTime: '08:00',
-        endTime: '11:00',
-        machineType: '250 : NC旋盤マザック',
-        remarks: ''
-      },
-      {
-        id: '10-2',
-        customerName: '伊豆山',
-        workNumberFront: '5927',
-        workNumberBack: '13339',
-        name: 'カップリング',
-        startTime: '13:00',
-        endTime: '16:00',
+        endTime: '08:30',
         machineType: 'MILLAC 1052 VII',
         remarks: ''
       }
     ],
-    submittedAt: '2025-08-06T16:30:00Z'
+    submittedAt: '2025-08-06T08:30:00Z'
+  },
+  {
+    id: '10',
+    date: '2025-08-06',
+    workerName: '橋本正朗',
+    workItems: [
+      {
+        id: '10-1',
+        customerName: '客先名2',
+        workNumberFront: '5927',
+        workNumberBack: '後番2',
+        name: '作業名称2',
+        startTime: '08:30',
+        endTime: '09:00',
+        machineType: '該当なし',
+        remarks: ''
+      }
+    ],
+    submittedAt: '2025-08-06T09:00:00Z'
   },
   {
     id: '11',
