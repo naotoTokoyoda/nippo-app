@@ -10,7 +10,7 @@ export const WorkItemSchema = z.object({
   name: z.string().min(1, '名称は必須です'),
   startTime: z.string().min(1, '作業開始時間は必須です'),
   endTime: z.string().min(1, '作業終了時間は必須です'),
-  machineType: z.string().min(1, '機械種類は必須です'),
+  machineType: z.string().min(1, '機械種類はまたは該当なしは必須です'),
   remarks: z.string().optional() // 備考は任意
 }).refine((data) => {
   // 開始時間と終了時間が入力されている場合のみ0分チェックを実行

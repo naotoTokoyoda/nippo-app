@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import WorkItem from '@/components/WorkItem';
+import WorkerHistory from '@/components/WorkerHistory';
 import { useRouter } from 'next/navigation';
 import { calculateWorkTime, formatTime, formatDecimalTime } from '@/utils/timeCalculation';
 import { validateDailyReport, validateBasicInfo, ValidationError } from '@/utils/validation';
@@ -244,6 +245,14 @@ export default function DailyReport() {
 
 
 
+      {/* 作業者履歴表示 */}
+      {reportData.workerName && (
+        <WorkerHistory 
+          workerName={reportData.workerName} 
+          currentDate={reportData.date} 
+        />
+      )}
+
       {/* 成功メッセージ表示 */}
       {showSuccess && (
         <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
@@ -270,60 +279,15 @@ export default function DailyReport() {
               onUpdate={(updates) => updateWorkItem(item.id, updates)}
               onRemove={() => removeWorkItem(item.id)}
               showValidation={showValidation}
+              workerName={reportData.workerName}
+              currentDate={reportData.date}
+              hideControls={true}
             />
           ))}
         </div>
-        
-        <div className="mt-6 text-center">
-          <button
-            onClick={addWorkItem}
-            className="px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors flex items-center justify-center mx-auto"
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            作業を追加
-          </button>
-        </div>
       </div>
 
-      {/* 合計時間 */}
-      {reportData.workItems.length > 0 && (
-        <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 p-6 rounded-lg mb-8 ${
-          totalHours < 8 && showValidation ? 'bg-red-50 border border-red-200' : 'bg-blue-50'
-        }`}>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              合計時間
-            </label>
-            <div className={`text-2xl font-bold ${
-              totalHours < 8 && showValidation ? 'text-red-600' : 'text-blue-600'
-            }`}>
-              {formatTime(totalHours)}
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              10進数
-            </label>
-            <div className={`text-2xl font-bold ${
-              totalHours < 8 && showValidation ? 'text-red-600' : 'text-blue-600'
-            }`}>
-              {totalDecimal} 時間
-            </div>
-          </div>
-          
-          {/* 説明文 */}
-          <div className="md:col-span-2">
-            <p className="text-xs text-gray-500 mt-2">
-              合計作業時間は8時間以上である必要があります。昼休憩時間（12:00-13:00）は自動的に差し引かれます。
-            </p>
-          </div>
-          
 
-        </div>
-      )}
 
       {/* 送信ボタン */}
       <div className="text-center">
