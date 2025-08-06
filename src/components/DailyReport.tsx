@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import WorkItem from '@/components/WorkItem';
 import WorkerHistory from '@/components/WorkerHistory';
 import { useRouter } from 'next/navigation';
@@ -66,6 +66,19 @@ export default function DailyReport() {
       remarks: ''
     }]
   });
+
+  // カウントダウンとナビゲーション処理
+  useEffect(() => {
+    if (showSuccess && countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown(prev => prev - 1);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    } else if (showSuccess && countdown === 0) {
+      router.push('/reports');
+    }
+  }, [showSuccess, countdown, router]);
 
   const addWorkItem = () => {
     const newWorkItem: WorkItemData = {
@@ -162,19 +175,7 @@ export default function DailyReport() {
     
     // 成功メッセージを表示
     setShowSuccess(true);
-    
-    // カウントダウン開始
     setCountdown(3);
-    const countdownInterval = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(countdownInterval);
-          router.push('/reports');
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
   };
 
   return (
