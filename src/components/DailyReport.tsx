@@ -202,10 +202,10 @@ export default function DailyReport() {
             value={reportData.date}
             onChange={(e) => setReportData(prev => ({ ...prev, date: e.target.value }))}
             data-field="date"
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+            className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 h-10 ${
               basicInfoErrors.some(err => err.field === 'date')
                 ? 'border-red-500 focus:ring-red-500'
-                : 'border-gray-300 focus:ring-blue-500'
+                : ''
             }`}
           />
           {basicInfoErrors.some(err => err.field === 'date') && (
@@ -223,10 +223,10 @@ export default function DailyReport() {
             value={reportData.workerName}
             onChange={(e) => setReportData(prev => ({ ...prev, workerName: e.target.value }))}
             data-field="workerName"
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+            className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 h-10 ${
               basicInfoErrors.some(err => err.field === 'workerName')
                 ? 'border-red-500 focus:ring-red-500'
-                : 'border-gray-300 focus:ring-blue-500'
+                : ''
             }`}
           >
             <option value=""></option>

@@ -82,7 +82,7 @@ export const fieldNameMap: Record<string, string> = {
   'customerName': '客先名',
   'workNumberFront': '工番（前番）',
   'workNumberBack': '工番（後番）',
-  'name': '名称',
+  'name': '作業名称',
   'startTime': '作業開始時間',
   'endTime': '作業終了時間',
   'machineType': '機械種類',

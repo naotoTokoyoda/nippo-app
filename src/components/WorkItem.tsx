@@ -93,30 +93,16 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
           <label className="block text-sm font-medium text-gray-700 mb-2">
             工番（前番）
           </label>
-          <div className="flex gap-4">
-            <label className="flex items-center text-gray-700">
-              <input
-                type="radio"
-                name={`workNumberFront-${item.id}`}
-                value="5927"
-                checked={item.workNumberFront === "5927"}
-                onChange={(e) => onUpdate({ workNumberFront: e.target.value })}
-                className="mr-2"
-              />
-              5927（前期）
-            </label>
-            <label className="flex items-center text-gray-700">
-              <input
-                type="radio"
-                name={`workNumberFront-${item.id}`}
-                value="6028"
-                checked={item.workNumberFront === "6028"}
-                onChange={(e) => onUpdate({ workNumberFront: e.target.value })}
-                className="mr-2"
-              />
-              6028（当期）
-            </label>
-          </div>
+          <select
+            value={item.workNumberFront}
+            onChange={(e) => onUpdate({ workNumberFront: e.target.value })}
+            className={getFieldClassName('workNumberFront', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
+          >
+            <option value=""></option>
+            <option value="5927">5927（前期）</option>
+            <option value="6028">6028（当期）</option>
+            <option value="6129">6129（次期）</option>
+          </select>
           <p className="text-xs text-gray-500 mt-1">どちらかを選択してください。</p>
           {getErrorMessage('workNumberFront') && (
             <p className="text-xs text-red-600 mt-1">{getErrorMessage('workNumberFront')}</p>
@@ -140,10 +126,10 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
           )}
         </div>
 
-        {/* 名称 */}
+        {/* 作業名称 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            名称
+            作業名称
           </label>
           <input
             type="text"
@@ -235,14 +221,14 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
         </div>
 
         {/* 備考 */}
-        <div className="mt-4">
+        <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             備考
           </label>
           <textarea
             value={item.remarks}
             onChange={(e) => onUpdate({ remarks: e.target.value })}
-            rows={3}
+            rows={1}
             className={getFieldClassName('remarks', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
             style={{ color: item.remarks ? '#111827' : '#6b7280' }}
           />

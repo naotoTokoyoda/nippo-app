@@ -50,7 +50,11 @@ export const WORK_ORDER_DATA = [
   { id: '6', frontNumber: '5927', backNumber: '13345', description: '多孔板', customerId: '6' },
   { id: '7', frontNumber: '5927', backNumber: '13262', description: 'フランジのネジ', customerId: '7' },
   { id: '8', frontNumber: '5927', backNumber: '13324', description: 'スタッドボルト', customerId: '1' },
-  { id: '9', frontNumber: '5927', backNumber: '13279', description: 'カラー', customerId: '3' }
+  { id: '9', frontNumber: '5927', backNumber: '13279', description: 'カラー', customerId: '3' },
+  { id: '10', frontNumber: '6028', backNumber: '14001', description: '新製品A', customerId: '1' },
+  { id: '11', frontNumber: '6028', backNumber: '14002', description: '新製品B', customerId: '2' },
+  { id: '12', frontNumber: '6129', backNumber: '15001', description: '次期製品X', customerId: '1' },
+  { id: '13', frontNumber: '6129', backNumber: '15002', description: '次期製品Y', customerId: '3' }
 ];
 
 // サンプル日報データ（将来的にはreportsテーブル）
@@ -183,9 +187,9 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
       {
         id: '5-2',
         customerName: '㈱TMT',
-        workNumberFront: '5927',
-        workNumberBack: '13324',
-        name: 'スタッドボルト',
+        workNumberFront: '6028',
+        workNumberBack: '14001',
+        name: '新製品A',
         startTime: '14:00',
         endTime: '17:00',
         machineType: '汎用旋盤',
@@ -193,6 +197,36 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
       }
     ],
     submittedAt: '2025-07-15T17:30:00Z'
+  },
+  {
+    id: '6',
+    date: '2025-07-16',
+    workerName: '橋本正朗',
+    workItems: [
+      {
+        id: '6-1',
+        customerName: '㈱天昌電機社',
+        workNumberFront: '6129',
+        workNumberBack: '15001',
+        name: '次期製品X',
+        startTime: '08:00',
+        endTime: '12:00',
+        machineType: 'MILLAC 1052 VII',
+        remarks: ''
+      },
+      {
+        id: '6-2',
+        customerName: '㈱五光',
+        workNumberFront: '6129',
+        workNumberBack: '15002',
+        name: '次期製品Y',
+        startTime: '13:00',
+        endTime: '17:00',
+        machineType: 'MILLAC 761 VII',
+        remarks: ''
+      }
+    ],
+    submittedAt: '2025-07-16T17:30:00Z'
   }
 ];
 
