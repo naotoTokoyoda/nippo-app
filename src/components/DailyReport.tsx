@@ -49,6 +49,7 @@ export default function DailyReport() {
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [basicInfoErrors, setBasicInfoErrors] = useState<ValidationError[]>([]);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [countdown, setCountdown] = useState(3);
   
   const [reportData, setReportData] = useState<DailyReportData>({
     date: new Date().toISOString().split('T')[0],
@@ -162,10 +163,18 @@ export default function DailyReport() {
     // 成功メッセージを表示
     setShowSuccess(true);
     
-    // 3秒後に一覧ページに遷移
-    setTimeout(() => {
-      router.push('/reports');
-    }, 3000);
+    // カウントダウン開始
+    setCountdown(3);
+    const countdownInterval = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          router.push('/reports');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
   return (
@@ -250,19 +259,6 @@ export default function DailyReport() {
         />
       )}
 
-      {/* 成功メッセージ表示 */}
-      {showSuccess && (
-        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <div className="flex items-center mb-2">
-            <svg className="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-            <h3 className="text-sm font-medium text-green-800">日報を送信しました！</h3>
-          </div>
-          <p className="text-sm text-green-700">3秒後に一覧ページに移動します...</p>
-        </div>
-      )}
-
       {/* 作業項目 */}
       <div className="mb-6">
         <h2 className="text-xl font-semibold text-gray-800 mb-4">作業項目</h2>
@@ -290,10 +286,10 @@ export default function DailyReport() {
       <div className="text-center">
         <button
           onClick={handleSubmit}
-          disabled={isSubmitting}
+          disabled={isSubmitting || showSuccess}
           className="px-8 py-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg font-semibold"
         >
-          {isSubmitting ? '送信中...' : '日報を送信'}
+          {isSubmitting ? '送信中...' : showSuccess ? `日報を送信しました！${countdown}秒後に一覧ページに移動します...` : '日報を送信'}
         </button>
         {(validationErrors.length > 0 || basicInfoErrors.length > 0) && (
           <p className="text-xs text-red-600 mt-2">
