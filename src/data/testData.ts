@@ -299,6 +299,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
     ],
     submittedAt: '2025-08-05T17:15:00Z'
   },
+  // 2025-08-06の橋本正朗のデータを2つの別々のレポートに分割
   {
     id: '9',
     date: '2025-08-06',
@@ -306,36 +307,44 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
     workItems: [
       {
         id: '9-1',
-        customerName: '㈱TMT',
+        customerName: '客先名',
         workNumberFront: '5927',
-        workNumberBack: '13343',
-        name: 'テーパープラグ',
+        workNumberBack: '後番',
+        name: '作業名称',
         startTime: '08:00',
-        endTime: '12:00',
-        machineType: 'スマート250 L : NC旋盤',
-        remarks: ''
-      },
-      {
-        id: '9-2',
-        customerName: '㈱TMT',
-        workNumberFront: '5927',
-        workNumberBack: '13278',
-        name: 'スリーブ',
-        startTime: '13:00',
-        endTime: '17:00',
-        machineType: '350 : NC旋盤マザック',
+        endTime: '08:30',
+        machineType: 'MILLAC 1052 VII',
         remarks: ''
       }
     ],
-    submittedAt: '2025-08-06T17:30:00Z'
+    submittedAt: '2025-08-06T08:30:00Z'
   },
   {
     id: '10',
     date: '2025-08-06',
-    workerName: '常世田博',
+    workerName: '橋本正朗',
     workItems: [
       {
         id: '10-1',
+        customerName: '客先名2',
+        workNumberFront: '5927',
+        workNumberBack: '後番2',
+        name: '作業名称2',
+        startTime: '08:30',
+        endTime: '09:00',
+        machineType: '該当なし',
+        remarks: ''
+      }
+    ],
+    submittedAt: '2025-08-06T09:00:00Z'
+  },
+  {
+    id: '11',
+    date: '2025-08-06',
+    workerName: '常世田博',
+    workItems: [
+      {
+        id: '11-1',
         customerName: '㈱天昌電機社',
         workNumberFront: '5927',
         workNumberBack: '13314',
@@ -346,7 +355,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         remarks: ''
       },
       {
-        id: '10-2',
+        id: '11-2',
         customerName: '伊豆山',
         workNumberFront: '5927',
         workNumberBack: '13339',
@@ -360,12 +369,12 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
     submittedAt: '2025-08-06T16:30:00Z'
   },
   {
-    id: '11',
+    id: '12',
     date: '2025-08-07',
     workerName: '野城喜幸',
     workItems: [
       {
-        id: '11-1',
+        id: '12-1',
         customerName: '㈱伊豆山造船所',
         workNumberFront: '5927',
         workNumberBack: '13264',
@@ -376,7 +385,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         remarks: ''
       },
       {
-        id: '11-2',
+        id: '12-2',
         customerName: '㈱五光',
         workNumberFront: '5927',
         workNumberBack: '13345',
@@ -390,12 +399,12 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
     submittedAt: '2025-08-07T17:30:00Z'
   },
   {
-    id: '12',
+    id: '13',
     date: '2025-08-07',
     workerName: '三好耕平',
     workItems: [
       {
-        id: '12-1',
+        id: '13-1',
         customerName: '㈱三友鋼機',
         workNumberFront: '5927',
         workNumberBack: '13262',
@@ -406,7 +415,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         remarks: ''
       },
       {
-        id: '12-2',
+        id: '13-2',
         customerName: '㈱TMT',
         workNumberFront: '6028',
         workNumberBack: '14001',
@@ -420,12 +429,12 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
     submittedAt: '2025-08-07T17:00:00Z'
   },
   {
-    id: '13',
+    id: '14',
     date: '2025-08-08',
     workerName: '高梨純一',
     workItems: [
       {
-        id: '13-1',
+        id: '14-1',
         customerName: 'クオール市原',
         workNumberFront: '6028',
         workNumberBack: '14002',
@@ -436,7 +445,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         remarks: '試作'
       },
       {
-        id: '13-2',
+        id: '14-2',
         customerName: '㈱天昌電機社',
         workNumberFront: '6129',
         workNumberBack: '15001',
@@ -450,12 +459,12 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
     submittedAt: '2025-08-08T17:30:00Z'
   },
   {
-    id: '14',
+    id: '15',
     date: '2025-08-08',
     workerName: '金谷晶子',
     workItems: [
       {
-        id: '14-1',
+        id: '15-1',
         customerName: '伊豆山',
         workNumberFront: '5927',
         workNumberBack: '13339',
@@ -466,7 +475,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         remarks: ''
       },
       {
-        id: '14-2',
+        id: '15-2',
         customerName: '㈱伊豆山造船所',
         workNumberFront: '5927',
         workNumberBack: '13264',
@@ -480,12 +489,12 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
     submittedAt: '2025-08-08T17:15:00Z'
   },
   {
-    id: '15',
+    id: '16',
     date: '2025-08-11',
     workerName: '（トン）シーワイ チャナラット',
     workItems: [
       {
-        id: '15-1',
+        id: '16-1',
         customerName: '㈱TMT',
         workNumberFront: '5927',
         workNumberBack: '13324',
@@ -496,7 +505,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         remarks: ''
       },
       {
-        id: '15-2',
+        id: '16-2',
         customerName: '㈱天昌電機社',
         workNumberFront: '5927',
         workNumberBack: '13279',
@@ -510,12 +519,12 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
     submittedAt: '2025-08-11T17:30:00Z'
   },
   {
-    id: '16',
+    id: '17',
     date: '2025-08-11',
     workerName: '（ポーン）テートシームアン タナーポーン',
     workItems: [
       {
-        id: '16-1',
+        id: '17-1',
         customerName: '㈱五光',
         workNumberFront: '5927',
         workNumberBack: '13345',
@@ -526,7 +535,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         remarks: ''
       },
       {
-        id: '16-2',
+        id: '17-2',
         customerName: '㈱三友鋼機',
         workNumberFront: '5927',
         workNumberBack: '13262',
@@ -540,12 +549,12 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
     submittedAt: '2025-08-11T17:15:00Z'
   },
   {
-    id: '17',
+    id: '18',
     date: '2025-08-12',
     workerName: '橋本正朗',
     workItems: [
       {
-        id: '17-1',
+        id: '18-1',
         customerName: '㈱TMT',
         workNumberFront: '5927',
         workNumberBack: '13343',
@@ -556,7 +565,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         remarks: ''
       },
       {
-        id: '17-2',
+        id: '18-2',
         customerName: '㈱TMT',
         workNumberFront: '5927',
         workNumberBack: '13278',
@@ -570,12 +579,12 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
     submittedAt: '2025-08-12T17:30:00Z'
   },
   {
-    id: '18',
+    id: '19',
     date: '2025-08-12',
     workerName: '常世田博',
     workItems: [
       {
-        id: '18-1',
+        id: '19-1',
         customerName: '㈱天昌電機社',
         workNumberFront: '5927',
         workNumberBack: '13314',
@@ -586,7 +595,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         remarks: '昼残'
       },
       {
-        id: '18-2',
+        id: '19-2',
         customerName: '伊豆山',
         workNumberFront: '5927',
         workNumberBack: '13339',
@@ -600,12 +609,12 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
     submittedAt: '2025-08-12T17:15:00Z'
   },
   {
-    id: '19',
+    id: '20',
     date: '2025-08-13',
     workerName: '野城喜幸',
     workItems: [
       {
-        id: '19-1',
+        id: '20-1',
         customerName: '㈱伊豆山造船所',
         workNumberFront: '5927',
         workNumberBack: '13264',
@@ -616,7 +625,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         remarks: ''
       },
       {
-        id: '19-2',
+        id: '20-2',
         customerName: '㈱五光',
         workNumberFront: '5927',
         workNumberBack: '13345',
@@ -630,12 +639,12 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
     submittedAt: '2025-08-13T17:30:00Z'
   },
   {
-    id: '20',
+    id: '21',
     date: '2025-08-13',
     workerName: '三好耕平',
     workItems: [
       {
-        id: '20-1',
+        id: '21-1',
         customerName: '㈱三友鋼機',
         workNumberFront: '5927',
         workNumberBack: '13262',
@@ -646,7 +655,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         remarks: ''
       },
       {
-        id: '20-2',
+        id: '21-2',
         customerName: '㈱TMT',
         workNumberFront: '6028',
         workNumberBack: '14001',
@@ -660,12 +669,12 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
     submittedAt: '2025-08-13T17:00:00Z'
   },
   {
-    id: '21',
+    id: '22',
     date: '2025-08-14',
     workerName: '高梨純一',
     workItems: [
       {
-        id: '21-1',
+        id: '22-1',
         customerName: 'クオール市原',
         workNumberFront: '6028',
         workNumberBack: '14002',
@@ -676,7 +685,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         remarks: '試作'
       },
       {
-        id: '21-2',
+        id: '22-2',
         customerName: '㈱天昌電機社',
         workNumberFront: '6129',
         workNumberBack: '15001',
@@ -690,12 +699,12 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
     submittedAt: '2025-08-14T17:30:00Z'
   },
   {
-    id: '22',
+    id: '23',
     date: '2025-08-14',
     workerName: '金谷晶子',
     workItems: [
       {
-        id: '22-1',
+        id: '23-1',
         customerName: '伊豆山',
         workNumberFront: '5927',
         workNumberBack: '13339',
@@ -706,7 +715,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         remarks: ''
       },
       {
-        id: '22-2',
+        id: '23-2',
         customerName: '㈱伊豆山造船所',
         workNumberFront: '5927',
         workNumberBack: '13264',
@@ -720,12 +729,12 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
     submittedAt: '2025-08-14T17:15:00Z'
   },
   {
-    id: '23',
+    id: '24',
     date: '2025-08-15',
     workerName: '（トン）シーワイ チャナラット',
     workItems: [
       {
-        id: '23-1',
+        id: '24-1',
         customerName: '㈱TMT',
         workNumberFront: '5927',
         workNumberBack: '13324',
@@ -736,7 +745,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         remarks: ''
       },
       {
-        id: '23-2',
+        id: '24-2',
         customerName: '㈱天昌電機社',
         workNumberFront: '5927',
         workNumberBack: '13279',
@@ -750,12 +759,12 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
     submittedAt: '2025-08-15T17:30:00Z'
   },
   {
-    id: '24',
+    id: '25',
     date: '2025-08-15',
     workerName: '（ポーン）テートシームアン タナーポーン',
     workItems: [
       {
-        id: '24-1',
+        id: '25-1',
         customerName: '㈱五光',
         workNumberFront: '5927',
         workNumberBack: '13345',
@@ -766,7 +775,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         remarks: ''
       },
       {
-        id: '24-2',
+        id: '25-2',
         customerName: '㈱三友鋼機',
         workNumberFront: '5927',
         workNumberBack: '13262',
@@ -780,12 +789,12 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
     submittedAt: '2025-08-15T17:15:00Z'
   },
   {
-    id: '25',
+    id: '26',
     date: '2025-08-18',
     workerName: '橋本正朗',
     workItems: [
       {
-        id: '25-1',
+        id: '26-1',
         customerName: '㈱TMT',
         workNumberFront: '5927',
         workNumberBack: '13343',
@@ -796,7 +805,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         remarks: ''
       },
       {
-        id: '25-2',
+        id: '26-2',
         customerName: '㈱TMT',
         workNumberFront: '5927',
         workNumberBack: '13278',
@@ -810,12 +819,12 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
     submittedAt: '2025-08-18T17:30:00Z'
   },
   {
-    id: '26',
+    id: '27',
     date: '2025-08-18',
     workerName: '常世田博',
     workItems: [
       {
-        id: '26-1',
+        id: '27-1',
         customerName: '㈱天昌電機社',
         workNumberFront: '5927',
         workNumberBack: '13314',
@@ -826,7 +835,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         remarks: '昼残'
       },
       {
-        id: '26-2',
+        id: '27-2',
         customerName: '伊豆山',
         workNumberFront: '5927',
         workNumberBack: '13339',
@@ -840,12 +849,12 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
     submittedAt: '2025-08-18T17:15:00Z'
   },
   {
-    id: '27',
+    id: '28',
     date: '2025-08-19',
     workerName: '野城喜幸',
     workItems: [
       {
-        id: '27-1',
+        id: '28-1',
         customerName: '㈱伊豆山造船所',
         workNumberFront: '5927',
         workNumberBack: '13264',
@@ -856,7 +865,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         remarks: ''
       },
       {
-        id: '27-2',
+        id: '28-2',
         customerName: '㈱五光',
         workNumberFront: '5927',
         workNumberBack: '13345',
@@ -870,12 +879,12 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
     submittedAt: '2025-08-19T17:30:00Z'
   },
   {
-    id: '28',
+    id: '29',
     date: '2025-08-19',
     workerName: '三好耕平',
     workItems: [
       {
-        id: '28-1',
+        id: '29-1',
         customerName: '㈱三友鋼機',
         workNumberFront: '5927',
         workNumberBack: '13262',
@@ -886,7 +895,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         remarks: ''
       },
       {
-        id: '28-2',
+        id: '29-2',
         customerName: '㈱TMT',
         workNumberFront: '6028',
         workNumberBack: '14001',
@@ -900,12 +909,12 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
     submittedAt: '2025-08-19T17:00:00Z'
   },
   {
-    id: '29',
+    id: '30',
     date: '2025-08-20',
     workerName: '高梨純一',
     workItems: [
       {
-        id: '29-1',
+        id: '30-1',
         customerName: 'クオール市原',
         workNumberFront: '6028',
         workNumberBack: '14002',
@@ -916,7 +925,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         remarks: '試作'
       },
       {
-        id: '29-2',
+        id: '30-2',
         customerName: '㈱天昌電機社',
         workNumberFront: '6129',
         workNumberBack: '15001',
@@ -930,12 +939,12 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
     submittedAt: '2025-08-20T17:30:00Z'
   },
   {
-    id: '30',
+    id: '31',
     date: '2025-08-20',
     workerName: '金谷晶子',
     workItems: [
       {
-        id: '30-1',
+        id: '31-1',
         customerName: '伊豆山',
         workNumberFront: '5927',
         workNumberBack: '13339',
@@ -946,7 +955,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         remarks: ''
       },
       {
-        id: '30-2',
+        id: '31-2',
         customerName: '㈱伊豆山造船所',
         workNumberFront: '5927',
         workNumberBack: '13264',
