@@ -34,9 +34,31 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
   // 指定された日付の投稿を取得
   const todayReport = useMemo(() => {
     if (!workerName || !currentDate) return null;
-    return reports.find(report => 
+    
+    // 同じ日付の複数のレポートを取得
+    const todayReports = reports.filter(report => 
       report.workerName === workerName && report.date === currentDate
     );
+    
+    // 複数のレポートがある場合は、すべての作業項目を統合した仮想的なレポートを作成
+    if (todayReports.length > 0) {
+      const allWorkItems = todayReports.flatMap(report => 
+        report.workItems.map(item => ({
+          ...item,
+          // ユニークなキーを生成するためにレポートIDを追加
+          uniqueId: `${report.id}-${item.id}`
+        }))
+      );
+      return {
+        id: 'combined',
+        date: currentDate,
+        workerName: workerName,
+        workItems: allWorkItems,
+        submittedAt: todayReports[0].submittedAt
+      };
+    }
+    
+    return null;
   }, [reports, workerName, currentDate]);
 
   // 今日の合計作業時間を計算（分単位）
@@ -115,10 +137,12 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
           </h4>
           
           <div className="space-y-2">
-            {todayReport.workItems.map((item, index) => {
+            {todayReport.workItems
+              .sort((a, b) => new Date(`2000-01-01T${a.startTime}`).getTime() - new Date(`2000-01-01T${b.startTime}`).getTime())
+              .map((item, index) => {
               const workTime = calculateWorkTime(item.startTime, item.endTime, item.remarks);
               return (
-                <div key={item.id} className="p-3 bg-white rounded border border-yellow-200">
+                <div key={item.uniqueId || item.id} className="p-3 bg-white rounded border border-yellow-200">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                     <div>
                       <span className="font-medium text-gray-700">作業 {index + 1}:</span>
@@ -167,7 +191,8 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
             <div className="mt-2 p-2 bg-yellow-100 rounded text-xs">
               <span className="font-medium text-yellow-800">今日の最終作業終了時間:</span>
               <span className="ml-2 text-yellow-700">
-                {todayReport.workItems[todayReport.workItems.length - 1].endTime}
+                {todayReport.workItems
+                  .sort((a, b) => new Date(`2000-01-01T${b.endTime}`).getTime() - new Date(`2000-01-01T${a.endTime}`).getTime())[0].endTime}
               </span>
             </div>
           )}
@@ -182,7 +207,9 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
           </h4>
           
           <div className="space-y-2">
-            {latestReport.workItems.map((item, index) => {
+            {latestReport.workItems
+              .sort((a, b) => new Date(`2000-01-01T${a.startTime}`).getTime() - new Date(`2000-01-01T${b.startTime}`).getTime())
+              .map((item, index) => {
               const workTime = calculateWorkTime(item.startTime, item.endTime, item.remarks);
               return (
                 <div key={item.id} className="p-3 bg-white border border-blue-200 rounded-md">
@@ -234,7 +261,8 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
               <span className="font-medium">前回の最終作業終了時間:</span>
               <span className="ml-2">
                 {latestReport.workItems.length > 0 
-                  ? latestReport.workItems[latestReport.workItems.length - 1].endTime 
+                  ? latestReport.workItems
+                      .sort((a, b) => new Date(`2000-01-01T${b.endTime}`).getTime() - new Date(`2000-01-01T${a.endTime}`).getTime())[0].endTime
                   : 'なし'}
               </span>
             </div>
