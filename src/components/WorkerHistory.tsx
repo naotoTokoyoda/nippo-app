@@ -185,19 +185,19 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
               );
             })}
           </div>
-          
-          {/* 今日の最終作業終了時間 */}
-          {todayReport.workItems.length > 0 && (
-            <div className="mt-3 p-3 bg-gray-100 border border-gray-200 rounded-md">
-              <div className="text-sm text-gray-800">
-                <span className="font-medium">今日の最終作業終了時間:</span>
-                <span className="ml-2">
-                  {todayReport.workItems
-                    .sort((a, b) => new Date(`2000-01-01T${b.endTime}`).getTime() - new Date(`2000-01-01T${a.endTime}`).getTime())[0].endTime}
-                </span>
-              </div>
-            </div>
-          )}
+        </div>
+      )}
+
+      {/* 今日の最終作業終了時間 */}
+      {todayReport && todayReport.workItems.length > 0 && (
+        <div className="mb-4 p-3 bg-gray-100 border border-gray-200 rounded-md">
+          <div className="text-sm text-gray-800">
+            <span className="font-medium">今日の最終作業終了時間:</span>
+            <span className="ml-2">
+              {todayReport.workItems
+                .sort((a, b) => new Date(`2000-01-01T${b.endTime}`).getTime() - new Date(`2000-01-01T${a.endTime}`).getTime())[0].endTime}
+            </span>
+          </div>
         </div>
       )}
 
