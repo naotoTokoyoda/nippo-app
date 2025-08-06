@@ -118,28 +118,44 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
             {todayReport.workItems.map((item, index) => {
               const workTime = calculateWorkTime(item.startTime, item.endTime, item.remarks);
               return (
-                <div key={item.id} className="p-2 bg-white rounded border border-yellow-200">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-1 text-xs">
+                <div key={item.id} className="p-3 bg-white rounded border border-yellow-200">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                     <div>
                       <span className="font-medium text-gray-700">作業 {index + 1}:</span>
-                      <span className="ml-1 text-gray-600">{item.name}</span>
+                      <span className="ml-2 text-gray-600">{item.name}</span>
                     </div>
                     <div>
                       <span className="font-medium text-gray-700">客先:</span>
-                      <span className="ml-1 text-gray-600">{item.customerName}</span>
+                      <span className="ml-2 text-gray-600">{item.customerName}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-700">工番:</span>
+                      <span className="ml-2 text-gray-600">
+                        {item.workNumberFront} - {item.workNumberBack}
+                      </span>
                     </div>
                     <div>
                       <span className="font-medium text-gray-700">時間:</span>
-                      <span className="ml-1 text-gray-600">
+                      <span className="ml-2 text-gray-600">
                         {item.startTime} - {item.endTime}
                       </span>
                     </div>
                     <div>
+                      <span className="font-medium text-gray-700">機械:</span>
+                      <span className="ml-2 text-gray-600">{item.machineType}</span>
+                    </div>
+                    <div>
                       <span className="font-medium text-gray-700">作業時間:</span>
-                      <span className="ml-1 text-gray-600">
+                      <span className="ml-2 text-gray-600">
                         {formatTime(workTime)} ({formatDecimalTime(workTime)}時間)
                       </span>
                     </div>
+                    {item.remarks && (
+                      <div className="md:col-span-2">
+                        <span className="font-medium text-gray-700">備考:</span>
+                        <span className="ml-2 text-gray-600">{item.remarks}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -229,7 +245,7 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
       {!latestReport && !hasTodayReport && (
         <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
           <p className="text-sm text-gray-600">
-            この作業者の投稿履歴はありません
+            投稿履歴はありません
           </p>
         </div>
       )}

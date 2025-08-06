@@ -107,9 +107,6 @@ export default function DailyReport() {
     }, 0);
   };
 
-  const totalHours = calculateTotalTime();
-  const totalDecimal = formatDecimalTime(totalHours);
-
   // 基本情報のリアルタイムバリデーション
   React.useEffect(() => {
     // 最初にページを開いた時はエラーメッセージを表示しない
@@ -293,7 +290,7 @@ export default function DailyReport() {
       <div className="text-center">
         <button
           onClick={handleSubmit}
-          disabled={isSubmitting || (totalHours < 8 && showValidation)}
+          disabled={isSubmitting}
           className="px-8 py-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg font-semibold"
         >
           {isSubmitting ? '送信中...' : '日報を送信'}

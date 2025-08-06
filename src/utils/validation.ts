@@ -28,18 +28,6 @@ export const DailyReportSchema = z.object({
   date: z.string().min(1, '日付は必須です'),
   workerName: z.string().min(1, '作業者名は必須です'),
   workItems: z.array(WorkItemSchema).min(1, '作業項目は1つ以上必要です')
-}).refine((data) => {
-  // 合計時間を計算
-  const totalHours = data.workItems.reduce((total, item) => {
-    const workTime = calculateWorkTime(item.startTime, item.endTime, item.remarks);
-    return total + workTime;
-  }, 0);
-  
-  // 8時間以上であることをチェック
-  return totalHours >= 8;
-}, {
-  message: '合計作業時間が8時間未満です。8時間以上になるように作業時間を調整してください。',
-  path: ['workItems'] // エラーメッセージを作業項目フィールドに表示
 });
 
 // バリデーションエラーの型
