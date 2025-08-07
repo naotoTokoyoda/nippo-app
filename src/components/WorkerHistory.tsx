@@ -145,11 +145,11 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
                 <div key={item.uniqueId || item.id} className="p-3 bg-white rounded border border-yellow-200">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                     <div>
-                      <span className="font-medium text-gray-700">作業 {index + 1}:</span>
+                      <span className="font-medium text-gray-700">作業名称 {index + 1}:</span>
                       <span className="ml-2 text-gray-600">{item.name}</span>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-700">客先:</span>
+                      <span className="font-medium text-gray-700">客先名:</span>
                       <span className="ml-2 text-gray-600">{item.customerName}</span>
                     </div>
                     <div>
@@ -165,13 +165,13 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
                       </span>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-700">機械:</span>
+                      <span className="font-medium text-gray-700">機械種類:</span>
                       <span className="ml-2 text-gray-600">{item.machineType}</span>
                     </div>
                     <div>
                       <span className="font-medium text-gray-700">作業時間:</span>
                       <span className="ml-2 text-gray-600">
-                        {formatTime(workTime)} ({formatDecimalTime(workTime)}時間)
+                        {formatTime(workTime)} ({workTime.toFixed(2)}時間)
                       </span>
                     </div>
                     {item.remarks && (
