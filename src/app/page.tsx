@@ -11,6 +11,7 @@ export default function Home() {
   const reports = useReportStore((state) => state.reports);
   
   const isProduction = getEnvironment() === 'production';
+  const isDevelopment = getEnvironment() === 'development';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -52,8 +53,8 @@ export default function Home() {
           </Link>
         </div>
 
-        {/* テストデータ管理 - 本番環境では非表示 */}
-        {!isProduction && (
+        {/* テストデータ管理 - develop環境でのみ表示 */}
+        {isDevelopment && (
           <div className="mt-8 text-center">
             <div className="bg-white rounded-lg shadow-sm p-6 max-w-2xl mx-auto">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">テストデータ管理</h3>
