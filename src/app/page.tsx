@@ -20,7 +20,7 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto">
           {/* 日報入力ボタン */}
           <Link href="/daily-report">
-            <div className="bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 cursor-pointer border border-gray-100">
+            <div className="bg-white rounded-xl shadow-lg p-8 cursor-pointer border border-gray-100 h-full">
               <div className="text-center">
                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -35,7 +35,7 @@ export default function Home() {
 
           {/* 日報一覧ボタン */}
           <Link href="/reports">
-            <div className="bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 cursor-pointer border border-gray-100">
+            <div className="bg-white rounded-xl shadow-lg p-8 cursor-pointer border border-gray-100 h-full">
               <div className="text-center">
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -44,11 +44,6 @@ export default function Home() {
                 </div>
                 <h2 className="text-2xl font-semibold text-gray-800 mb-2">日報一覧</h2>
                 <p className="text-gray-600">送信された日報を確認・管理します</p>
-                {reports.length > 0 && (
-                  <div className="mt-2 text-sm text-blue-600">
-                    {reports.length}件の日報
-                  </div>
-                )}
               </div>
             </div>
           </Link>
@@ -79,26 +74,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 機能概要 */}
-        <div className="mt-8 text-center">
-          <div className="bg-white rounded-lg shadow-sm p-6 max-w-2xl mx-auto">
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">機能概要</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
-              <div>
-                <div className="font-medium text-blue-600 mb-1">📝 日報作成</div>
-                <div>複数の作業項目を追加可能</div>
-              </div>
-              <div>
-                <div className="font-medium text-green-600 mb-1">🔍 フィルタリング</div>
-                <div>日付・作業者・客先で検索</div>
-              </div>
-              <div>
-                <div className="font-medium text-purple-600 mb-1">⏱️ 時間計算</div>
-                <div>自動で合計時間を算出</div>
-              </div>
-            </div>
-          </div>
-        </div>
+
       </div>
     </div>
   );
