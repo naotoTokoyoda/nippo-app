@@ -10,9 +10,7 @@ import DatabaseClientNameInput from './DatabaseClientNameInput';
 export default function ReportsList() {
   const reports = useReportStore((state) => state.reports);
   const deleteReport = useReportStore((state) => state.deleteReport);
-  const loadTestData = useReportStore((state) => state.loadTestData);
   const clearAllData = useReportStore((state) => state.clearAllData);
-  const isTestDataLoaded = useReportStore((state) => state.isTestDataLoaded);
   
   const router = useRouter();
   

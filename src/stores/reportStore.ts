@@ -1,17 +1,14 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { DailyReportData } from '@/components/DailyReport'
-import { SAMPLE_REPORTS } from '@/data/testData'
 
 interface ReportStore {
   // 状態
   reports: DailyReportData[]
-  isTestDataLoaded: boolean
   
   // アクション
   addReport: (report: DailyReportData) => void
   deleteReport: (id: string) => void
-  loadTestData: () => void
   clearAllData: () => void
 }
 
@@ -20,7 +17,6 @@ export const useReportStore = create<ReportStore>()(
     (set, get) => ({
       // 初期状態
       reports: [],
-      isTestDataLoaded: false,
 
       // レポートを追加
       addReport: (report: DailyReportData) => {
@@ -41,19 +37,10 @@ export const useReportStore = create<ReportStore>()(
         }));
       },
 
-      // テストデータを読み込み
-      loadTestData: () => {
-        set({
-          reports: SAMPLE_REPORTS,
-          isTestDataLoaded: true
-        });
-      },
-
       // 全データをクリア
       clearAllData: () => {
         set({
-          reports: [],
-          isTestDataLoaded: false
+          reports: []
         });
       },
     }),
