@@ -64,7 +64,9 @@ export default function ReportsList() {
         if (!item.customerName.toLowerCase().includes(filters.customerName.toLowerCase())) return false;
       }
       if (filters.workNumberFront && item.workNumberFront !== filters.workNumberFront) return false;
-      if (filters.workNumberBack && item.workNumberBack !== filters.workNumberBack) return false;
+      if (filters.workNumberBack) {
+        if (!item.workNumberBack.toLowerCase().includes(filters.workNumberBack.toLowerCase())) return false;
+      }
       if (filters.machineType && item.machineType !== filters.machineType) return false;
       return true;
     });
@@ -144,7 +146,7 @@ export default function ReportsList() {
             <select
               value={filters.month}
               onChange={(e) => setFilters(prev => ({ ...prev, month: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+              className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
             >
               <option value="">すべての月</option>
               {availableMonths.map(month => {
@@ -162,7 +164,7 @@ export default function ReportsList() {
             <select
               value={filters.workerName}
               onChange={(e) => setFilters(prev => ({ ...prev, workerName: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+              className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
             >
               <option value="">すべて</option>
               {uniqueWorkers.map(worker => (
@@ -178,7 +180,7 @@ export default function ReportsList() {
               onChange={(value) => setFilters(prev => ({ ...prev, customerName: value }))}
               availableNames={uniqueCustomerNames}
               placeholder="客先名を入力"
-              className="text-gray-900"
+              className="text-gray-900 h-10"
             />
           </div>
           
@@ -187,7 +189,7 @@ export default function ReportsList() {
             <select
               value={filters.workNumberFront}
               onChange={(e) => setFilters(prev => ({ ...prev, workNumberFront: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+              className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
             >
               <option value="">すべて</option>
               {uniqueWorkNumbers.map(number => (
@@ -198,16 +200,13 @@ export default function ReportsList() {
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">工番（後番）</label>
-            <select
+            <input
+              type="text"
               value={filters.workNumberBack}
               onChange={(e) => setFilters(prev => ({ ...prev, workNumberBack: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-            >
-              <option value="">すべて</option>
-              {uniqueWorkNumbersBack.map(number => (
-                <option key={number} value={number}>{number}</option>
-              ))}
-            </select>
+              placeholder="工番（後番）を入力"
+              className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+            />
           </div>
           
           <div>
@@ -215,7 +214,7 @@ export default function ReportsList() {
             <select
               value={filters.machineType}
               onChange={(e) => setFilters(prev => ({ ...prev, machineType: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+              className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
             >
               <option value="">すべて</option>
               {uniqueMachineTypes.map(type => (
