@@ -18,10 +18,6 @@ export default function ReportsList() {
   const router = useRouter();
   const isDevelopment = getEnvironment() === 'development' || getEnvironment() === 'local';
   
-  // ページネーション設定
-  const ITEMS_PER_PAGE = 50;
-  const [currentPage, setCurrentPage] = useState(1);
-  
   // 利用可能な年月の取得
   const availableMonths = useMemo(() => {
     const months = new Set<string>();
@@ -83,18 +79,6 @@ export default function ReportsList() {
     });
   }, [allWorkItems, filters]);
 
-  // ページネーション計算
-  const totalPages = Math.ceil(filteredWorkItems.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const paginatedItems = filteredWorkItems.slice(startIndex, endIndex);
-
-  // フィルター変更時にページを1に戻す
-  const handleFilterChange = (newFilters: typeof filters) => {
-    setFilters(newFilters);
-    setCurrentPage(1);
-  };
-
   // ユニークな値の取得
   const uniqueWorkers = [...new Set(reports.map(r => r.workerName))].filter(Boolean);
   const uniqueCustomerNames = [...new Set(allWorkItems.map(w => w.customerName))].filter(Boolean);
@@ -111,7 +95,6 @@ export default function ReportsList() {
       workNumberBack: '',
       machineType: ''
     });
-    setCurrentPage(1);
   };
 
   return (
@@ -169,7 +152,7 @@ export default function ReportsList() {
             <label className="block text-sm font-medium text-gray-700 mb-2">年月</label>
             <select
               value={filters.month}
-              onChange={(e) => handleFilterChange({ ...filters, month: e.target.value })}
+              onChange={(e) => setFilters(prev => ({ ...prev, month: e.target.value }))}
               className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
             >
               {availableMonths.map(month => {
@@ -186,7 +169,7 @@ export default function ReportsList() {
             <label className="block text-sm font-medium text-gray-700 mb-2">作業者名</label>
             <select
               value={filters.workerName}
-              onChange={(e) => handleFilterChange({ ...filters, workerName: e.target.value })}
+              onChange={(e) => setFilters(prev => ({ ...prev, workerName: e.target.value }))}
               className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
             >
               <option value="">すべて</option>
@@ -200,7 +183,7 @@ export default function ReportsList() {
             <label className="block text-sm font-medium text-gray-700 mb-2">客先名</label>
             <DatabaseClientNameInput
               value={filters.customerName}
-              onChange={(value) => handleFilterChange({ ...filters, customerName: value })}
+              onChange={(value) => setFilters(prev => ({ ...prev, customerName: value }))}
               availableNames={uniqueCustomerNames}
               placeholder="客先名を入力"
               className="text-gray-900 h-10"
@@ -211,7 +194,7 @@ export default function ReportsList() {
             <label className="block text-sm font-medium text-gray-700 mb-2">工番（前番）</label>
             <select
               value={filters.workNumberFront}
-              onChange={(e) => handleFilterChange({ ...filters, workNumberFront: e.target.value })}
+              onChange={(e) => setFilters(prev => ({ ...prev, workNumberFront: e.target.value }))}
               className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
             >
               <option value="">すべて</option>
@@ -226,7 +209,7 @@ export default function ReportsList() {
             <input
               type="text"
               value={filters.workNumberBack}
-              onChange={(e) => handleFilterChange({ ...filters, workNumberBack: e.target.value })}
+              onChange={(e) => setFilters(prev => ({ ...prev, workNumberBack: e.target.value }))}
               placeholder="工番（後番）を入力"
               className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
             />
@@ -236,7 +219,7 @@ export default function ReportsList() {
             <label className="block text-sm font-medium text-gray-700 mb-2">機械種類</label>
             <select
               value={filters.machineType}
-              onChange={(e) => handleFilterChange({ ...filters, machineType: e.target.value })}
+              onChange={(e) => setFilters(prev => ({ ...prev, machineType: e.target.value }))}
               className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
             >
               <option value="">すべて</option>
@@ -257,21 +240,9 @@ export default function ReportsList() {
         </div>
       </div>
 
-      {/* 結果件数とページネーション情報 */}
-      <div className="mb-4 flex justify-between items-center text-sm text-gray-600">
-        <div>
-          {filteredWorkItems.length}件の作業項目が見つかりました
-          {filteredWorkItems.length > ITEMS_PER_PAGE && (
-            <span className="ml-2">
-              （{startIndex + 1}-{Math.min(endIndex, filteredWorkItems.length)}件を表示）
-            </span>
-          )}
-        </div>
-        {totalPages > 1 && (
-          <div className="text-xs text-gray-500">
-            ページ {currentPage} / {totalPages}
-          </div>
-        )}
+      {/* 結果件数 */}
+      <div className="mb-4 text-sm text-gray-600">
+        {filteredWorkItems.length}件の作業項目が見つかりました
       </div>
 
       {/* 作業項目一覧テーブル */}
@@ -295,19 +266,19 @@ export default function ReportsList() {
               </tr>
             </thead>
             <tbody className="max-h-96 overflow-y-auto">
-              {paginatedItems.length === 0 ? (
+              {filteredWorkItems.length === 0 ? (
                 <tr>
                   <td colSpan={12} className="px-3 py-8 text-center text-gray-500">
                     作業項目が見つかりません
                   </td>
                 </tr>
               ) : (
-                paginatedItems.map((item, index) => {
+                filteredWorkItems.map((item, index) => {
                   const workTime = calculateWorkTime(item.startTime, item.endTime, item.remarks);
                   const rowClass = getRowBackgroundClass(item.machineType, item.customerName);
                   return (
                     <tr key={`${item.reportId}-${item.id}`} className={`${rowClass} border-b border-gray-200 hover:bg-gray-50`}>
-                      <td className="px-3 py-3 text-gray-900 whitespace-nowrap font-medium">{startIndex + index + 1}</td>
+                      <td className="px-3 py-3 text-gray-900 whitespace-nowrap font-medium">{index + 1}</td>
                       <td className="px-3 py-3 text-gray-900 whitespace-nowrap">{item.customerName || '未入力'}</td>
                       <td className="px-3 py-3 text-gray-900 whitespace-nowrap">{item.workNumberFront}</td>
                       <td className="px-3 py-3 text-gray-900 whitespace-nowrap">{item.workNumberBack}</td>
@@ -336,56 +307,6 @@ export default function ReportsList() {
           </table>
         </div>
       </div>
-
-      {/* ページネーション */}
-      {totalPages > 1 && (
-        <div className="mt-6 flex justify-center">
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              前へ
-            </button>
-            
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pageNum;
-              if (totalPages <= 5) {
-                pageNum = i + 1;
-              } else if (currentPage <= 3) {
-                pageNum = i + 1;
-              } else if (currentPage >= totalPages - 2) {
-                pageNum = totalPages - 4 + i;
-              } else {
-                pageNum = currentPage - 2 + i;
-              }
-              
-              return (
-                <button
-                  key={pageNum}
-                  onClick={() => setCurrentPage(pageNum)}
-                  className={`px-3 py-2 text-sm border rounded-md ${
-                    currentPage === pageNum
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  {pageNum}
-                </button>
-              );
-            })}
-            
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              次へ
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 } 
