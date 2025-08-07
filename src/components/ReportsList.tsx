@@ -18,7 +18,7 @@ export default function ReportsList() {
   
   // フィルタリング状態
   const [filters, setFilters] = useState({
-    date: '',
+    month: '', // 日付を月別に変更
     workerName: '',
     customerName: '',
     workNumberFront: '',
@@ -38,10 +38,25 @@ export default function ReportsList() {
     );
   }, [reports]);
 
+  // 利用可能な年月の取得
+  const availableMonths = useMemo(() => {
+    const months = new Set<string>();
+    reports.forEach(report => {
+      if (report.date) {
+        const yearMonth = report.date.substring(0, 7); // YYYY-MM形式
+        months.add(yearMonth);
+      }
+    });
+    return Array.from(months).sort().reverse(); // 新しい順にソート
+  }, [reports]);
+
   // フィルタリングされた作業項目
   const filteredWorkItems = useMemo(() => {
     return allWorkItems.filter(item => {
-      if (filters.date && item.reportDate !== filters.date) return false;
+      if (filters.month && item.reportDate) {
+        const itemYearMonth = item.reportDate.substring(0, 7); // YYYY-MM形式
+        if (itemYearMonth !== filters.month) return false;
+      }
       if (filters.workerName && item.workerName !== filters.workerName) return false;
       if (filters.customerName) {
         if (!item.customerName.toLowerCase().includes(filters.customerName.toLowerCase())) return false;
@@ -62,7 +77,7 @@ export default function ReportsList() {
 
   const clearFilters = () => {
     setFilters({
-      date: '',
+      month: '',
       workerName: '',
       customerName: '',
       workNumberFront: '',
@@ -96,13 +111,21 @@ export default function ReportsList() {
         <h2 className="text-lg font-semibold text-gray-800 mb-4">フィルター</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">日付</label>
-            <input
-              type="date"
-              value={filters.date}
-              onChange={(e) => setFilters(prev => ({ ...prev, date: e.target.value }))}
+            <label className="block text-sm font-medium text-gray-700 mb-2">年月</label>
+            <select
+              value={filters.month}
+              onChange={(e) => setFilters(prev => ({ ...prev, month: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-            />
+            >
+              <option value="">すべての月</option>
+              {availableMonths.map(month => {
+                const [year, monthNum] = month.split('-');
+                const monthName = new Date(parseInt(year), parseInt(monthNum) - 1).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' });
+                return (
+                  <option key={month} value={month}>{monthName}</option>
+                );
+              })}
+            </select>
           </div>
           
           <div>
