@@ -18,9 +18,27 @@ export default function ReportsList() {
   const router = useRouter();
   const isDevelopment = getEnvironment() === 'development' || getEnvironment() === 'local';
   
-  // フィルタリング状態
+  // 利用可能な年月の取得
+  const availableMonths = useMemo(() => {
+    const months = new Set<string>();
+    reports.forEach(report => {
+      if (report.date) {
+        const yearMonth = report.date.substring(0, 7); // YYYY-MM形式
+        months.add(yearMonth);
+      }
+    });
+    return Array.from(months).sort().reverse(); // 新しい順にソート
+  }, [reports]);
+
+  // 現在の年月を取得
+  const currentYearMonth = useMemo(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  }, []);
+
+  // フィルタリング状態（デフォルトを当月に設定）
   const [filters, setFilters] = useState({
-    month: '', // 日付を月別に変更
+    month: currentYearMonth, // デフォルトを当月に設定
     workerName: '',
     customerName: '',
     workNumberFront: '',
@@ -40,22 +58,11 @@ export default function ReportsList() {
     );
   }, [reports]);
 
-  // 利用可能な年月の取得
-  const availableMonths = useMemo(() => {
-    const months = new Set<string>();
-    reports.forEach(report => {
-      if (report.date) {
-        const yearMonth = report.date.substring(0, 7); // YYYY-MM形式
-        months.add(yearMonth);
-      }
-    });
-    return Array.from(months).sort().reverse(); // 新しい順にソート
-  }, [reports]);
-
   // フィルタリングされた作業項目
   const filteredWorkItems = useMemo(() => {
     return allWorkItems.filter(item => {
-      if (filters.month && item.reportDate) {
+      // 月フィルターは常に適用（デフォルトは当月）
+      if (item.reportDate) {
         const itemYearMonth = item.reportDate.substring(0, 7); // YYYY-MM形式
         if (itemYearMonth !== filters.month) return false;
       }
@@ -81,7 +88,7 @@ export default function ReportsList() {
 
   const clearFilters = () => {
     setFilters({
-      month: '',
+      month: currentYearMonth,
       workerName: '',
       customerName: '',
       workNumberFront: '',
@@ -148,7 +155,6 @@ export default function ReportsList() {
               onChange={(e) => setFilters(prev => ({ ...prev, month: e.target.value }))}
               className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
             >
-              <option value="">すべての月</option>
               {availableMonths.map(month => {
                 const [year, monthNum] = month.split('-');
                 const monthName = new Date(parseInt(year), parseInt(monthNum) - 1).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' });
@@ -245,6 +251,7 @@ export default function ReportsList() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
+                <th className="px-3 py-3 text-left font-medium text-gray-700 sticky top-0 bg-gray-50 whitespace-nowrap">No</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-700 sticky top-0 bg-gray-50 whitespace-nowrap">客先名</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-700 sticky top-0 bg-gray-50 whitespace-nowrap">工番（前番）</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-700 sticky top-0 bg-gray-50 whitespace-nowrap">工番（後番）</th>
@@ -261,16 +268,17 @@ export default function ReportsList() {
             <tbody className="max-h-96 overflow-y-auto">
               {filteredWorkItems.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="px-3 py-8 text-center text-gray-500">
+                  <td colSpan={12} className="px-3 py-8 text-center text-gray-500">
                     作業項目が見つかりません
                   </td>
                 </tr>
               ) : (
-                filteredWorkItems.map((item) => {
+                filteredWorkItems.map((item, index) => {
                   const workTime = calculateWorkTime(item.startTime, item.endTime, item.remarks);
                   const rowClass = getRowBackgroundClass(item.machineType, item.customerName);
                   return (
                     <tr key={`${item.reportId}-${item.id}`} className={`${rowClass} border-b border-gray-200 hover:bg-gray-50`}>
+                      <td className="px-3 py-3 text-gray-900 whitespace-nowrap font-medium">{index + 1}</td>
                       <td className="px-3 py-3 text-gray-900 whitespace-nowrap">{item.customerName || '未入力'}</td>
                       <td className="px-3 py-3 text-gray-900 whitespace-nowrap">{item.workNumberFront}</td>
                       <td className="px-3 py-3 text-gray-900 whitespace-nowrap">{item.workNumberBack}</td>

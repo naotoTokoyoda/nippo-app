@@ -61,7 +61,7 @@ export const WORK_ORDER_DATA = [
 export const SAMPLE_REPORTS: DailyReportData[] = [
   {
     id: '1',
-    date: '2025-01-15',
+    date: '2024-11-15',
     workerName: '橋本正朗',
     workItems: [
       {
@@ -87,11 +87,11 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         remarks: ''
       }
     ],
-    submittedAt: '2025-01-15T17:30:00Z'
+    submittedAt: '2024-11-15T17:30:00Z'
   },
   {
     id: '2',
-    date: '2025-01-15',
+    date: '2024-12-03',
     workerName: '常世田博',
     workItems: [
       {
@@ -117,11 +117,11 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         remarks: ''
       }
     ],
-    submittedAt: '2025-01-15T17:15:00Z'
+    submittedAt: '2024-12-03T17:15:00Z'
   },
   {
     id: '3',
-    date: '2025-01-16',
+    date: '2024-12-18',
     workerName: '野城喜幸',
     workItems: [
       {
@@ -147,11 +147,11 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         remarks: ''
       }
     ],
-    submittedAt: '2025-01-16T17:30:00Z'
+    submittedAt: '2024-12-18T17:30:00Z'
   },
   {
     id: '4',
-    date: '2025-01-16',
+    date: '2025-01-08',
     workerName: '三好耕平',
     workItems: [
       {
@@ -177,11 +177,11 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         remarks: ''
       }
     ],
-    submittedAt: '2025-01-16T17:00:00Z'
+    submittedAt: '2025-01-08T17:00:00Z'
   },
   {
     id: '5',
-    date: '2025-01-17',
+    date: '2025-01-22',
     workerName: '高梨純一',
     workItems: [
       {
@@ -207,7 +207,157 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         remarks: ''
       }
     ],
-    submittedAt: '2025-01-17T17:30:00Z'
+    submittedAt: '2025-01-22T17:30:00Z'
+  },
+  {
+    id: '6',
+    date: '2025-02-05',
+    workerName: '金谷晶子',
+    workItems: [
+      {
+        id: '6-1',
+        customerName: '㈱TMT',
+        workNumberFront: '6129',
+        workNumberBack: '15002',
+        name: '次期製品Y',
+        startTime: '08:00',
+        endTime: '12:00',
+        machineType: 'MILLAC 1052 VII',
+        remarks: '新規開発'
+      },
+      {
+        id: '6-2',
+        customerName: '㈱五光',
+        workNumberFront: '5927',
+        workNumberBack: '13324',
+        name: 'スタッドボルト',
+        startTime: '13:00',
+        endTime: '17:00',
+        machineType: '250 : NC旋盤マザック',
+        remarks: ''
+      }
+    ],
+    submittedAt: '2025-02-05T17:30:00Z'
+  },
+  {
+    id: '7',
+    date: '2025-02-14',
+    workerName: '（トン）シーワイ チャナラット',
+    workItems: [
+      {
+        id: '7-1',
+        customerName: '㈱天昌電機社',
+        workNumberFront: '5927',
+        workNumberBack: '13279',
+        name: 'カラー',
+        startTime: '08:00',
+        endTime: '11:00',
+        machineType: '350 : NC旋盤マザック',
+        remarks: '精密加工'
+      },
+      {
+        id: '7-2',
+        customerName: '伊豆山',
+        workNumberFront: '6028',
+        workNumberBack: '14001',
+        name: '新製品A',
+        startTime: '13:00',
+        endTime: '17:00',
+        machineType: 'MILLAC 761 VII',
+        remarks: ''
+      }
+    ],
+    submittedAt: '2025-02-14T17:15:00Z'
+  },
+  {
+    id: '8',
+    date: '2025-03-03',
+    workerName: '（ポーン）テートシームアン タナーポーン',
+    workItems: [
+      {
+        id: '8-1',
+        customerName: '㈱三友鋼機',
+        workNumberFront: '6129',
+        workNumberBack: '15001',
+        name: '次期製品X',
+        startTime: '08:00',
+        endTime: '12:00',
+        machineType: '正面盤 : Chubu LF 500',
+        remarks: '試作段階'
+      },
+      {
+        id: '8-2',
+        customerName: '㈱TMT',
+        workNumberFront: '5927',
+        workNumberBack: '13343',
+        name: 'テーパープラグ',
+        startTime: '13:00',
+        endTime: '17:00',
+        machineType: 'スマート250 L : NC旋盤',
+        remarks: ''
+      }
+    ],
+    submittedAt: '2025-03-03T17:30:00Z'
+  },
+  {
+    id: '9',
+    date: '2025-08-12',
+    workerName: '（コー）ジャンペンペーン パッタウィ',
+    workItems: [
+      {
+        id: '9-1',
+        customerName: '㈱TMT',
+        workNumberFront: '6129',
+        workNumberBack: '15002',
+        name: '次期製品Y',
+        startTime: '08:00',
+        endTime: '12:00',
+        machineType: 'MILLAC 1052 VII',
+        remarks: '夏期特別プロジェクト'
+      },
+      {
+        id: '9-2',
+        customerName: '㈱五光',
+        workNumberFront: '5927',
+        workNumberBack: '13324',
+        name: 'スタッドボルト',
+        startTime: '13:00',
+        endTime: '17:00',
+        machineType: '250 : NC旋盤マザック',
+        remarks: ''
+      }
+    ],
+    submittedAt: '2025-08-12T17:30:00Z'
+  },
+  {
+    id: '10',
+    date: '2025-08-25',
+    workerName: '橋本正朗',
+    workItems: [
+      {
+        id: '10-1',
+        customerName: '㈱天昌電機社',
+        workNumberFront: '5927',
+        workNumberBack: '13279',
+        name: 'カラー',
+        startTime: '08:00',
+        endTime: '11:00',
+        machineType: '350 : NC旋盤マザック',
+        remarks: '精密加工・夏期対応'
+      },
+      {
+        id: '10-2',
+        customerName: '伊豆山',
+        workNumberFront: '6028',
+        workNumberBack: '14001',
+        name: '新製品A',
+        startTime: '13:00',
+        endTime: '17:00',
+        machineType: 'MILLAC 761 VII',
+        remarks: ''
+      }
+    ],
+    submittedAt: '2025-08-25T17:15:00Z'
   }
 ];
 
