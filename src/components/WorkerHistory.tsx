@@ -201,81 +201,11 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
         </div>
       )}
 
-      {/* 前回の投稿詳細（今日の投稿がない場合のみ表示） */}
-      {latestReport && latestReport.date !== currentDate && !hasTodayReport && (
-        <div className="space-y-3">
-          <h4 className="text-sm font-medium text-blue-700">
-            前回の投稿詳細 ({formatDate(latestReport.date)})
-          </h4>
-          
-          <div className="space-y-2">
-            {latestReport.workItems
-              .sort((a, b) => new Date(`2000-01-01T${a.startTime}`).getTime() - new Date(`2000-01-01T${b.startTime}`).getTime())
-              .map((item, index) => {
-              const workTime = calculateWorkTime(item.startTime, item.endTime, item.remarks);
-              return (
-                <div key={item.id} className="p-3 bg-white border border-blue-200 rounded-md">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="font-medium text-gray-700">作業 {index + 1}:</span>
-                      <span className="ml-2 text-gray-600">{item.name}</span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-700">客先:</span>
-                      <span className="ml-2 text-gray-600">{item.customerName}</span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-700">工番:</span>
-                      <span className="ml-2 text-gray-600">
-                        {item.workNumberFront} - {item.workNumberBack}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-700">時間:</span>
-                      <span className="ml-2 text-gray-600">
-                        {item.startTime} - {item.endTime}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-700">機械:</span>
-                      <span className="ml-2 text-gray-600">{item.machineType}</span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-700">作業時間:</span>
-                      <span className="ml-2 text-gray-600">
-                        {formatTime(workTime)} ({formatDecimalTime(workTime)}時間)
-                      </span>
-                    </div>
-                    {item.remarks && (
-                      <div className="md:col-span-2">
-                        <span className="font-medium text-gray-700">備考:</span>
-                        <span className="ml-2 text-gray-600">{item.remarks}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          
-          <div className="mt-3 p-2 bg-blue-100 rounded-md">
-            <div className="text-sm text-blue-800">
-              <span className="font-medium">前回の最終作業終了時間:</span>
-              <span className="ml-2">
-                {latestReport.workItems.length > 0 
-                  ? latestReport.workItems
-                      .sort((a, b) => new Date(`2000-01-01T${b.endTime}`).getTime() - new Date(`2000-01-01T${a.endTime}`).getTime())[0].endTime
-                  : 'なし'}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {!latestReport && !hasTodayReport && (
+      {/* 当日の投稿がない場合のメッセージ */}
+      {!hasTodayReport && (
         <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
           <p className="text-sm text-gray-600">
-            投稿履歴はありません
+            本日の投稿内容はありません
           </p>
         </div>
       )}
