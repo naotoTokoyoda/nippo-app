@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useReportStore } from '@/stores/reportStore';
 import { getEnvironment } from '@/utils/env';
+import { useEffect, useState } from 'react';
 
 export default function Home() {
   const loadTestData = useReportStore((state) => state.loadTestData);
@@ -10,8 +11,16 @@ export default function Home() {
   const isTestDataLoaded = useReportStore((state) => state.isTestDataLoaded);
   const reports = useReportStore((state) => state.reports);
   
-  const isProduction = getEnvironment() === 'production';
-  const isDevelopment = getEnvironment() === 'development';
+  const [isProduction, setIsProduction] = useState(false);
+  const [isDevelopment, setIsDevelopment] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+    const env = getEnvironment();
+    setIsProduction(env === 'production');
+    setIsDevelopment(env === 'development' || env === 'local');
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -54,7 +63,7 @@ export default function Home() {
         </div>
 
         {/* テストデータ管理 - develop環境でのみ表示 */}
-        {isDevelopment && (
+        {isClient && isDevelopment && (
           <div className="mt-8 text-center">
             <div className="bg-white rounded-lg shadow-sm p-6 max-w-2xl mx-auto">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">テストデータ管理</h3>
