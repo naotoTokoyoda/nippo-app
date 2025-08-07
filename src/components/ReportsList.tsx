@@ -6,13 +6,17 @@ import { calculateWorkTime, formatTime, formatDecimalTime } from '@/utils/timeCa
 import { getRowBackgroundClass } from '@/utils/conditionalFormatting';
 import { useReportStore } from '@/stores/reportStore';
 import DatabaseClientNameInput from './DatabaseClientNameInput';
+import { getEnvironment } from '@/utils/env';
 
 export default function ReportsList() {
   const reports = useReportStore((state) => state.reports);
   const deleteReport = useReportStore((state) => state.deleteReport);
+  const loadTestData = useReportStore((state) => state.loadTestData);
   const clearAllData = useReportStore((state) => state.clearAllData);
+  const isTestDataLoaded = useReportStore((state) => state.isTestDataLoaded);
   
   const router = useRouter();
+  const isDevelopment = getEnvironment() === 'development' || getEnvironment() === 'local';
   
   // フィルタリング状態
   const [filters, setFilters] = useState({
@@ -103,6 +107,33 @@ export default function ReportsList() {
           </button>
         </div>
       </div>
+
+      {/* 開発環境でのみテストデータ管理を表示 */}
+      {isDevelopment && (
+        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-sm font-medium text-yellow-800">開発環境</h3>
+              <p className="text-xs text-yellow-700">テストデータ管理が利用可能です</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={loadTestData}
+                disabled={isTestDataLoaded}
+                className="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors disabled:opacity-50"
+              >
+                {isTestDataLoaded ? '読み込み済み' : 'テストデータ読み込み'}
+              </button>
+              <button
+                onClick={clearAllData}
+                className="px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+              >
+                データクリア
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* フィルター */}
       <div className="mb-8 p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
