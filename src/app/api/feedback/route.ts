@@ -1,28 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import FeedbackEmail from '@/emails/FeedbackEmail';
-import { FeedbackData, FeedbackResponse } from '@/types/feedback';
+import { FeedbackResponse } from '@/types/feedback';
+import { FeedbackRequestSchema } from '@/lib/validation/feedback';
+import { logger } from '@/lib/logger';
 
 // Resendインスタンスの初期化
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  
   try {
     // リクエストボディの解析
     const body = await request.json();
-    const { type, message, email, priority } = body;
-
-    // 必須項目の検証
-    if (!type || !message) {
+    
+    // Zod バリデーション
+    const validationResult = FeedbackRequestSchema.safeParse(body);
+    
+    if (!validationResult.success) {
+      logger.validationError('feedback-api', validationResult.error.issues);
       return NextResponse.json<FeedbackResponse>(
         { 
           success: false, 
-          message: 'フィードバックの種類とメッセージは必須です',
-          error: 'Missing required fields: type, message'
+          message: '入力データが無効です',
+          error: 'Validation failed'
         },
         { status: 400 }
       );
     }
+
+    const { type, message, email, priority } = validationResult.data;
 
     // 自動収集情報の追加
     const userAgent = request.headers.get('user-agent') || undefined;
@@ -34,10 +42,10 @@ export async function POST(request: NextRequest) {
     const appVersion = packageJson.version || 'unknown';
 
     // フィードバックデータの構築
-    const feedbackData: FeedbackData = {
+    const feedbackData = {
       type,
       message,
-      email: email || undefined,
+      email: email && email !== '' ? email : undefined,
       priority: priority || undefined,
       userAgent,
       url,
@@ -48,7 +56,7 @@ export async function POST(request: NextRequest) {
     // メール送信先の設定（環境変数から取得）
     const recipientEmail = process.env.FEEDBACK_RECIPIENT_EMAIL;
     if (!recipientEmail) {
-      console.error('FEEDBACK_RECIPIENT_EMAIL environment variable is not set');
+      logger.error('FEEDBACK_RECIPIENT_EMAIL environment variable is not set');
       return NextResponse.json<FeedbackResponse>(
         { 
           success: false, 
@@ -70,7 +78,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (error) {
-      console.error('Resend error:', error);
+      logger.apiError('/api/feedback', new Error(error.message), { feedbackData });
       return NextResponse.json<FeedbackResponse>(
         { 
           success: false, 
@@ -82,7 +90,17 @@ export async function POST(request: NextRequest) {
     }
 
     // 成功レスポンス
-    console.log('Feedback email sent successfully:', data?.id);
+    const duration = Date.now() - startTime;
+    logger.performance('feedback-email-send', duration, { 
+      feedbackType: type,
+      emailId: data?.id 
+    });
+    
+    logger.info('Feedback email sent successfully', { 
+      emailId: data?.id,
+      feedbackType: type 
+    });
+    
     return NextResponse.json<FeedbackResponse>(
       { 
         success: true, 
@@ -92,7 +110,9 @@ export async function POST(request: NextRequest) {
     );
 
   } catch (error) {
-    console.error('Feedback API error:', error);
+    const duration = Date.now() - startTime;
+    logger.apiError('/api/feedback', error instanceof Error ? error : new Error('Unknown error'), { duration });
+    
     return NextResponse.json<FeedbackResponse>(
       { 
         success: false, 

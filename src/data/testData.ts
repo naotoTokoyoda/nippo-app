@@ -1,4 +1,4 @@
-import { DailyReportData } from '@/components/DailyReport';
+import { DailyReportData, WorkItemData } from '@/types/daily-report';
 
 // 作業者データ（将来的にはusersテーブル）
 export const WORKER_DATA = [
@@ -697,7 +697,7 @@ export const dataHelpers = {
       date: report.date,
       worker_id: dataHelpers.getWorkerId(report.workerName),
       submitted_at: report.submittedAt,
-      work_items: report.workItems.map(item => ({
+      work_items: report.workItems.map((item: WorkItemData) => ({
         id: item.id,
         customer_id: dataHelpers.getCustomerId(item.customerName),
         work_order_id: dataHelpers.getWorkOrderId(item.workNumberFront, item.workNumberBack),

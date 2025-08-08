@@ -1,4 +1,4 @@
-import { DailyReportData, WorkItemData } from '@/components/DailyReport';
+import { DailyReportData, WorkItemData } from '@/types/daily-report';
 
 export interface TimeContinuityCheck {
   isValid: boolean;

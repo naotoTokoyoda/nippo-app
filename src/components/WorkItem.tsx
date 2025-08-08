@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { WorkItemData } from './DailyReport';
+import { WorkItemData } from '@/types/daily-report';
 import { ValidationError } from '@/utils/validation';
 import { generateTimeOptions } from '@/utils/timeCalculation';
 import { validateWorkItem } from '@/utils/validation';

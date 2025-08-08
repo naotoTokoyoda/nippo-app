@@ -1,45 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import WorkItem from '@/components/WorkItem';
 import WorkerHistory from '@/components/WorkerHistory';
 import { useRouter } from 'next/navigation';
-import { calculateWorkTime, formatTime, formatDecimalTime } from '@/utils/timeCalculation';
-import { validateDailyReport, validateBasicInfo, ValidationError } from '@/utils/validation';
+import { calculateWorkTime } from '@/utils/timeCalculation';
+import { validateDailyReport, validateBasicInfo } from '@/utils/validation';
 import { useReportStore } from '@/stores/reportStore';
+import { DailyReportData, WorkItemData, WORKER_OPTIONS, ValidationError } from '@/types/daily-report';
+import { useCountdown } from '@/hooks/useCountdown';
 import React from 'react'; // Added missing import for React
-
-export interface WorkItemData {
-  id: string;
-  customerName: string;
-  workNumberFront: string;
-  workNumberBack: string;
-  name: string;
-  startTime: string;
-  endTime: string;
-  machineType: string;
-  remarks: string;
-}
-
-export interface DailyReportData {
-  id?: string;
-  date: string;
-  workerName: string;
-  workItems: WorkItemData[];
-  submittedAt?: string;
-}
-
-const WORKER_OPTIONS = [
-  '橋本正朗',
-  '常世田博',
-  '野城喜幸',
-  '三好耕平',
-  '高梨純一',
-  '金谷晶子',
-  '（トン）シーワイ チャナラット',
-  '（ポーン）テートシームアン タナーポーン',
-  '（コー）ジャンペンペーン パッタウィ'
-];
 
 export default function DailyReport() {
   const addReport = useReportStore((state) => state.addReport);
@@ -49,7 +19,6 @@ export default function DailyReport() {
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [basicInfoErrors, setBasicInfoErrors] = useState<ValidationError[]>([]);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [countdown, setCountdown] = useState(3);
   
   const [reportData, setReportData] = useState<DailyReportData>({
     date: new Date().toISOString().split('T')[0],
@@ -68,17 +37,10 @@ export default function DailyReport() {
   });
 
   // カウントダウンとナビゲーション処理
-  useEffect(() => {
-    if (showSuccess && countdown > 0) {
-      const timer = setTimeout(() => {
-        setCountdown(prev => prev - 1);
-      }, 1000);
-      
-      return () => clearTimeout(timer);
-    } else if (showSuccess && countdown === 0) {
-      router.push('/reports');
-    }
-  }, [showSuccess, countdown, router]);
+  const { count: countdown, start: startCountdown } = useCountdown({
+    initialCount: 3,
+    onComplete: () => router.push('/reports'),
+  });
 
   const addWorkItem = () => {
     const newWorkItem: WorkItemData = {
@@ -156,7 +118,7 @@ export default function DailyReport() {
     } else {
       setValidationErrors([]);
     }
-  }, [reportData.workItems, showValidation]);
+  }, [reportData, showValidation]);
 
   const handleSubmit = () => {
     // バリデーション実行
@@ -175,7 +137,7 @@ export default function DailyReport() {
     
     // 成功メッセージを表示
     setShowSuccess(true);
-    setCountdown(3);
+    startCountdown();
   };
 
   return (

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { DailyReportData } from '@/components/DailyReport'
+import { DailyReportData } from '@/types/daily-report'
 import { getEnvironment } from '@/utils/env'
 import { SAMPLE_REPORTS } from '@/data/testData'
 
@@ -18,7 +18,7 @@ interface ReportStore {
 
 export const useReportStore = create<ReportStore>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       // 初期状態
       reports: [],
       isTestDataLoaded: false,
