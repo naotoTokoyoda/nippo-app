@@ -1,20 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import FeedbackModal from './FeedbackModal';
 
-interface FeedbackButtonProps {
-  googleFormUrl?: string;
-}
-
-export default function FeedbackButton({ 
-  googleFormUrl 
-}: FeedbackButtonProps = {}) {
-  // デフォルトのフォームURL（実際のGoogleフォームURLに置き換えてください）
-  const formUrl = googleFormUrl || process.env.NEXT_PUBLIC_FEEDBACK_FORM_URL || "https://forms.google.com/your-form-url";
+export default function FeedbackButton() {
   const [isHovered, setIsHovered] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleFeedbackClick = () => {
-    window.open(formUrl, '_blank', 'noopener,noreferrer');
+    setIsModalOpen(true);
   };
 
   return (
@@ -53,6 +47,12 @@ export default function FeedbackButton({
         {/* アニメーション用のリップル効果 */}
         <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
       </button>
+
+      {/* フィードバックモーダル */}
+      <FeedbackModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+      />
     </div>
   );
 }
