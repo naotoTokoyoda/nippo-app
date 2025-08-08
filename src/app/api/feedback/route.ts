@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     const timestamp = new Date().toISOString();
     
     // アプリバージョンの取得（package.jsonから）
-    const packageJson = require('../../../../package.json');
+    const packageJson = await import('../../../../package.json');
     const appVersion = packageJson.version || 'unknown';
 
     // フィードバックデータの構築
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
 }
 
 // プリフライトリクエスト対応
-export async function OPTIONS(request: NextRequest) {
+export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
     headers: {

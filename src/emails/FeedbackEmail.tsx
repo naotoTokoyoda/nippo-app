@@ -10,7 +10,6 @@ import {
   Hr,
   Row,
   Column,
-  Img,
 } from '@react-email/components';
 import { FeedbackData, FEEDBACK_TYPE_LABELS, PRIORITY_LABELS } from '@/types/feedback';
 
