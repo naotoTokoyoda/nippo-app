@@ -1,4 +1,5 @@
 import { DailyReportData, WorkItemData } from '@/types/daily-report';
+import { calculateWorkTime } from './timeCalculation';
 
 export interface TimeContinuityCheck {
   isValid: boolean;
