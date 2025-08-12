@@ -12,6 +12,8 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
+    "db:migrate-data": "tsx prisma/migrate-data.ts",
+    "db:preview-migration": "tsx prisma/preview-migration.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {
