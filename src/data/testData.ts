@@ -73,6 +73,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         startTime: '08:00',
         endTime: '12:00',
         machineType: 'スマート250 L : NC旋盤',
+        workStatus: 'normal',
         remarks: ''
       },
       {
@@ -84,6 +85,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         startTime: '13:00',
         endTime: '17:00',
         machineType: '350 : NC旋盤マザック',
+        workStatus: 'normal',
         remarks: ''
       }
     ],
@@ -103,6 +105,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         startTime: '08:00',
         endTime: '14:00',
         machineType: '250 : NC旋盤マザック',
+        workStatus: 'lunch_overtime',
         remarks: '昼残'
       },
       {
@@ -114,6 +117,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         startTime: '14:00',
         endTime: '17:00',
         machineType: 'MILLAC 1052 VII',
+        workStatus: 'normal',
         remarks: ''
       }
     ],
@@ -133,6 +137,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         startTime: '08:00',
         endTime: '12:00',
         machineType: 'MILLAC 761 VII',
+        workStatus: 'normal',
         remarks: ''
       },
       {
@@ -144,6 +149,7 @@ export const SAMPLE_REPORTS: DailyReportData[] = [
         startTime: '13:00',
         endTime: '17:00',
         machineType: '12尺 : 汎用旋盤',
+        workStatus: 'normal',
         remarks: ''
       }
     ],

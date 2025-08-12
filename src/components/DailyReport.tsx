@@ -32,6 +32,7 @@ export default function DailyReport() {
       startTime: '',
       endTime: '',
       machineType: '',
+      workStatus: 'normal',
       remarks: ''
     }]
   });
@@ -52,6 +53,7 @@ export default function DailyReport() {
       startTime: '',
       endTime: '',
       machineType: '',
+      workStatus: 'normal',
       remarks: ''
     };
     setReportData(prev => ({
@@ -78,7 +80,7 @@ export default function DailyReport() {
 
   const calculateTotalTime = () => {
     return reportData.workItems.reduce((total, item) => {
-      const workTime = calculateWorkTime(item.startTime, item.endTime, item.remarks);
+      const workTime = calculateWorkTime(item.startTime, item.endTime, item.workStatus);
       return total + workTime;
     }, 0);
   };

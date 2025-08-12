@@ -65,7 +65,7 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
   const todayTotalTime = useMemo(() => {
     if (!todayReport) return 0;
     return todayReport.workItems.reduce((total, item) => {
-      const workTimeHours = calculateWorkTime(item.startTime, item.endTime, item.remarks);
+      const workTimeHours = calculateWorkTime(item.startTime, item.endTime, item.workStatus);
       return total + (workTimeHours * 60); // 時間を分に変換
     }, 0);
   }, [todayReport]);
@@ -140,7 +140,7 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
             {todayReport.workItems
               .sort((a, b) => new Date(`2000-01-01T${a.startTime}`).getTime() - new Date(`2000-01-01T${b.startTime}`).getTime())
               .map((item, index) => {
-              const workTime = calculateWorkTime(item.startTime, item.endTime, item.remarks);
+              const workTime = calculateWorkTime(item.startTime, item.endTime, item.workStatus);
               return (
                 <div key={item.uniqueId || item.id} className="p-3 bg-white rounded border border-yellow-200">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
@@ -212,7 +212,7 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
             {latestReport.workItems
               .sort((a, b) => new Date(`2000-01-01T${a.startTime}`).getTime() - new Date(`2000-01-01T${b.startTime}`).getTime())
               .map((item, index) => {
-              const workTime = calculateWorkTime(item.startTime, item.endTime, item.remarks);
+              const workTime = calculateWorkTime(item.startTime, item.endTime, item.workStatus);
               return (
                 <div key={item.id} className="p-3 bg-white border border-blue-200 rounded-md">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">

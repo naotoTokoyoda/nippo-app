@@ -96,16 +96,10 @@ export function checkTimeContinuity(
 export function calculateTotalWorkTime(workItems: WorkItemData[]): number {
   return workItems.reduce((total, item) => {
     if (!item.startTime || !item.endTime) return total;
-    const startMinutes = timeToMinutes(item.startTime);
-    const endMinutes = timeToMinutes(item.endTime);
-    const duration = endMinutes - startMinutes;
     
-    // 昼残の場合は30分を差し引く
-    if (item.remarks && item.remarks.includes('昼残')) {
-      return total + Math.max(0, duration - 30);
-    }
-    
-    return total + duration;
+    // 新しいcalculateWorkTime関数を使用
+    const workTimeHours = calculateWorkTime(item.startTime, item.endTime, item.workStatus);
+    return total + (workTimeHours * 60); // 時間を分に変換
   }, 0);
 }
 

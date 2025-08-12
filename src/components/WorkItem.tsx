@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { WorkItemData } from '@/types/daily-report';
+import { WorkItemData, WORK_STATUS_OPTIONS } from '@/types/daily-report';
 import { ValidationError } from '@/utils/validation';
 import { generateTimeOptions } from '@/utils/timeCalculation';
 import { validateWorkItem } from '@/utils/validation';
@@ -217,6 +217,28 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
           )}
         </div>
 
+        {/* 勤務状況 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            勤務状況
+          </label>
+          <select
+            value={item.workStatus || 'normal'}
+            onChange={(e) => onUpdate({ workStatus: e.target.value })}
+            className={getFieldClassName('workStatus', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
+          >
+            {WORK_STATUS_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-500 mt-1">勤務状況を選択してください。昼残の場合は昼休憩時間が差し引かれません。</p>
+          {getErrorMessage('workStatus') && (
+            <p className="text-xs text-red-600 mt-1">{getErrorMessage('workStatus')}</p>
+          )}
+        </div>
+
         {/* 機械種類 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -260,7 +282,7 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
             style={{ color: item.remarks ? '#111827' : '#6b7280' }}
           />
           <p className="text-xs text-gray-500 mt-1">
-            昼残の場合は「昼残」と記入してください。昼残時間は自動的に差し引かれます。
+            作業に関する特記事項があれば記入してください。
           </p>
           {getErrorMessage('remarks') && (
             <p className="text-xs text-red-600 mt-1">{getErrorMessage('remarks')}</p>

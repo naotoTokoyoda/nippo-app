@@ -1,11 +1,13 @@
+import { WORK_STATUS_OPTIONS } from '@/types/daily-report';
+
 /**
  * 作業時間を計算する（昼休憩時間を考慮）
  * @param startTime 開始時間 (HH:MM 形式)
  * @param endTime 終了時間 (HH:MM 形式)
- * @param remarks 備考欄
+ * @param workStatus 勤務状況
  * @returns 作業時間（時間単位）
  */
-export function calculateWorkTime(startTime: string, endTime: string, remarks: string = ''): number {
+export function calculateWorkTime(startTime: string, endTime: string, workStatus?: string): number {
   if (!startTime || !endTime) return 0;
 
   // 時間をDateオブジェクトに変換
@@ -24,14 +26,14 @@ export function calculateWorkTime(startTime: string, endTime: string, remarks: s
   // 昼休憩時間をまたぐかチェック
   const crossesLunch = start < lunchStart && end > lunchEnd;
   
-  // 備考欄に「昼残」が含まれているかチェック
-  const hasLunchRemarks = remarks.includes('昼残');
+  // 昼残の場合は昼休憩を差し引かない
+  const hasLunchOvertime = workStatus === 'lunch_overtime';
 
   // 基本の作業時間を計算（ミリ秒）
   let workTimeMs = end.getTime() - start.getTime();
 
   // 昼休憩時間をまたぐ場合の処理
-  if (crossesLunch && !hasLunchRemarks) {
+  if (crossesLunch && !hasLunchOvertime) {
     // 昼休憩時間（1時間）を差し引く
     workTimeMs -= 60 * 60 * 1000; // 1時間 = 60分 * 60秒 * 1000ミリ秒
   }
@@ -40,6 +42,18 @@ export function calculateWorkTime(startTime: string, endTime: string, remarks: s
   const workTimeHours = workTimeMs / (1000 * 60 * 60);
 
   return Math.max(0, workTimeHours); // 負の値にならないように
+}
+
+/**
+ * 勤務状況の表示名を取得する関数
+ * @param workStatus 勤務状況の値
+ * @returns 表示名
+ */
+export function getWorkStatusLabel(workStatus?: string): string {
+  if (!workStatus) return '通常';
+  
+  const statusOption = WORK_STATUS_OPTIONS.find(option => option.value === workStatus);
+  return statusOption ? statusOption.label : '通常';
 }
 
 /**

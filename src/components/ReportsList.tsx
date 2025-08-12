@@ -274,7 +274,7 @@ export default function ReportsList() {
                 </tr>
               ) : (
                 filteredWorkItems.map((item, index) => {
-                  const workTime = calculateWorkTime(item.startTime, item.endTime, item.remarks);
+                  const workTime = calculateWorkTime(item.startTime, item.endTime, item.workStatus);
                   const rowClass = getRowBackgroundClass(item.machineType, item.customerName);
                   return (
                     <tr key={`${item.reportId}-${item.id}`} className={`${rowClass} border-b border-gray-200 hover:bg-gray-50`}>
