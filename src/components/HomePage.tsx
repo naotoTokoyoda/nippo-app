@@ -1,11 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useReportStore } from '@/stores/reportStore';
-import { useEnvironment } from '@/hooks/useEnvironment';
 
 export default function HomePage() {
-  const clearAllData = useReportStore((state) => state.clearAllData);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">

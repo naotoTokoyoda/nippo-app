@@ -1,5 +1,3 @@
-import clientNames from '@/data/clientNames.json';
-
 /**
  * 客先名の検索結果を表す型
  */
@@ -7,69 +5,6 @@ export interface ClientNameSearchResult {
   name: string;
   matchType: 'exact' | 'partial' | 'fuzzy';
   relevance: number;
-}
-
-/**
- * 客先名を検索する（固定データベース用）
- * @param query 検索クエリ
- * @param maxResults 最大結果数
- * @returns 検索結果の配列
- */
-export function searchClientNames(query: string, maxResults: number = 10): ClientNameSearchResult[] {
-  if (!query.trim()) {
-    return [];
-  }
-
-  const normalizedQuery = query.toLowerCase().trim();
-  const results: ClientNameSearchResult[] = [];
-
-  for (const name of clientNames) {
-    const normalizedName = name.toLowerCase();
-    
-    // 完全一致
-    if (normalizedName === normalizedQuery) {
-      results.push({
-        name,
-        matchType: 'exact',
-        relevance: 100
-      });
-      continue;
-    }
-
-    // 部分一致（前方一致）
-    if (normalizedName.startsWith(normalizedQuery)) {
-      results.push({
-        name,
-        matchType: 'partial',
-        relevance: 80 - (name.length - query.length) // 短い名前を優先
-      });
-      continue;
-    }
-
-    // 部分一致（含む）
-    if (normalizedName.includes(normalizedQuery)) {
-      results.push({
-        name,
-        matchType: 'partial',
-        relevance: 60 - (name.length - query.length)
-      });
-      continue;
-    }
-
-    // あいまい検索（文字の順序を考慮）
-    if (isFuzzyMatch(normalizedName, normalizedQuery)) {
-      results.push({
-        name,
-        matchType: 'fuzzy',
-        relevance: 40 - (name.length - query.length)
-      });
-    }
-  }
-
-  // 関連性でソートして最大結果数を返す
-  return results
-    .sort((a, b) => b.relevance - a.relevance)
-    .slice(0, maxResults);
 }
 
 /**
@@ -158,16 +93,7 @@ function isFuzzyMatch(text: string, query: string): boolean {
   return queryIndex === query.length;
 }
 
-/**
- * 客先名の候補を取得する（固定データベース用）
- * @param input 入力値
- * @param maxSuggestions 最大候補数
- * @returns 候補の配列
- */
-export function getClientNameSuggestions(input: string, maxSuggestions: number = 5): string[] {
-  const results = searchClientNames(input, maxSuggestions);
-  return results.map(result => result.name);
-}
+
 
 /**
  * 実際のデータベースの客先名の候補を取得する
@@ -185,19 +111,4 @@ export function getDatabaseClientNameSuggestions(
   return results.map(result => result.name);
 }
 
-/**
- * 客先名が有効かどうかをチェックする（固定データベース用）
- * @param name 客先名
- * @returns 有効かどうか
- */
-export function isValidClientName(name: string): boolean {
-  return clientNames.includes(name);
-}
-
-/**
- * すべての客先名を取得する（固定データベース用）
- * @returns 客先名の配列
- */
-export function getAllClientNames(): string[] {
-  return [...clientNames];
-} 
+ 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { getClientNameSuggestions } from '@/utils/clientNameSearch';
+import { getDatabaseClientNameSuggestions } from '@/utils/clientNameSearch';
 
 interface ClientNameInputProps {
   value: string;
@@ -9,6 +9,7 @@ interface ClientNameInputProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  availableNames?: string[];
 }
 
 export default function ClientNameInput({
@@ -16,7 +17,8 @@ export default function ClientNameInput({
   onChange,
   placeholder = '客先名を入力',
   className = '',
-  disabled = false
+  disabled = false,
+  availableNames = []
 }: ClientNameInputProps) {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -27,7 +29,7 @@ export default function ClientNameInput({
   // 入力値が変更されたときに候補を更新
   useEffect(() => {
     if (value.trim()) {
-      const newSuggestions = getClientNameSuggestions(value, 8);
+      const newSuggestions = getDatabaseClientNameSuggestions(value, availableNames, 8);
       setSuggestions(newSuggestions);
       setShowSuggestions(newSuggestions.length > 0);
       setSelectedIndex(-1);
@@ -36,7 +38,7 @@ export default function ClientNameInput({
       setShowSuggestions(false);
       setSelectedIndex(-1);
     }
-  }, [value]);
+  }, [value, availableNames]);
 
   // クリックで候補を非表示
   useEffect(() => {

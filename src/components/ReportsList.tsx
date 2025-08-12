@@ -8,11 +8,10 @@ import { useReportStore } from '@/stores/reportStore';
 import DatabaseClientNameInput from './DatabaseClientNameInput';
 import EditWorkItemModal from './EditWorkItemModal';
 import { WorkItemData } from '@/types/daily-report';
-import { getEnvironment } from '@/utils/env';
+
 
 export default function ReportsList() {
   const reports = useReportStore((state) => state.reports);
-  const clearAllData = useReportStore((state) => state.clearAllData);
   
   const router = useRouter();
   
