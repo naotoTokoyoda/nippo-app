@@ -29,6 +29,8 @@ export interface ReportsApiResponse {
   success: boolean;
   data: DatabaseReport[];
   filteredItems: DatabaseWorkItem[];
+  totalCount?: number;
+  totalReports?: number;
   error?: string;
 }
 

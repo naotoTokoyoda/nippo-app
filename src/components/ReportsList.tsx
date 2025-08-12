@@ -17,6 +17,8 @@ export default function ReportsList() {
   const [filteredWorkItems, setFilteredWorkItems] = useState<DatabaseWorkItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
   
   // 編集モーダルの状態
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -44,6 +46,7 @@ export default function ReportsList() {
     try {
       setLoading(true);
       setError(null);
+      setProgress(0);
       
       const params = new URLSearchParams();
       if (filterParams.month) params.append('month', filterParams.month);
@@ -53,12 +56,27 @@ export default function ReportsList() {
       if (filterParams.workNumberBack) params.append('workNumberBack', filterParams.workNumberBack);
       if (filterParams.machineType) params.append('machineType', filterParams.machineType);
 
+      // プログレスバーのシミュレーション
+      const progressInterval = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 90) return prev;
+          return prev + Math.random() * 10;
+        });
+      }, 100);
+
+      // 人工的な遅延を追加（プログレスバーを表示するため）
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       const response = await fetch(`/api/reports?${params.toString()}`);
       const result: ReportsApiResponse = await response.json();
+
+      clearInterval(progressInterval);
+      setProgress(100);
 
       if (result.success) {
         setReports(result.data);
         setFilteredWorkItems(result.filteredItems);
+        setTotalCount(result.totalCount || 0);
       } else {
         setError(result.error || 'データの取得に失敗しました');
       }
@@ -66,7 +84,10 @@ export default function ReportsList() {
       console.error('データ取得エラー:', err);
       setError('データの取得中にエラーが発生しました');
     } finally {
-      setLoading(false);
+      setTimeout(() => {
+        setLoading(false);
+        setProgress(0);
+      }, 500); // プログレスバーを少し表示してから非表示
     }
   };
 
@@ -122,16 +143,6 @@ export default function ReportsList() {
     setSelectedWorkItem(null);
     setSelectedReportId('');
   };
-
-  if (loading) {
-    return (
-      <div className="max-w-7xl mx-auto p-10 bg-gray-100">
-        <div className="flex justify-center items-center h-64">
-          <div className="text-lg text-gray-600">データを読み込み中...</div>
-        </div>
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -265,7 +276,7 @@ export default function ReportsList() {
       </div>
 
       {/* 作業項目一覧テーブル */}
-      <div className="overflow-x-auto bg-white border border-gray-200 rounded-lg shadow-sm">
+      <div className="overflow-x-auto bg-white border border-gray-200 rounded-lg shadow-sm relative">
         <div className="min-w-max">
           <table className="w-full text-sm">
             <thead>
@@ -285,7 +296,36 @@ export default function ReportsList() {
               </tr>
             </thead>
             <tbody className="max-h-96 overflow-y-auto">
-              {filteredWorkItems.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={12} className="px-3 py-8 text-center">
+                    <div className="flex flex-col items-center space-y-4">
+                      {/* プログレスバー */}
+                      <div className="w-64 bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+                          style={{ width: `${progress}%` }}
+                        ></div>
+                      </div>
+                      
+                      {/* プログレステキスト */}
+                      <div className="text-center">
+                        <p className="text-sm text-gray-600 mb-1">
+                          データを読み込み中... {Math.round(progress)}%
+                        </p>
+                        {totalCount > 0 && (
+                          <p className="text-xs text-gray-500">
+                            {totalCount}件のデータを処理中
+                          </p>
+                        )}
+                      </div>
+                      
+                      {/* スピナー */}
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredWorkItems.length === 0 ? (
                 <tr>
                   <td colSpan={12} className="px-3 py-8 text-center text-gray-500">
                     作業項目が見つかりません

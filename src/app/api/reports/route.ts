@@ -148,6 +148,8 @@ export async function GET(request: NextRequest) {
         remarks: item.remarks || '',
         workStatus: item.workStatus || 'completed',
       })),
+      totalCount: filteredReportItems.length,
+      totalReports: reports.length,
     });
 
   } catch (error) {
