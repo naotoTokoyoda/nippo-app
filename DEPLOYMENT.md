@@ -3,9 +3,9 @@
 ## データベース戦略
 
 ### 開発〜社内検証環境
-- **データベース**: Neon Free
+- **データベース**: Neon Free（旧Vercel PostgreSQL）
 - **ORM**: Prisma
-- **理由**: マイグレーション練習しやすい、コストゼロに近い
+- **理由**: マイグレーション練習しやすい、コストゼロに近い、Vercel統合が簡単
 
 ### 小規模本番環境
 - **データベース**: Vercel Postgres Hobby/Pro
@@ -15,6 +15,38 @@
 ### 本番成長時
 - **オプション1**: Vercel Postgres Pro継続
 - **オプション2**: Supabase移行（RLSやストレージも活用）
+
+## Neonセットアップ手順
+
+### 1. Vercelダッシュボードでの設定
+
+1. **Vercelダッシュボードにログイン**
+2. **プロジェクトを選択**
+3. **「Storage」タブ > 「Connect Database」を選択**
+4. **Neonを選択し、「Continue」 > 「Connect」をクリック**
+
+参考: [Neon（旧Vercel PostgreSQL）の紹介と導入【Next.js】](https://zenn.dev/b13o/articles/tutorial-neon)
+
+### 2. ローカル環境の設定
+
+```bash
+# .env.local
+DATABASE_URL="postgresql://username:password@host:port/database?schema=public"
+NODE_ENV=development
+```
+
+### 3. データベースの初期化
+
+```bash
+# Prismaクライアント生成
+npm run db:generate
+
+# データベースにスキーマをプッシュ
+npm run db:push
+
+# シードデータを挿入
+npm run db:seed
+```
 
 ## 環境別設定
 
@@ -152,9 +184,15 @@ psql $DATABASE_URL < backup_20241201.sql
 ## 推奨設定
 
 ### 迷ったら
-**「Neon（開発用）＋ Vercel Postgres（本番）」** が、導入スピード・運用しやすさ・コストのバランス最強です。
+**「Neon（旧Vercel PostgreSQL、開発用）＋ Vercel Postgres（本番）」** が、導入スピード・運用しやすさ・コストのバランス最強です。
 
 ### 長期的な設計
 - 集計系を別スキーマ/別DBに分離
 - 読み取り専用レプリカの活用
-- キャッシュ戦略の検討 
+- キャッシュ戦略の検討
+
+## 参考リンク
+
+- [Neon公式ドキュメント](https://neon.tech/docs/introduction)
+- [Vercel Marketplace - Neon](https://vercel.com/marketplace/neon)
+- [Neon（旧Vercel PostgreSQL）の紹介と導入【Next.js】](https://zenn.dev/b13o/articles/tutorial-neon) 
