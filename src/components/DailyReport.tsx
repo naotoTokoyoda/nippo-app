@@ -6,13 +6,12 @@ import WorkerHistory from '@/components/WorkerHistory';
 import { useRouter } from 'next/navigation';
 // import { calculateWorkTime } from '@/utils/timeCalculation'; // 現在は使用されていない
 import { validateDailyReport, validateBasicInfo } from '@/utils/validation';
-import { useReportStore } from '@/stores/reportStore';
+
 import { DailyReportData, WorkItemData, WORKER_OPTIONS, ValidationError } from '@/types/daily-report';
 import { useCountdown } from '@/hooks/useCountdown';
 import React from 'react'; // Added missing import for React
 
 export default function DailyReport() {
-  const addReport = useReportStore((state) => state.addReport);
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
@@ -134,7 +133,7 @@ export default function DailyReport() {
     }
   }, [reportData, showValidation]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // バリデーション実行
     const validation = validateDailyReport(reportData);
     
@@ -146,12 +145,33 @@ export default function DailyReport() {
 
     setIsSubmitting(true);
     
-    // 送信処理
-    addReport(reportData);
-    
-    // 成功メッセージを表示
-    setShowSuccess(true);
-    startCountdown();
+    try {
+      // データベースに保存
+      const response = await fetch('/api/reports', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(reportData),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // 成功メッセージを表示
+        setShowSuccess(true);
+        startCountdown();
+      } else {
+        // エラーハンドリング
+        console.error('保存エラー:', result.error);
+        alert('日報の保存に失敗しました: ' + result.error);
+        setIsSubmitting(false);
+      }
+    } catch (error) {
+      console.error('送信エラー:', error);
+      alert('日報の送信中にエラーが発生しました');
+      setIsSubmitting(false);
+    }
   };
 
   return (

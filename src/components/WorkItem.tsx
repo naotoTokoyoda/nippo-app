@@ -6,7 +6,7 @@ import { ValidationError } from '@/utils/validation';
 import { generateTimeOptions } from '@/utils/timeCalculation';
 import { validateWorkItem } from '@/utils/validation';
 import { checkTimeContinuity, TimeContinuityCheck } from '@/utils/timeValidation';
-import { useReportStore } from '@/stores/reportStore';
+
 import ClientNameInput from './ClientNameInput';
 
 interface WorkItemProps {
@@ -21,7 +21,6 @@ interface WorkItemProps {
 }
 
 export default function WorkItem({ item, index, onUpdate, onRemove, showValidation = false, workerName, currentDate, hideControls = false }: WorkItemProps) {
-  const reports = useReportStore((state) => state.reports);
   
   // 現場のメイン稼働時間（8:00-17:00）とその他に分ける
   const mainWorkTimes = generateTimeOptions(8, 17).filter(time => {
@@ -52,15 +51,11 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
     }
   }, [item, showValidation]);
 
-  // 時間継続性チェック
+  // 時間継続性チェック（データベース移行中は一時的に無効化）
   useEffect(() => {
-    if (item.startTime && item.endTime && workerName && currentDate) {
-      const check = checkTimeContinuity(item.startTime, item.endTime, workerName, reports, currentDate);
-      setTimeContinuityCheck(check);
-    } else {
-      setTimeContinuityCheck(null);
-    }
-  }, [item.startTime, item.endTime, workerName, currentDate, reports]);
+    // TODO: データベースから作業者履歴を取得して時間継続性チェックを実装
+    setTimeContinuityCheck(null);
+  }, [item.startTime, item.endTime, workerName, currentDate]);
 
   // エラーメッセージを取得
   const getErrorMessage = (fieldName: string): string | null => {

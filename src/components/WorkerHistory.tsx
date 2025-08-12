@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
-import { useReportStore } from '@/stores/reportStore';
+import { useMemo, useState, useEffect } from 'react';
 import { calculateWorkTime, formatTime, formatDecimalTime } from '@/utils/timeCalculation';
+import { DatabaseReport } from '@/types/database';
 
 interface WorkerHistoryProps {
   workerName: string;
@@ -10,40 +10,70 @@ interface WorkerHistoryProps {
 }
 
 export default function WorkerHistory({ workerName, currentDate }: WorkerHistoryProps) {
-  const reports = useReportStore((state) => state.reports);
+  const [reports, setReports] = useState<DatabaseReport[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // データベースから作業者のレポートを取得
+  useEffect(() => {
+    const fetchWorkerReports = async () => {
+      if (!workerName) {
+        setReports([]);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/reports?workerName=${encodeURIComponent(workerName)}`);
+        const result = await response.json();
+
+        if (result.success) {
+          setReports(result.data);
+        } else {
+          setReports([]);
+        }
+      } catch (error) {
+        console.error('作業者履歴取得エラー:', error);
+        setReports([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWorkerReports();
+  }, [workerName]);
 
   // 指定された作業者の最新の投稿を取得
   const latestReport = useMemo(() => {
-    if (!workerName) return null;
+    if (!workerName || loading) return null;
     
     const workerReports = reports
-      .filter(report => report.workerName === workerName)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      .filter((report: DatabaseReport) => report.workerName === workerName)
+      .sort((a: DatabaseReport, b: DatabaseReport) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
     return workerReports.length > 0 ? workerReports[0] : null;
-  }, [reports, workerName]);
+  }, [reports, workerName, loading]);
 
   // 今日の投稿があるかチェック
   const hasTodayReport = useMemo(() => {
-    if (!workerName || !currentDate) return false;
-    return reports.some(report => 
+    if (!workerName || !currentDate || loading) return false;
+    return reports.some((report: DatabaseReport) => 
       report.workerName === workerName && report.date === currentDate
     );
-  }, [reports, workerName, currentDate]);
+  }, [reports, workerName, currentDate, loading]);
 
   // 指定された日付の投稿を取得
   const todayReport = useMemo(() => {
-    if (!workerName || !currentDate) return null;
+    if (!workerName || !currentDate || loading) return null;
     
     // 同じ日付の複数のレポートを取得
-    const todayReports = reports.filter(report => 
+    const todayReports = reports.filter((report: DatabaseReport) => 
       report.workerName === workerName && report.date === currentDate
     );
     
     // 複数のレポートがある場合は、すべての作業項目を統合した仮想的なレポートを作成
     if (todayReports.length > 0) {
-      const allWorkItems = todayReports.flatMap(report => 
-        report.workItems.map(item => ({
+      const allWorkItems = todayReports.flatMap((report: DatabaseReport) => 
+        report.workItems.map((item) => ({
           ...item,
           // ユニークなキーを生成するためにレポートIDを追加
           uniqueId: `${report.id}-${item.id}`
@@ -59,12 +89,12 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
     }
     
     return null;
-  }, [reports, workerName, currentDate]);
+  }, [reports, workerName, currentDate, loading]);
 
   // 今日の合計作業時間を計算（分単位）
   const todayTotalTime = useMemo(() => {
     if (!todayReport) return 0;
-    return todayReport.workItems.reduce((total, item) => {
+    return todayReport.workItems.reduce((total: number, item) => {
       const workTimeHours = calculateWorkTime(item.startTime, item.endTime, item.workStatus);
       return total + (workTimeHours * 60); // 時間を分に変換
     }, 0);

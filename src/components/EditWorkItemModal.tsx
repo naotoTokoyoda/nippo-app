@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useReportStore } from '@/stores/reportStore';
+
 import DatabaseClientNameInput from './DatabaseClientNameInput';
 import { WorkItemData } from '@/types/daily-report';
 
@@ -34,7 +34,6 @@ export default function EditWorkItemModal({
   reportId,
   availableCustomerNames
 }: EditWorkItemModalProps) {
-  const updateWorkItem = useReportStore((state) => state.updateWorkItem);
   const [formData, setFormData] = useState<WorkItemData>({
     id: '',
     name: '',
@@ -55,14 +54,34 @@ export default function EditWorkItemModal({
     }
   }, [workItem]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!workItem) return;
 
-    // 作業項目を更新
-    updateWorkItem(reportId, workItem.id, formData);
-    onClose();
+    try {
+      // データベースで作業項目を更新
+      const response = await fetch(`/api/reports/${reportId}/items/${workItem.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        onClose();
+        // ページをリロードして最新データを表示
+        window.location.reload();
+      } else {
+        alert('更新に失敗しました: ' + result.error);
+      }
+    } catch (error) {
+      console.error('更新エラー:', error);
+      alert('更新中にエラーが発生しました');
+    }
   };
 
   const handleInputChange = (field: keyof WorkItemData, value: string) => {

@@ -1,25 +1,85 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { calculateWorkTime, formatTime, formatDecimalTime } from '@/utils/timeCalculation';
 import { getRowBackgroundClass } from '@/utils/conditionalFormatting';
-import { useReportStore } from '@/stores/reportStore';
 import DatabaseClientNameInput from './DatabaseClientNameInput';
 import EditWorkItemModal from './EditWorkItemModal';
 import { WorkItemData } from '@/types/daily-report';
-
+import { DatabaseReport, DatabaseWorkItem, ReportsApiResponse } from '@/types/database';
 
 export default function ReportsList() {
-  const reports = useReportStore((state) => state.reports);
-  
   const router = useRouter();
+  
+  // データベースから取得したデータ
+  const [reports, setReports] = useState<DatabaseReport[]>([]);
+  const [filteredWorkItems, setFilteredWorkItems] = useState<DatabaseWorkItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // 編集モーダルの状態
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedWorkItem, setSelectedWorkItem] = useState<WorkItemData | null>(null);
   const [selectedReportId, setSelectedReportId] = useState<string>('');
   
+  // 現在の年月を取得
+  const currentYearMonth = useMemo(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  }, []);
+
+  // フィルタリング状態（デフォルトを当月に設定）
+  const [filters, setFilters] = useState({
+    month: currentYearMonth,
+    workerName: '',
+    customerName: '',
+    workNumberFront: '',
+    workNumberBack: '',
+    machineType: ''
+  });
+
+  // データベースからデータを取得する関数
+  const fetchReports = async (filterParams: typeof filters) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const params = new URLSearchParams();
+      if (filterParams.month) params.append('month', filterParams.month);
+      if (filterParams.workerName) params.append('workerName', filterParams.workerName);
+      if (filterParams.customerName) params.append('customerName', filterParams.customerName);
+      if (filterParams.workNumberFront) params.append('workNumberFront', filterParams.workNumberFront);
+      if (filterParams.workNumberBack) params.append('workNumberBack', filterParams.workNumberBack);
+      if (filterParams.machineType) params.append('machineType', filterParams.machineType);
+
+      const response = await fetch(`/api/reports?${params.toString()}`);
+      const result: ReportsApiResponse = await response.json();
+
+      if (result.success) {
+        setReports(result.data);
+        setFilteredWorkItems(result.filteredItems);
+      } else {
+        setError(result.error || 'データの取得に失敗しました');
+      }
+    } catch (err) {
+      console.error('データ取得エラー:', err);
+      setError('データの取得中にエラーが発生しました');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 初期データ取得
+  useEffect(() => {
+    fetchReports(filters);
+  }, []);
+
+  // フィルター変更時にデータを再取得
+  useEffect(() => {
+    fetchReports(filters);
+  }, [filters]);
+
   // 利用可能な年月の取得
   const availableMonths = useMemo(() => {
     const months = new Set<string>();
@@ -32,60 +92,11 @@ export default function ReportsList() {
     return Array.from(months).sort().reverse(); // 新しい順にソート
   }, [reports]);
 
-  // 現在の年月を取得
-  const currentYearMonth = useMemo(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  }, []);
-
-  // フィルタリング状態（デフォルトを当月に設定）
-  const [filters, setFilters] = useState({
-    month: currentYearMonth, // デフォルトを当月に設定
-    workerName: '',
-    customerName: '',
-    workNumberFront: '',
-    workNumberBack: '',
-    machineType: ''
-  });
-
-  // 全作業項目をフラット化して取得
-  const allWorkItems = useMemo(() => {
-    return reports.flatMap(report => 
-      report.workItems.map(item => ({
-        ...item,
-        reportId: report.id,
-        reportDate: report.date,
-        workerName: report.workerName
-      }))
-    );
-  }, [reports]);
-
-  // フィルタリングされた作業項目
-  const filteredWorkItems = useMemo(() => {
-    return allWorkItems.filter(item => {
-      // 月フィルターは常に適用（デフォルトは当月）
-      if (item.reportDate) {
-        const itemYearMonth = item.reportDate.substring(0, 7); // YYYY-MM形式
-        if (itemYearMonth !== filters.month) return false;
-      }
-      if (filters.workerName && item.workerName !== filters.workerName) return false;
-      if (filters.customerName) {
-        if (!item.customerName.toLowerCase().includes(filters.customerName.toLowerCase())) return false;
-      }
-      if (filters.workNumberFront && item.workNumberFront !== filters.workNumberFront) return false;
-      if (filters.workNumberBack) {
-        if (!item.workNumberBack.toLowerCase().includes(filters.workNumberBack.toLowerCase())) return false;
-      }
-      if (filters.machineType && item.machineType !== filters.machineType) return false;
-      return true;
-    });
-  }, [allWorkItems, filters]);
-
   // ユニークな値の取得
   const uniqueWorkers = [...new Set(reports.map(r => r.workerName))].filter(Boolean);
-  const uniqueCustomerNames = [...new Set(allWorkItems.map(w => w.customerName))].filter(Boolean);
-  const uniqueWorkNumbers = [...new Set(allWorkItems.map(w => w.workNumberFront))].filter(Boolean);
-  const uniqueMachineTypes = [...new Set(allWorkItems.map(w => w.machineType))].filter(Boolean);
+  const uniqueCustomerNames = [...new Set(filteredWorkItems.map(w => w.customerName))].filter(Boolean);
+  const uniqueWorkNumbers = [...new Set(filteredWorkItems.map(w => w.workNumberFront))].filter(Boolean);
+  const uniqueMachineTypes = [...new Set(filteredWorkItems.map(w => w.machineType))].filter(Boolean);
 
   const clearFilters = () => {
     setFilters({
@@ -112,6 +123,26 @@ export default function ReportsList() {
     setSelectedReportId('');
   };
 
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto p-10 bg-gray-100">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-lg text-gray-600">データを読み込み中...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto p-10 bg-gray-100">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-lg text-red-600">エラー: {error}</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto p-10 bg-gray-100">
       <div className="flex justify-between items-center mb-8">
@@ -131,9 +162,6 @@ export default function ReportsList() {
           </button>
         </div>
       </div>
-
-      {/* 開発環境でのみテストデータ管理を表示 */}
-
 
       {/* フィルター */}
       <div className="mb-8 p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
