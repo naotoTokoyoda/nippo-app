@@ -38,10 +38,20 @@ export default function DailyReport() {
   });
 
   // カウントダウンとナビゲーション処理
-  const { count: countdown, start: startCountdown } = useCountdown({
+  const { count: countdown, start: startCountdown, stop: stopCountdown } = useCountdown({
     initialCount: 3,
-    onComplete: () => router.push('/reports'),
+    onComplete: () => {
+      // カウントダウン完了時にナビゲーション
+      router.push('/reports');
+    },
   });
+
+  // コンポーネントのアンマウント時にカウントダウンを停止
+  React.useEffect(() => {
+    return () => {
+      stopCountdown();
+    };
+  }, [stopCountdown]);
 
   // 作業項目を追加する関数（現在は使用されていないが、将来の機能拡張のために残す）
   // const addWorkItem = () => {
@@ -145,7 +155,7 @@ export default function DailyReport() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-10 bg-white">
+    <div className="max-w-7xl mx-auto p-10 bg-white relative z-10">
 
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-800">日報</h1>

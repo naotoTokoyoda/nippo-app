@@ -15,7 +15,7 @@ export default function Navigation() {
   ]
 
   return (
-    <nav className="bg-white shadow-sm border-b">
+    <nav className="bg-white shadow-sm border-b relative z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex">
@@ -27,6 +27,9 @@ export default function Navigation() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={(e) => {
+                    console.log('Navigation clicked:', item.href);
+                  }}
                   className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
                     pathname === item.href
                       ? 'border-blue-500 text-gray-900'

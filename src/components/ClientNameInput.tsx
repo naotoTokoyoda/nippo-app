@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { getDatabaseClientNameSuggestions } from '@/utils/clientNameSearch';
 
 interface ClientNameInputProps {
@@ -26,10 +26,13 @@ export default function ClientNameInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
+  // availableNamesをメモ化
+  const memoizedAvailableNames = useMemo(() => availableNames, [availableNames.length]);
+
   // 入力値が変更されたときに候補を更新
-  useEffect(() => {
+  const updateSuggestions = useCallback(() => {
     if (value.trim()) {
-      const newSuggestions = getDatabaseClientNameSuggestions(value, availableNames, 8);
+      const newSuggestions = getDatabaseClientNameSuggestions(value, memoizedAvailableNames, 8);
       setSuggestions(newSuggestions);
       setShowSuggestions(newSuggestions.length > 0);
       setSelectedIndex(-1);
@@ -38,7 +41,11 @@ export default function ClientNameInput({
       setShowSuggestions(false);
       setSelectedIndex(-1);
     }
-  }, [value, availableNames]);
+  }, [value, memoizedAvailableNames]);
+
+  useEffect(() => {
+    updateSuggestions();
+  }, [updateSuggestions]);
 
   // クリックで候補を非表示
   useEffect(() => {
@@ -57,11 +64,11 @@ export default function ClientNameInput({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     onChange(e.target.value);
-  };
+  }, [onChange]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!showSuggestions) return;
 
     switch (e.key) {
@@ -88,16 +95,16 @@ export default function ClientNameInput({
         setSelectedIndex(-1);
         break;
     }
-  };
+  }, [showSuggestions, suggestions.length, selectedIndex, onChange]);
 
-  const handleSuggestionClick = (suggestion: string) => {
+  const handleSuggestionClick = useCallback((suggestion: string) => {
     onChange(suggestion);
     setShowSuggestions(false);
     setSelectedIndex(-1);
     inputRef.current?.focus();
-  };
+  }, [onChange]);
 
-  const highlightMatch = (text: string, query: string) => {
+  const highlightMatch = useCallback((text: string, query: string) => {
     if (!query.trim()) return text;
     
     const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
@@ -112,7 +119,7 @@ export default function ClientNameInput({
         part
       )
     );
-  };
+  }, []);
 
   return (
     <div className="relative">
