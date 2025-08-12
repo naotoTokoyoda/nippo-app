@@ -12,6 +12,7 @@ interface ReportStore {
   // アクション
   addReport: (report: DailyReportData) => void
   deleteReport: (id: string) => void
+  updateWorkItem: (reportId: string, workItemId: string, updatedWorkItem: any) => void
   loadTestData: () => void
   clearAllData: () => void
 }
@@ -39,6 +40,23 @@ export const useReportStore = create<ReportStore>()(
       deleteReport: (id: string) => {
         set((state) => ({
           reports: state.reports.filter(report => report.id !== id)
+        }));
+      },
+
+      // 作業項目を更新
+      updateWorkItem: (reportId: string, workItemId: string, updatedWorkItem: any) => {
+        set((state) => ({
+          reports: state.reports.map(report => {
+            if (report.id === reportId) {
+              return {
+                ...report,
+                workItems: report.workItems.map(item => 
+                  item.id === workItemId ? { ...item, ...updatedWorkItem } : item
+                )
+              };
+            }
+            return report;
+          })
         }));
       },
 

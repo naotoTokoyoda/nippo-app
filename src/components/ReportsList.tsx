@@ -6,6 +6,7 @@ import { calculateWorkTime, formatTime, formatDecimalTime } from '@/utils/timeCa
 import { getRowBackgroundClass } from '@/utils/conditionalFormatting';
 import { useReportStore } from '@/stores/reportStore';
 import DatabaseClientNameInput from './DatabaseClientNameInput';
+import EditWorkItemModal from './EditWorkItemModal';
 import { getEnvironment } from '@/utils/env';
 
 export default function ReportsList() {
@@ -17,6 +18,11 @@ export default function ReportsList() {
   
   const router = useRouter();
   const isDevelopment = getEnvironment() === 'development' || getEnvironment() === 'local';
+  
+  // 編集モーダルの状態
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedWorkItem, setSelectedWorkItem] = useState<any>(null);
+  const [selectedReportId, setSelectedReportId] = useState<string>('');
   
   // 利用可能な年月の取得
   const availableMonths = useMemo(() => {
@@ -95,6 +101,20 @@ export default function ReportsList() {
       workNumberBack: '',
       machineType: ''
     });
+  };
+
+  // 編集モーダルを開く
+  const handleEditWorkItem = (workItem: any, reportId: string) => {
+    setSelectedWorkItem(workItem);
+    setSelectedReportId(reportId);
+    setIsEditModalOpen(true);
+  };
+
+  // 編集モーダルを閉じる
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setSelectedWorkItem(null);
+    setSelectedReportId('');
   };
 
   return (
@@ -293,10 +313,10 @@ export default function ReportsList() {
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap">
                         <button
-                          onClick={() => deleteReport(item.reportId!)}
-                          className="px-2 py-1 text-red-600 hover:bg-red-50 rounded text-xs transition-colors"
+                          onClick={() => handleEditWorkItem(item, item.reportId!)}
+                          className="px-2 py-1 text-blue-600 hover:bg-blue-50 rounded text-xs transition-colors"
                         >
-                          削除
+                          編集
                         </button>
                       </td>
                     </tr>
@@ -307,6 +327,15 @@ export default function ReportsList() {
           </table>
         </div>
       </div>
+
+      {/* 編集モーダル */}
+      <EditWorkItemModal
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        workItem={selectedWorkItem}
+        reportId={selectedReportId}
+        availableCustomerNames={uniqueCustomerNames}
+      />
     </div>
   );
 } 
