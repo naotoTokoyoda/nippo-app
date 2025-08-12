@@ -103,7 +103,7 @@ export function generateTimeOptions(startHour: number = 0, endHour: number = 23)
 export function isValidTimeIncrement(time: string): boolean {
   if (!time) return true;
   
-  const [hours, minutes] = time.split(':').map(Number);
+  const [, minutes] = time.split(':').map(Number);
   return minutes % 15 === 0;
 }
 

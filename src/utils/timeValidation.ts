@@ -52,7 +52,7 @@ export function checkTimeContinuity(
 
   const lastEndMinutes = timeToMinutes(lastWorkItem.endTime);
   const currentStartMinutes = timeToMinutes(currentStartTime);
-  const currentEndMinutes = timeToMinutes(currentEndTime);
+  // const currentEndMinutes = timeToMinutes(currentEndTime); // 現在は使用されていない
 
   // 前回の終了時間と今回の開始時間の差を計算
   const timeGap = currentStartMinutes - lastEndMinutes;

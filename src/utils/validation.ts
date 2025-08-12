@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isZeroWorkTime, calculateWorkTime } from './timeCalculation';
+import { isZeroWorkTime } from './timeCalculation';
 
 // 作業項目のバリデーションスキーマ
 export const WorkItemSchema = z.object({

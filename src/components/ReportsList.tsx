@@ -7,11 +7,11 @@ import { getRowBackgroundClass } from '@/utils/conditionalFormatting';
 import { useReportStore } from '@/stores/reportStore';
 import DatabaseClientNameInput from './DatabaseClientNameInput';
 import EditWorkItemModal from './EditWorkItemModal';
+import { WorkItemData } from '@/types/daily-report';
 import { getEnvironment } from '@/utils/env';
 
 export default function ReportsList() {
   const reports = useReportStore((state) => state.reports);
-  const deleteReport = useReportStore((state) => state.deleteReport);
   const loadTestData = useReportStore((state) => state.loadTestData);
   const clearAllData = useReportStore((state) => state.clearAllData);
   const isTestDataLoaded = useReportStore((state) => state.isTestDataLoaded);
@@ -21,7 +21,7 @@ export default function ReportsList() {
   
   // 編集モーダルの状態
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selectedWorkItem, setSelectedWorkItem] = useState<any>(null);
+  const [selectedWorkItem, setSelectedWorkItem] = useState<WorkItemData | null>(null);
   const [selectedReportId, setSelectedReportId] = useState<string>('');
   
   // 利用可能な年月の取得
@@ -89,7 +89,6 @@ export default function ReportsList() {
   const uniqueWorkers = [...new Set(reports.map(r => r.workerName))].filter(Boolean);
   const uniqueCustomerNames = [...new Set(allWorkItems.map(w => w.customerName))].filter(Boolean);
   const uniqueWorkNumbers = [...new Set(allWorkItems.map(w => w.workNumberFront))].filter(Boolean);
-  const uniqueWorkNumbersBack = [...new Set(allWorkItems.map(w => w.workNumberBack))].filter(Boolean);
   const uniqueMachineTypes = [...new Set(allWorkItems.map(w => w.machineType))].filter(Boolean);
 
   const clearFilters = () => {
@@ -104,7 +103,7 @@ export default function ReportsList() {
   };
 
   // 編集モーダルを開く
-  const handleEditWorkItem = (workItem: any, reportId: string) => {
+  const handleEditWorkItem = (workItem: WorkItemData, reportId: string) => {
     setSelectedWorkItem(workItem);
     setSelectedReportId(reportId);
     setIsEditModalOpen(true);

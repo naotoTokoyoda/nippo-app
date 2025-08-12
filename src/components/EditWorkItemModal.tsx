@@ -3,24 +3,26 @@
 import { useState, useEffect } from 'react';
 import { useReportStore } from '@/stores/reportStore';
 import DatabaseClientNameInput from './DatabaseClientNameInput';
+import { WorkItemData } from '@/types/daily-report';
 
-interface WorkItem {
-  id: string;
-  name: string;
-  customerName: string;
-  workNumberFront: string;
-  workNumberBack: string;
-  startTime: string;
-  endTime: string;
-  machineType: string;
-  remarks: string;
-  workStatus: string;
-}
+// WorkItemData型を使用するため、このインターフェースは削除
+// interface WorkItem {
+//   id: string;
+//   name: string;
+//   customerName: string;
+//   workNumberFront: string;
+//   workNumberBack: string;
+//   startTime: string;
+//   endTime: string;
+//   machineType: string;
+//   remarks: string;
+//   workStatus: string;
+// }
 
 interface EditWorkItemModalProps {
   isOpen: boolean;
   onClose: () => void;
-  workItem: WorkItem | null;
+  workItem: WorkItemData | null;
   reportId: string;
   availableCustomerNames: string[];
 }
@@ -33,7 +35,7 @@ export default function EditWorkItemModal({
   availableCustomerNames
 }: EditWorkItemModalProps) {
   const updateWorkItem = useReportStore((state) => state.updateWorkItem);
-  const [formData, setFormData] = useState<WorkItem>({
+  const [formData, setFormData] = useState<WorkItemData>({
     id: '',
     name: '',
     customerName: '',
@@ -43,7 +45,7 @@ export default function EditWorkItemModal({
     endTime: '',
     machineType: '',
     remarks: '',
-    workStatus: 'completed'
+    workStatus: 'normal'
   });
 
   // 作業項目が変更されたときにフォームデータを更新
@@ -63,7 +65,7 @@ export default function EditWorkItemModal({
     onClose();
   };
 
-  const handleInputChange = (field: keyof WorkItem, value: string) => {
+  const handleInputChange = (field: keyof WorkItemData, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -112,7 +114,6 @@ export default function EditWorkItemModal({
                 onChange={(value) => handleInputChange('customerName', value)}
                 availableNames={availableCustomerNames}
                 placeholder="客先名を入力"
-                required
               />
             </div>
 

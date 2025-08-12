@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { DailyReportData } from '@/types/daily-report'
+import { DailyReportData, WorkItemData } from '@/types/daily-report'
 import { getEnvironment } from '@/utils/env'
 import { SAMPLE_REPORTS } from '@/data/testData'
 
@@ -12,7 +12,7 @@ interface ReportStore {
   // アクション
   addReport: (report: DailyReportData) => void
   deleteReport: (id: string) => void
-  updateWorkItem: (reportId: string, workItemId: string, updatedWorkItem: any) => void
+  updateWorkItem: (reportId: string, workItemId: string, updatedWorkItem: Partial<WorkItemData>) => void
   loadTestData: () => void
   clearAllData: () => void
 }
@@ -44,7 +44,7 @@ export const useReportStore = create<ReportStore>()(
       },
 
       // 作業項目を更新
-      updateWorkItem: (reportId: string, workItemId: string, updatedWorkItem: any) => {
+      updateWorkItem: (reportId: string, workItemId: string, updatedWorkItem: Partial<WorkItemData>) => {
         set((state) => ({
           reports: state.reports.map(report => {
             if (report.id === reportId) {

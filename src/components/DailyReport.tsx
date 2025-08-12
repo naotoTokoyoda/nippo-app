@@ -4,7 +4,7 @@ import { useState } from 'react';
 import WorkItem from '@/components/WorkItem';
 import WorkerHistory from '@/components/WorkerHistory';
 import { useRouter } from 'next/navigation';
-import { calculateWorkTime } from '@/utils/timeCalculation';
+// import { calculateWorkTime } from '@/utils/timeCalculation'; // 現在は使用されていない
 import { validateDailyReport, validateBasicInfo } from '@/utils/validation';
 import { useReportStore } from '@/stores/reportStore';
 import { DailyReportData, WorkItemData, WORKER_OPTIONS, ValidationError } from '@/types/daily-report';
@@ -43,24 +43,25 @@ export default function DailyReport() {
     onComplete: () => router.push('/reports'),
   });
 
-  const addWorkItem = () => {
-    const newWorkItem: WorkItemData = {
-      id: Date.now().toString(),
-      customerName: '',
-      workNumberFront: '',
-      workNumberBack: '',
-      name: '',
-      startTime: '',
-      endTime: '',
-      machineType: '',
-      workStatus: 'normal',
-      remarks: ''
-    };
-    setReportData(prev => ({
-      ...prev,
-      workItems: [...prev.workItems, newWorkItem]
-    }));
-  };
+  // 作業項目を追加する関数（現在は使用されていないが、将来の機能拡張のために残す）
+  // const addWorkItem = () => {
+  //   const newWorkItem: WorkItemData = {
+  //     id: Date.now().toString(),
+  //     customerName: '',
+  //     workNumberFront: '',
+  //     workNumberBack: '',
+  //     name: '',
+  //     startTime: '',
+  //     endTime: '',
+  //     machineType: '',
+  //     workStatus: 'normal',
+  //     remarks: ''
+  //   };
+  //   setReportData(prev => ({
+  //     ...prev,
+  //     workItems: [...prev.workItems, newWorkItem]
+  //   }));
+  // };
 
   const updateWorkItem = (id: string, updatedItem: Partial<WorkItemData>) => {
     setReportData(prev => ({
@@ -78,12 +79,13 @@ export default function DailyReport() {
     }));
   };
 
-  const calculateTotalTime = () => {
-    return reportData.workItems.reduce((total, item) => {
-      const workTime = calculateWorkTime(item.startTime, item.endTime, item.workStatus);
-      return total + workTime;
-    }, 0);
-  };
+  // 合計作業時間を計算する関数（現在は使用されていないが、将来の機能拡張のために残す）
+  // const calculateTotalTime = () => {
+  //   return reportData.workItems.reduce((total, item) => {
+  //     const workTime = calculateWorkTime(item.startTime, item.endTime, item.workStatus);
+  //     return total + workTime;
+  //   }, 0);
+  // };
 
   // 基本情報のリアルタイムバリデーション
   React.useEffect(() => {
