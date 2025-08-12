@@ -190,7 +190,7 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
 
       {/* 今日の最終作業終了時間 */}
       {todayReport && todayReport.workItems.length > 0 && (
-        <div className="mb-4 p-3 bg-gray-100 border border-gray-200 rounded-md">
+        <div className="mb-4 p-3 bg-gray-300 border border-gray-200 rounded-md">
           <div className="text-sm text-gray-800">
             <span className="font-medium">今日の最終作業終了時間:</span>
             <span className="ml-2">
@@ -258,8 +258,8 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
             })}
           </div>
           
-          <div className="mt-3 p-2 bg-blue-100 rounded-md">
-            <div className="text-sm text-blue-800">
+          <div className="mt-3 p-2 bg-gray-100 rounded-md">
+            <div className="text-sm text-gray-800">
               <span className="font-medium">前回の最終作業終了時間:</span>
               <span className="ml-2">
                 {latestReport.workItems.length > 0 
