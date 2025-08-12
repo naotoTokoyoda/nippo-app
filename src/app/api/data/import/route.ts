@@ -3,8 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { 
   parseCSVData, 
   convertSpreadsheetToDailyReports, 
-  validateSpreadsheetData,
-  SpreadsheetRow 
+  validateSpreadsheetData
 } from '@/lib/spreadsheet-import';
 import { dataHelpers } from '@/data/testData';
 
@@ -75,7 +74,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function migrateReportsToDatabase(dailyReports: any[]) {
+async function migrateReportsToDatabase(dailyReports: ReturnType<typeof convertSpreadsheetToDailyReports>) {
   const results = {
     importedReports: 0,
     importedWorkItems: 0,

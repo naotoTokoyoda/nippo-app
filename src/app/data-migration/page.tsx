@@ -7,7 +7,17 @@ export default function DataMigrationPage() {
   const [file, setFile] = useState<File | null>(null);
   const [csvData, setCsvData] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<{
+    message: string;
+    summary: {
+      totalReports: number;
+      totalWorkItems: number;
+      importedReports: number;
+      importedWorkItems: number;
+      skippedItems: number;
+      errors: string[];
+    };
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

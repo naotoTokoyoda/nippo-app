@@ -63,7 +63,7 @@ export function parseCSVData(csvContent: string): SpreadsheetRow[] {
 
   for (let i = 1; i < lines.length; i++) {
     const values = lines[i].split(',').map(v => v.trim());
-    const row: any = {};
+    const row: Record<string, string> = {};
 
     headers.forEach((header, index) => {
       row[header] = values[index] || '';
