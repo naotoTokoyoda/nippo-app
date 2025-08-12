@@ -1,19 +1,15 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { DailyReportData, WorkItemData } from '@/types/daily-report'
-import { getEnvironment } from '@/utils/env'
-import { SAMPLE_REPORTS } from '@/data/testData'
 
 interface ReportStore {
   // 状態
   reports: DailyReportData[]
-  isTestDataLoaded: boolean
   
   // アクション
   addReport: (report: DailyReportData) => void
   deleteReport: (id: string) => void
   updateWorkItem: (reportId: string, workItemId: string, updatedWorkItem: Partial<WorkItemData>) => void
-  loadTestData: () => void
   clearAllData: () => void
 }
 
@@ -22,7 +18,6 @@ export const useReportStore = create<ReportStore>()(
     (set) => ({
       // 初期状態
       reports: [],
-      isTestDataLoaded: false,
 
       // レポートを追加
       addReport: (report: DailyReportData) => {
@@ -60,24 +55,10 @@ export const useReportStore = create<ReportStore>()(
         }));
       },
 
-      // テストデータを読み込み（develop環境でのみ有効）
-      loadTestData: () => {
-        const env = getEnvironment();
-        if (env === 'development' || env === 'local') {
-          set({
-            reports: SAMPLE_REPORTS,
-            isTestDataLoaded: true
-          });
-        } else {
-          console.log('テストデータは開発環境でのみ利用可能です');
-        }
-      },
-
       // 全データをクリア
       clearAllData: () => {
         set({
-          reports: [],
-          isTestDataLoaded: false
+          reports: []
         });
       },
     }),

@@ -5,11 +5,7 @@ import { useReportStore } from '@/stores/reportStore';
 import { useEnvironment } from '@/hooks/useEnvironment';
 
 export default function HomePage() {
-  const loadTestData = useReportStore((state) => state.loadTestData);
   const clearAllData = useReportStore((state) => state.clearAllData);
-  const isTestDataLoaded = useReportStore((state) => state.isTestDataLoaded);
-  
-  const { isDevelopment, isClient } = useEnvironment();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -51,32 +47,7 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* テストデータ管理 - 開発環境でのみ表示 */}
-        {isClient && isDevelopment && (
-          <div className="mt-8 text-center">
-            <div className="bg-white rounded-lg shadow-sm p-6 max-w-2xl mx-auto">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">テストデータ管理（開発環境）</h3>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <button
-                  onClick={loadTestData}
-                  disabled={isTestDataLoaded}
-                  className="px-6 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isTestDataLoaded ? 'テストデータ読み込み済み' : 'テストデータを読み込み'}
-                </button>
-                <button
-                  onClick={clearAllData}
-                  className="px-6 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-                >
-                  すべてのデータをクリア
-                </button>
-              </div>
-              <p className="text-sm text-gray-600 mt-3">
-                テストデータには5件のサンプル日報が含まれています（開発環境のみ）
-              </p>
-            </div>
-          </div>
-        )}
+
 
       </div>
     </div>

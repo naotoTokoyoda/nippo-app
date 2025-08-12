@@ -5,7 +5,6 @@ import {
   convertSpreadsheetToDailyReports, 
   validateSpreadsheetData
 } from '@/lib/spreadsheet-import';
-import { dataHelpers } from '@/data/testData';
 
 const prisma = new PrismaClient();
 
@@ -84,19 +83,23 @@ async function migrateReportsToDatabase(dailyReports: ReturnType<typeof convertS
 
   for (const report of dailyReports) {
     try {
-      // 作業者IDを取得
-      const workerId = dataHelpers.getWorkerId(report.workerName);
-      if (!workerId) {
-        results.errors.push(`作業者 "${report.workerName}" が見つかりません`);
-        results.skippedItems++;
-        continue;
+      // 作業者を検索または作成
+      let worker = await prisma.user.findFirst({
+        where: { name: report.workerName }
+      });
+
+      if (!worker) {
+        // 作業者が存在しない場合は作成
+        worker = await prisma.user.create({
+          data: { name: report.workerName }
+        });
       }
 
       // 日報を作成
       const createdReport = await prisma.report.create({
         data: {
           date: new Date(report.date),
-          workerId: workerId,
+          workerId: worker.id,
           submittedAt: new Date(report.submittedAt || new Date())
         }
       });
@@ -106,14 +109,51 @@ async function migrateReportsToDatabase(dailyReports: ReturnType<typeof convertS
       // 日報項目を作成
       for (const workItem of report.workItems) {
         try {
-          const customerId = dataHelpers.getCustomerId(workItem.customerName);
-          const workOrderId = dataHelpers.getWorkOrderId(workItem.workNumberFront, workItem.workNumberBack);
-          const machineId = dataHelpers.getMachineId(workItem.machineType);
+          // 客先を検索または作成
+          let customer = await prisma.customer.findFirst({
+            where: { name: workItem.customerName }
+          });
 
-          if (!customerId || !workOrderId || !machineId) {
-            results.errors.push(`作業項目 "${workItem.name}" の関連データが見つかりません`);
-            results.skippedItems++;
-            continue;
+          if (!customer) {
+            customer = await prisma.customer.create({
+              data: { 
+                name: workItem.customerName,
+                code: `CUST${Date.now()}` // 一時的なコード
+              }
+            });
+          }
+
+          // 工番を検索または作成
+          let workOrder = await prisma.workOrder.findFirst({
+            where: {
+              frontNumber: workItem.workNumberFront,
+              backNumber: workItem.workNumberBack
+            }
+          });
+
+          if (!workOrder) {
+            workOrder = await prisma.workOrder.create({
+              data: {
+                frontNumber: workItem.workNumberFront,
+                backNumber: workItem.workNumberBack,
+                description: workItem.name,
+                customerId: customer.id
+              }
+            });
+          }
+
+          // 機械を検索または作成
+          let machine = await prisma.machine.findFirst({
+            where: { name: workItem.machineType }
+          });
+
+          if (!machine) {
+            machine = await prisma.machine.create({
+              data: {
+                name: workItem.machineType,
+                category: 'その他'
+              }
+            });
           }
 
           // 開始時刻と終了時刻を組み合わせてDateTimeに変換
@@ -123,9 +163,9 @@ async function migrateReportsToDatabase(dailyReports: ReturnType<typeof convertS
           await prisma.reportItem.create({
             data: {
               reportId: createdReport.id,
-              customerId: customerId,
-              workOrderId: workOrderId,
-              machineId: machineId,
+              customerId: customer.id,
+              workOrderId: workOrder.id,
+              machineId: machine.id,
               startTime: startDateTime,
               endTime: endDateTime,
               workStatus: workItem.workStatus || 'normal',
