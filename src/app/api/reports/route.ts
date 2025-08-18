@@ -30,7 +30,12 @@ export async function GET(request: NextRequest) {
     });
     
     // レポートフィルターの設定
-    let reportFilter = {};
+    let reportFilter: {
+      report?: {
+        date?: { gte: Date; lte: Date };
+        worker?: { name: string };
+      };
+    } = {};
     if (month || workerName) {
       reportFilter = {
         report: {}
@@ -54,7 +59,7 @@ export async function GET(request: NextRequest) {
           endDateLocal: endDate.toLocaleDateString('ja-JP')
         });
         
-        reportFilter.report.date = {
+        reportFilter.report!.date = {
           gte: startDate,
           lte: endDate,
         };
@@ -62,7 +67,7 @@ export async function GET(request: NextRequest) {
 
       // 作業者フィルターの設定
       if (workerName) {
-        reportFilter.report.worker = {
+        reportFilter.report!.worker = {
           name: workerName,
         };
       }
