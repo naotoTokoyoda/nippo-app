@@ -317,7 +317,7 @@ export default function DailyReport() {
       </div>
 
       {/* 送信ボタン */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="">
         <div className="text-center">
           <button
             onClick={handleSubmit}
