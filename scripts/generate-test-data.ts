@@ -139,7 +139,15 @@ const generateReports = (users: User[]) => {
     
     let attempts = 0;
     do {
-      randomDate = new Date(startDate2024.getTime() + Math.random() * (endDate2024.getTime() - startDate2024.getTime()));
+      // より確実な日付生成方法
+      const startTime = startDate2024.getTime();
+      const endTime = endDate2024.getTime();
+      const randomTime = startTime + Math.random() * (endTime - startTime);
+      randomDate = new Date(randomTime);
+      
+      // 日付を00:00:00に設定してタイムゾーンの影響を排除
+      randomDate.setHours(0, 0, 0, 0);
+      
       randomUser = users[Math.floor(Math.random() * users.length)];
       combinationKey = `${randomDate.toISOString().split('T')[0]}-${randomUser.id}`;
       attempts++;
@@ -169,7 +177,15 @@ const generateReports = (users: User[]) => {
     
     let attempts = 0;
     do {
-      randomDate = new Date(startDate2025.getTime() + Math.random() * (endDate2025.getTime() - startDate2025.getTime()));
+      // より確実な日付生成方法
+      const startTime = startDate2025.getTime();
+      const endTime = endDate2025.getTime();
+      const randomTime = startTime + Math.random() * (endTime - startTime);
+      randomDate = new Date(randomTime);
+      
+      // 日付を00:00:00に設定してタイムゾーンの影響を排除
+      randomDate.setHours(0, 0, 0, 0);
+      
       randomUser = users[Math.floor(Math.random() * users.length)];
       combinationKey = `${randomDate.toISOString().split('T')[0]}-${randomUser.id}`;
       attempts++;
