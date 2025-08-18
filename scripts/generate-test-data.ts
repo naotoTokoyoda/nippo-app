@@ -13,6 +13,39 @@ const CONFIG = {
   reportItemsPerReport: 5, // 1日報あたりの作業項目数
 };
 
+// 型定義
+interface User {
+  id: string;
+  name: string;
+}
+
+interface Customer {
+  id: string;
+  name: string;
+  code: string;
+}
+
+interface Machine {
+  id: string;
+  name: string;
+  category: string;
+}
+
+interface WorkOrder {
+  id: string;
+  frontNumber: string;
+  backNumber: string;
+  description: string | null;
+  customerId: string;
+}
+
+interface Report {
+  id: string;
+  date: Date;
+  workerId: string;
+  submittedAt: Date;
+}
+
 // 作業者データ
 const generateUsers = () => {
   const users = [];
@@ -56,7 +89,7 @@ const generateMachines = () => {
 };
 
 // 工番データ
-const generateWorkOrders = (customers: any[]) => {
+const generateWorkOrders = (customers: Customer[]) => {
   const workOrders = [];
   for (let i = 0; i < CONFIG.workOrders; i++) {
     workOrders.push({
@@ -70,26 +103,51 @@ const generateWorkOrders = (customers: any[]) => {
 };
 
 // 日報データ
-const generateReports = (users: any[]) => {
+const generateReports = (users: User[]) => {
   const reports = [];
   const startDate = new Date('2023-01-01');
   const endDate = new Date('2024-12-31');
   
+  // 既存の組み合わせを追跡するためのSet
+  const existingCombinations = new Set<string>();
+  
   for (let i = 0; i < CONFIG.reports; i++) {
-    const randomDate = new Date(startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime()));
-    const randomUser = users[Math.floor(Math.random() * users.length)];
+    let randomDate: Date;
+    let randomUser: User;
+    let combinationKey: string;
     
-    reports.push({
-      date: randomDate,
-      workerId: randomUser.id,
-      submittedAt: new Date(randomDate.getTime() + Math.random() * 24 * 60 * 60 * 1000), // 同日のランダムな時間
-    });
+    // 重複しない組み合わせを見つけるまで繰り返す
+    let attempts = 0;
+    do {
+      randomDate = new Date(startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime()));
+      randomUser = users[Math.floor(Math.random() * users.length)];
+      combinationKey = `${randomDate.toISOString().split('T')[0]}-${randomUser.id}`;
+      attempts++;
+      
+      // 無限ループを防ぐ
+      if (attempts > 1000) {
+        console.log('⚠️ 重複しない組み合わせが見つからないため、日報数を調整します');
+        break;
+      }
+    } while (existingCombinations.has(combinationKey));
+    
+    // 組み合わせが見つかった場合のみ追加
+    if (!existingCombinations.has(combinationKey)) {
+      existingCombinations.add(combinationKey);
+      
+      reports.push({
+        date: randomDate,
+        workerId: randomUser.id,
+        submittedAt: new Date(randomDate.getTime() + Math.random() * 24 * 60 * 60 * 1000), // 同日のランダムな時間
+      });
+    }
   }
+  
   return reports;
 };
 
 // 作業項目データ
-const generateReportItems = (reports: any[], workOrders: any[], machines: any[]) => {
+const generateReportItems = (reports: Report[], workOrders: WorkOrder[], machines: Machine[]) => {
   const reportItems = [];
   
   for (const report of reports) {
@@ -163,9 +221,19 @@ async function generateTestData() {
     
     // 5. 日報を生成
     console.log('📊 日報データを生成中...');
-    const reports = await Promise.all(
-      generateReports(users).map(report => prisma.report.create({ data: report }))
-    );
+    const reportData = generateReports(users);
+    
+    // バッチ処理で日報を作成
+    const reportBatchSize = 50;
+    const reports = [];
+    for (let i = 0; i < reportData.length; i += reportBatchSize) {
+      const batch = reportData.slice(i, i + reportBatchSize);
+      const batchResults = await Promise.all(
+        batch.map(report => prisma.report.create({ data: report }))
+      );
+      reports.push(...batchResults);
+      console.log(`📦 日報バッチ ${Math.floor(i / reportBatchSize) + 1}/${Math.ceil(reportData.length / reportBatchSize)} を処理中...`);
+    }
     console.log(`✅ ${reports.length}件の日報を作成しました`);
     
     // 6. 作業項目を生成

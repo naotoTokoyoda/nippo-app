@@ -25,6 +25,15 @@ export default function ReportsList() {
     hasPrevPage: false,
   });
   
+  // フィルター選択肢の状態
+  const [filterOptions, setFilterOptions] = useState({
+    availableMonths: [] as string[],
+    uniqueWorkers: [] as string[],
+    uniqueCustomerNames: [] as string[],
+    uniqueWorkNumbers: [] as string[],
+    uniqueMachineTypes: [] as string[],
+  });
+  
   // 編集モーダルの状態
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedWorkItem, setSelectedWorkItem] = useState<WorkItemData | null>(null);
@@ -45,6 +54,26 @@ export default function ReportsList() {
     workNumberBack: '',
     machineType: ''
   });
+
+  // フィルター選択肢を取得する関数
+  const fetchFilterOptions = useCallback(async () => {
+    try {
+      const response = await fetch('/api/reports/filter-options');
+      const result = await response.json();
+      
+      if (result.success) {
+        setFilterOptions({
+          availableMonths: result.availableMonths || [],
+          uniqueWorkers: result.uniqueWorkers || [],
+          uniqueCustomerNames: result.uniqueCustomerNames || [],
+          uniqueWorkNumbers: result.uniqueWorkNumbers || [],
+          uniqueMachineTypes: result.uniqueMachineTypes || [],
+        });
+      }
+    } catch (err) {
+      console.error('フィルター選択肢の取得エラー:', err);
+    }
+  }, []);
 
   // データベースからデータを取得する関数（最適化版）
   const fetchReports = useCallback(async (filterParams: typeof filters, page: number = 1) => {
@@ -86,46 +115,17 @@ export default function ReportsList() {
 
   // 初期データ取得
   useEffect(() => {
-    fetchReports(filters, 1);
-  }, [fetchReports, filters]);
+    const initializeData = async () => {
+      await fetchFilterOptions();
+      await fetchReports(filters, 1);
+    };
+    initializeData();
+  }, [fetchFilterOptions, fetchReports, filters]);
 
   // ページ変更時の処理
   const handlePageChange = (newPage: number) => {
     fetchReports(filters, newPage);
   };
-
-  // 利用可能な年月の取得（最適化版）
-  const availableMonths = useMemo(() => {
-    const months = new Set<string>();
-    filteredWorkItems.forEach(item => {
-      if (item.reportDate) {
-        const yearMonth = item.reportDate.substring(0, 7); // YYYY-MM形式
-        months.add(yearMonth);
-      }
-    });
-    return Array.from(months).sort().reverse(); // 新しい順にソート
-  }, [filteredWorkItems]);
-
-  // ユニークな値の取得（最適化版）
-  const uniqueWorkers = useMemo(() => 
-    [...new Set(filteredWorkItems.map(item => item.workerName))].filter(Boolean), 
-    [filteredWorkItems]
-  );
-  
-  const uniqueCustomerNames = useMemo(() => 
-    [...new Set(filteredWorkItems.map(item => item.customerName))].filter(Boolean), 
-    [filteredWorkItems]
-  );
-  
-  const uniqueWorkNumbers = useMemo(() => 
-    [...new Set(filteredWorkItems.map(item => item.workNumberFront))].filter(Boolean), 
-    [filteredWorkItems]
-  );
-  
-  const uniqueMachineTypes = useMemo(() => 
-    [...new Set(filteredWorkItems.map(item => item.machineType))].filter(Boolean), 
-    [filteredWorkItems]
-  );
 
   const clearFilters = () => {
     setFilters({
@@ -193,7 +193,7 @@ export default function ReportsList() {
               onChange={(e) => setFilters(prev => ({ ...prev, month: e.target.value }))}
               className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
             >
-              {availableMonths.map(month => {
+              {filterOptions.availableMonths.map(month => {
                 const [year, monthNum] = month.split('-');
                 const monthName = new Date(parseInt(year), parseInt(monthNum) - 1).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' });
                 return (
@@ -211,7 +211,7 @@ export default function ReportsList() {
               className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
             >
               <option value="">すべて</option>
-              {uniqueWorkers.map(worker => (
+              {filterOptions.uniqueWorkers.map(worker => (
                 <option key={worker} value={worker}>{worker}</option>
               ))}
             </select>
@@ -222,7 +222,7 @@ export default function ReportsList() {
             <DatabaseClientNameInput
               value={filters.customerName}
               onChange={(value) => setFilters(prev => ({ ...prev, customerName: value }))}
-              availableNames={uniqueCustomerNames}
+              availableNames={filterOptions.uniqueCustomerNames}
               placeholder="客先名を入力"
               className="text-gray-900 h-10"
             />
@@ -236,7 +236,7 @@ export default function ReportsList() {
               className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
             >
               <option value="">すべて</option>
-              {uniqueWorkNumbers.map(number => (
+              {filterOptions.uniqueWorkNumbers.map(number => (
                 <option key={number} value={number}>{number}</option>
               ))}
             </select>
@@ -261,7 +261,7 @@ export default function ReportsList() {
               className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
             >
               <option value="">すべて</option>
-              {uniqueMachineTypes.map(type => (
+              {filterOptions.uniqueMachineTypes.map(type => (
                 <option key={type} value={type}>{type}</option>
               ))}
             </select>
@@ -393,7 +393,7 @@ export default function ReportsList() {
         onClose={handleCloseEditModal}
         workItem={selectedWorkItem}
         reportId={selectedReportId}
-        availableCustomerNames={uniqueCustomerNames}
+        availableCustomerNames={filterOptions.uniqueCustomerNames}
       />
     </div>
   );
