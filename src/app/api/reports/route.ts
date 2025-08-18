@@ -5,6 +5,27 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     
+    // パラメータを取得
+    const month = searchParams.get('month');
+    const workerName = searchParams.get('workerName');
+    const customerName = searchParams.get('customerName');
+    const workNumberFront = searchParams.get('workNumberFront');
+    const workNumberBack = searchParams.get('workNumberBack');
+    const machineType = searchParams.get('machineType');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    
+    console.log('API パラメータ:', {
+      month,
+      workerName,
+      customerName,
+      workNumberFront,
+      workNumberBack,
+      machineType,
+      page,
+      limit
+    });
+    
     // クエリパラメータを取得
     const month = searchParams.get('month');
     const workerName = searchParams.get('workerName');
@@ -25,6 +46,7 @@ export async function GET(request: NextRequest) {
       
       // 指定された月の最初の日と最後の日を計算
       const startDate = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
+      // 次の月の0日目 = 現在の月の最後の日
       const endDate = new Date(parseInt(year), parseInt(monthNum), 0);
       
       console.log('日付フィルター詳細:', {
