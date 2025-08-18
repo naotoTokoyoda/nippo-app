@@ -264,7 +264,7 @@ export async function POST(request: NextRequest) {
     // レポートを作成
     const report = await prisma.report.create({
       data: {
-        date: new Date(date),
+        date: new Date(date + 'T00:00:00.000Z'), // UTC時間として明示的に設定
         workerId: worker.id,
         submittedAt: new Date(),
       },
@@ -323,11 +323,11 @@ export async function POST(request: NextRequest) {
       const [startHour, startMinute] = workItem.startTime.split(':').map(Number);
       const [endHour, endMinute] = workItem.endTime.split(':').map(Number);
       
-      const startDateTime = new Date(date);
-      startDateTime.setHours(startHour, startMinute, 0, 0);
+      const startDateTime = new Date(date + 'T00:00:00.000Z');
+      startDateTime.setUTCHours(startHour, startMinute, 0, 0);
       
-      const endDateTime = new Date(date);
-      endDateTime.setHours(endHour, endMinute, 0, 0);
+      const endDateTime = new Date(date + 'T00:00:00.000Z');
+      endDateTime.setUTCHours(endHour, endMinute, 0, 0);
 
       await prisma.reportItem.create({
         data: {
