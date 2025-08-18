@@ -193,11 +193,11 @@ export default function ReportsList() {
               onChange={(e) => setFilters(prev => ({ ...prev, month: e.target.value }))}
               className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
             >
-              {filterOptions.availableMonths.map(month => {
+              {filterOptions.availableMonths.map((month, index) => {
                 const [year, monthNum] = month.split('-');
                 const monthName = new Date(parseInt(year), parseInt(monthNum) - 1).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' });
                 return (
-                  <option key={month} value={month}>{monthName}</option>
+                  <option key={`month-${month}-${index}`} value={month}>{monthName}</option>
                 );
               })}
             </select>
@@ -211,8 +211,8 @@ export default function ReportsList() {
               className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
             >
               <option value="">すべて</option>
-              {filterOptions.uniqueWorkers.map(worker => (
-                <option key={worker} value={worker}>{worker}</option>
+              {filterOptions.uniqueWorkers.map((worker, index) => (
+                <option key={`worker-${worker}-${index}`} value={worker}>{worker}</option>
               ))}
             </select>
           </div>
@@ -236,8 +236,8 @@ export default function ReportsList() {
               className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
             >
               <option value="">すべて</option>
-              {filterOptions.uniqueWorkNumbers.map(number => (
-                <option key={number} value={number}>{number}</option>
+              {filterOptions.uniqueWorkNumbers.map((number, index) => (
+                <option key={`workNumberFront-${number}-${index}`} value={number}>{number}</option>
               ))}
             </select>
           </div>
@@ -261,8 +261,8 @@ export default function ReportsList() {
               className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
             >
               <option value="">すべて</option>
-              {filterOptions.uniqueMachineTypes.map(type => (
-                <option key={type} value={type}>{type}</option>
+              {filterOptions.uniqueMachineTypes.map((type, index) => (
+                <option key={`machineType-${type}-${index}`} value={type}>{type}</option>
               ))}
             </select>
           </div>

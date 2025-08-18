@@ -11,7 +11,7 @@ export async function GET() {
       uniqueWorkNumbers,
       uniqueMachineTypes,
     ] = await Promise.all([
-      // 利用可能な年月を取得
+      // 利用可能な年月を取得（重複除去）
       prisma.report.findMany({
         select: {
           date: true,
@@ -20,9 +20,14 @@ export async function GET() {
         orderBy: {
           date: 'desc',
         },
-      }).then(reports => 
-        reports.map(report => report.date.toISOString().split('T')[0].substring(0, 7))
-      ),
+      }).then(reports => {
+        const months = new Set<string>();
+        reports.forEach(report => {
+          const yearMonth = report.date.toISOString().split('T')[0].substring(0, 7);
+          months.add(yearMonth);
+        });
+        return Array.from(months).sort().reverse(); // 新しい順にソート
+      }),
 
       // ユニークな作業者名を取得
       prisma.user.findMany({
