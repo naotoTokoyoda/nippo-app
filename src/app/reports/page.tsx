@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import ReportsList from '@/components/ReportsList';
+import PageLayout from '@/components/PageLayout';
 
 export const metadata: Metadata = {
   title: '日報一覧 - 日報アプリ',
@@ -14,8 +15,8 @@ export const metadata: Metadata = {
 
 export default function ReportsPage() {
   return (
-    <div className="min-h-screen bg-gray-100">
+    <PageLayout title="日報一覧" showCreateButton={true}>
       <ReportsList />
-    </div>
+    </PageLayout>
   );
 } 

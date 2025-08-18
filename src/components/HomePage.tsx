@@ -5,12 +5,11 @@ import Link from 'next/link';
 export default function HomePage() {
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-      <div className="max-w-4xl mx-auto p-8">
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold text-gray-800 mb-4">日報アプリ</h1>
-          <p className="text-xl text-gray-600">作業日報を作成・管理するアプリケーション</p>
-        </div>
+    <div className="max-w-4xl mx-auto p-8">
+      <div className="text-center mb-12">
+        <h1 className="text-5xl font-bold text-gray-800 mb-4">日報アプリ</h1>
+        <p className="text-xl text-gray-600">作業日報を作成・管理するアプリケーション</p>
+      </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto">
           {/* 日報入力ボタン */}
@@ -43,9 +42,6 @@ export default function HomePage() {
             </div>
           </Link>
         </div>
-
-
-
       </div>
     </div>
   );

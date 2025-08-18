@@ -253,25 +253,7 @@ export default function DailyReport() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-10 bg-white relative z-10">
-
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">日報</h1>
-        <div className="flex gap-2">
-          <button
-            onClick={() => router.push('/')}
-            className="px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-md transition-colors"
-          >
-            ホーム
-          </button>
-          <button
-            onClick={() => router.push('/reports')}
-            className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-          >
-            一覧を見る
-          </button>
-        </div>
-      </div>
+    <div className="bg-white relative z-10">
       
       {/* 基本情報 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 p-6 bg-gray-50 rounded-lg">

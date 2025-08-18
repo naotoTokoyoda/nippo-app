@@ -203,42 +203,23 @@ export default function ReportsList() {
 
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto p-10 bg-gray-100">
-        <div className="flex flex-col justify-center items-center h-64">
-          <div className="text-lg text-red-600 mb-4">エラー: {error}</div>
-          <button
-            onClick={() => {
-              setError(null);
-              fetchFilterOptions();
-            }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-          >
-            再試行
-          </button>
-        </div>
+      <div className="flex flex-col justify-center items-center h-64">
+        <div className="text-lg text-red-600 mb-4">エラー: {error}</div>
+        <button
+          onClick={() => {
+            setError(null);
+            fetchFilterOptions();
+          }}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+        >
+          再試行
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-10 bg-gray-100">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">日報一覧</h1>
-        <div className="flex gap-2">
-          <button
-            onClick={() => router.push('/')}
-            className="px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-md transition-colors"
-          >
-            ホーム
-          </button>
-          <button
-            onClick={() => router.push('/daily-report')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-          >
-            新規作成
-          </button>
-        </div>
-      </div>
+    <div>
 
       {/* フィルター */}
       <div className="mb-8 p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
