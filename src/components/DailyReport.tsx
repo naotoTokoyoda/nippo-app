@@ -19,6 +19,16 @@ export default function DailyReport() {
   const [basicInfoErrors, setBasicInfoErrors] = useState<ValidationError[]>([]);
   const [showSuccess, setShowSuccess] = useState(false);
   
+  // 既存日報の状態管理
+  const [existingReport, setExistingReport] = useState<{
+    exists: boolean;
+    reportId?: string;
+    workItems: WorkItemData[];
+  }>({
+    exists: false,
+    workItems: []
+  });
+  
   const [reportData, setReportData] = useState<DailyReportData>({
     date: new Date().toISOString().split('T')[0],
     workerName: '',
@@ -88,6 +98,65 @@ export default function DailyReport() {
     }));
   };
 
+  // 既存日報をチェックする関数
+  const checkExistingReport = async (date: string, workerName: string) => {
+    if (!date || !workerName) {
+      setExistingReport({ exists: false, workItems: [] });
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/reports?workerName=${encodeURIComponent(workerName)}&month=${date.substring(0, 7)}`);
+      const result = await response.json();
+
+      if (result.success && result.filteredItems) {
+        // 指定された日付の作業項目をフィルタリング
+        const dayItems = result.filteredItems.filter((item: { reportDate: string }) => 
+          item.reportDate === date
+        );
+
+        if (dayItems.length > 0) {
+          // 既存日報が存在する場合
+          const reportId = dayItems[0].reportId;
+          setExistingReport({
+            exists: true,
+            reportId,
+            workItems: dayItems.map((item: { 
+              id: string;
+              customerName: string;
+              workNumberFront: string;
+              workNumberBack: string;
+              name: string;
+              startTime: string;
+              endTime: string;
+              machineType: string;
+              workStatus?: string;
+              remarks?: string;
+            }) => ({
+              id: item.id,
+              customerName: item.customerName,
+              workNumberFront: item.workNumberFront,
+              workNumberBack: item.workNumberBack,
+              name: item.name,
+              startTime: item.startTime,
+              endTime: item.endTime,
+              machineType: item.machineType,
+              workStatus: item.workStatus || 'normal',
+              remarks: item.remarks || ''
+            }))
+          });
+        } else {
+          setExistingReport({ exists: false, workItems: [] });
+        }
+      } else {
+        setExistingReport({ exists: false, workItems: [] });
+      }
+    } catch (error) {
+      console.error('既存日報チェックエラー:', error);
+      setExistingReport({ exists: false, workItems: [] });
+    }
+  };
+
   // 合計作業時間を計算する関数（現在は使用されていないが、将来の機能拡張のために残す）
   // const calculateTotalTime = () => {
   //   return reportData.workItems.reduce((total, item) => {
@@ -115,6 +184,15 @@ export default function DailyReport() {
       setBasicInfoErrors([]);
     }
   }, [reportData.date, reportData.workerName, showValidation]);
+
+  // 日付と作業者名が変更された時に既存日報をチェック
+  React.useEffect(() => {
+    if (reportData.date && reportData.workerName) {
+      checkExistingReport(reportData.date, reportData.workerName);
+    } else {
+      setExistingReport({ exists: false, workItems: [] });
+    }
+  }, [reportData.date, reportData.workerName]);
 
   // 作業項目のリアルタイムバリデーション
   React.useEffect(() => {
@@ -246,7 +324,25 @@ export default function DailyReport() {
         </div>
       </div>
 
-
+      {/* 既存日報の警告 */}
+      {existingReport.exists && (
+        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="flex items-center">
+            <svg className="w-5 h-5 text-yellow-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <div>
+              <span className="text-sm font-medium text-yellow-800">
+                既存の日報が存在します
+              </span>
+              <p className="text-xs text-yellow-600 mt-1">
+                {reportData.date} に {reportData.workerName} の日報が既に存在します。
+                新しい作業項目を追加する場合は、既存の日報に追加されます。
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 作業者履歴表示 */}
       {reportData.workerName && (

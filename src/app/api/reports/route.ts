@@ -250,14 +250,24 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // レポートを作成（日本時間の日付をUTCの正午として保存）
-    const report = await prisma.report.create({
-      data: {
-        date: new Date(date + 'T12:00:00.000Z'), // UTCの正午として保存（タイムゾーンの影響を回避）
+    // 既存のレポートをチェック
+    let report = await prisma.report.findFirst({
+      where: {
+        date: new Date(date + 'T12:00:00.000Z'),
         workerId: worker.id,
-        submittedAt: new Date(),
       },
     });
+
+    if (!report) {
+      // 新規レポートを作成（日本時間の日付をUTCの正午として保存）
+      report = await prisma.report.create({
+        data: {
+          date: new Date(date + 'T12:00:00.000Z'), // UTCの正午として保存（タイムゾーンの影響を回避）
+          workerId: worker.id,
+          submittedAt: new Date(),
+        },
+      });
+    }
 
     // 作業項目を処理
     for (const workItem of workItems) {
@@ -334,7 +344,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: '日報が正常に保存されました',
+      message: report.submittedAt.getTime() === report.createdAt.getTime() 
+        ? '日報が正常に保存されました' 
+        : '既存の日報に作業項目が追加されました',
       reportId: report.id,
     });
 
