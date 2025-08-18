@@ -42,7 +42,15 @@ export default function ReportsList() {
   // 現在の年月を取得
   const currentYearMonth = useMemo(() => {
     const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    console.log('現在の年月:', {
+      now: now.toISOString(),
+      nowLocal: now.toLocaleDateString('ja-JP'),
+      year: now.getFullYear(),
+      month: now.getMonth() + 1,
+      yearMonth
+    });
+    return yearMonth;
   }, []);
 
   // フィルタリング状態（デフォルトを当月に設定）
@@ -75,6 +83,12 @@ export default function ReportsList() {
         
         setFilterOptions(newFilterOptions);
         
+        console.log('フィルターオプション取得結果:', {
+          availableMonths: newFilterOptions.availableMonths,
+          currentYearMonth,
+          hasData: newFilterOptions.availableMonths.length > 0
+        });
+
         // データがない場合は当月を含む選択肢を生成
         if (newFilterOptions.availableMonths.length === 0) {
           const now = new Date();
@@ -87,6 +101,7 @@ export default function ReportsList() {
             fallbackMonths.push(monthString);
           }
           
+          console.log('フォールバック月生成:', fallbackMonths);
           newFilterOptions.availableMonths = fallbackMonths;
           setFilterOptions(newFilterOptions);
           
@@ -96,11 +111,12 @@ export default function ReportsList() {
             month: currentYearMonth
           }));
         } else {
-          // 利用可能な年月がある場合、最新の年月をデフォルトに設定
-          const latestMonth = newFilterOptions.availableMonths[newFilterOptions.availableMonths.length - 1]; // 昇順ソートなので最後の要素が最新
+          // 日本でのみ使用するため、常に当月をデフォルトに設定
+          // 当月のデータがない場合でも、当月を選択して「データなし」を表示
+          console.log('データあり - 当月に設定:', currentYearMonth);
           setFilters(prev => ({
             ...prev,
-            month: latestMonth
+            month: currentYearMonth
           }));
         }
       } else {
@@ -175,13 +191,9 @@ export default function ReportsList() {
   };
 
   const clearFilters = () => {
-    // データがある場合は最新月、ない場合は当月をデフォルトに
-    const defaultMonth = filterOptions.availableMonths.length > 0 
-      ? filterOptions.availableMonths[filterOptions.availableMonths.length - 1] // 昇順ソートなので最後の要素が最新
-      : currentYearMonth;
-      
+    // 日本でのみ使用するため、常に当月をデフォルトに設定
     setFilters({
-      month: defaultMonth,
+      month: currentYearMonth,
       workerName: '',
       customerName: '',
       workNumberFront: '',
