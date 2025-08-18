@@ -27,7 +27,31 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
         const result = await response.json();
 
         if (result.success) {
-          setReports(result.data);
+          // APIの新しい形式に対応：filteredItemsからDatabaseReport形式に変換
+          const workItems = result.filteredItems || [];
+          
+          // reportIdでグループ化してDatabaseReport形式に変換
+          const reportsMap = new Map<string, DatabaseReport>();
+          
+          workItems.forEach((item) => {
+            const reportId = item.reportId;
+            if (!reportsMap.has(reportId)) {
+              reportsMap.set(reportId, {
+                id: reportId,
+                date: item.reportDate,
+                workerName: item.workerName,
+                submittedAt: '', // このデータは現在のAPIでは取得できない
+                workItems: []
+              });
+            }
+            
+            // 作業項目をレポートに追加
+            reportsMap.get(reportId)!.workItems.push(item);
+          });
+          
+          const reports = Array.from(reportsMap.values());
+          console.log('変換されたレポートデータ:', reports);
+          setReports(reports);
         } else {
           setReports([]);
         }
