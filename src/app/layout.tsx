@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import EnvironmentBadge from "@/components/EnvironmentBadge";
 import FeedbackButton from "@/components/FeedbackButton";
-import Navigation from "@/components/Navigation";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,7 +30,6 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <EnvironmentBadge />
-        <Navigation />
         {children}
         <FeedbackButton />
       </body>
