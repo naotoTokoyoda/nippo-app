@@ -139,8 +139,11 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
   if (!workerName) return null;
 
   return (
-    <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-      <h3 className="text-lg font-semibold text-blue-800 mb-3">
+    <div className="p-6">
+      <h3 className="text-lg font-semibold text-blue-800 mb-4 flex items-center">
+        <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
         作業者履歴: {workerName}
       </h3>
       

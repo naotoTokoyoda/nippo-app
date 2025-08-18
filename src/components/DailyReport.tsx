@@ -62,25 +62,25 @@ export default function DailyReport() {
     };
   }, [stopCountdown]);
 
-  // 作業項目を追加する関数（現在は使用されていないが、将来の機能拡張のために残す）
-  // const addWorkItem = () => {
-  //   const newWorkItem: WorkItemData = {
-  //     id: Date.now().toString(),
-  //     customerName: '',
-  //     workNumberFront: '',
-  //     workNumberBack: '',
-  //     name: '',
-  //     startTime: '',
-  //     endTime: '',
-  //     machineType: '',
-  //     workStatus: 'normal',
-  //     remarks: ''
-  //   };
-  //   setReportData(prev => ({
-  //     ...prev,
-  //     workItems: [...prev.workItems, newWorkItem]
-  //   }));
-  // };
+  // 作業項目を追加する関数
+  const addWorkItem = () => {
+    const newWorkItem: WorkItemData = {
+      id: Date.now().toString(),
+      customerName: '',
+      workNumberFront: '',
+      workNumberBack: '',
+      name: '',
+      startTime: '',
+      endTime: '',
+      machineType: '',
+      workStatus: 'normal',
+      remarks: ''
+    };
+    setReportData(prev => ({
+      ...prev,
+      workItems: [...prev.workItems, newWorkItem]
+    }));
+  };
 
   const updateWorkItem = (id: string, updatedItem: Partial<WorkItemData>) => {
     setReportData(prev => ({
@@ -253,72 +253,85 @@ export default function DailyReport() {
   };
 
   return (
-    <div className="bg-white relative z-10">
+    <div className="space-y-8">
       
       {/* 基本情報 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 p-6 bg-gray-50 rounded-lg">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            日付
-          </label>
-          <input
-            type="date"
-            value={reportData.date}
-            onChange={(e) => setReportData(prev => ({ ...prev, date: e.target.value }))}
-            data-field="date"
-            className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 h-10 ${
-              basicInfoErrors.some(err => err.field === 'date')
-                ? 'border-red-500 focus:ring-red-500'
-                : ''
-            }`}
-          />
-          {basicInfoErrors.some(err => err.field === 'date') && (
-            <p className="text-xs text-red-600 mt-1">
-              {basicInfoErrors.find(err => err.field === 'date')?.message}
-            </p>
-          )}
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            作業者名
-          </label>
-          <select
-            value={reportData.workerName}
-            onChange={(e) => setReportData(prev => ({ ...prev, workerName: e.target.value }))}
-            data-field="workerName"
-            className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 h-10 ${
-              basicInfoErrors.some(err => err.field === 'workerName')
-                ? 'border-red-500 focus:ring-red-500'
-                : ''
-            }`}
-          >
-            <option value=""></option>
-            {WORKER_OPTIONS.map(worker => (
-              <option key={worker} value={worker}>{worker}</option>
-            ))}
-          </select>
-          {basicInfoErrors.some(err => err.field === 'workerName') && (
-            <p className="text-xs text-red-600 mt-1">
-              {basicInfoErrors.find(err => err.field === 'workerName')?.message}
-            </p>
-          )}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+          <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          基本情報
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              日付
+            </label>
+            <input
+              type="date"
+              value={reportData.date}
+              onChange={(e) => setReportData(prev => ({ ...prev, date: e.target.value }))}
+              data-field="date"
+              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 h-10 ${
+                basicInfoErrors.some(err => err.field === 'date')
+                  ? 'border-red-500 focus:ring-red-500'
+                  : ''
+              }`}
+            />
+            {basicInfoErrors.some(err => err.field === 'date') && (
+              <p className="text-xs text-red-600 mt-1">
+                {basicInfoErrors.find(err => err.field === 'date')?.message}
+              </p>
+            )}
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              作業者名
+            </label>
+            <select
+              value={reportData.workerName}
+              onChange={(e) => setReportData(prev => ({ ...prev, workerName: e.target.value }))}
+              data-field="workerName"
+              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 h-10 ${
+                basicInfoErrors.some(err => err.field === 'workerName')
+                  ? 'border-red-500 focus:ring-red-500'
+                  : ''
+              }`}
+            >
+              <option value=""></option>
+              {WORKER_OPTIONS.map(worker => (
+                <option key={worker} value={worker}>{worker}</option>
+              ))}
+            </select>
+            {basicInfoErrors.some(err => err.field === 'workerName') && (
+              <p className="text-xs text-red-600 mt-1">
+                {basicInfoErrors.find(err => err.field === 'workerName')?.message}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
-
-
       {/* 作業者履歴表示 */}
       {reportData.workerName && (
-        <WorkerHistory 
-          workerName={reportData.workerName} 
-          currentDate={reportData.date} 
-        />
+        <div className="bg-blue-50 rounded-lg shadow-sm border border-blue-200">
+          <WorkerHistory 
+            workerName={reportData.workerName} 
+            currentDate={reportData.date} 
+          />
+        </div>
       )}
 
       {/* 作業項目 */}
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">作業項目</h2>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+          <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+          作業項目
+        </h2>
         
         <div className="space-y-6">
           {reportData.workItems.map((item, index) => (
@@ -334,25 +347,67 @@ export default function DailyReport() {
               hideControls={true}
             />
           ))}
+          
+          {/* 新しい作業項目を追加するボタン */}
+          <div className="text-center pt-4">
+            <button
+              onClick={addWorkItem}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              新しい作業項目を追加
+            </button>
+          </div>
         </div>
       </div>
 
-
-
       {/* 送信ボタン */}
-      <div className="text-center">
-        <button
-          onClick={handleSubmit}
-          disabled={isSubmitting || showSuccess}
-          className="px-8 py-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg font-semibold"
-        >
-          {isSubmitting ? '送信中...' : showSuccess ? `日報を送信しました！${countdown}秒後に一覧ページに移動します...` : '日報を送信'}
-        </button>
-        {(validationErrors.length > 0 || basicInfoErrors.length > 0) && (
-          <p className="text-xs text-red-600 mt-2">
-            入力内容にエラーがあります。各項目をご確認ください。
-          </p>
-        )}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="text-center">
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting || showSuccess}
+            className="px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg font-semibold shadow-sm flex items-center justify-center mx-auto"
+          >
+            {isSubmitting ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                送信中...
+              </>
+            ) : showSuccess ? (
+              <>
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                日報を送信しました！{countdown}秒後に一覧ページに移動します...
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+                日報を送信
+              </>
+            )}
+          </button>
+          {(validationErrors.length > 0 || basicInfoErrors.length > 0) && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+              <div className="flex items-center">
+                <svg className="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-sm text-red-800">
+                  入力内容にエラーがあります。各項目をご確認ください。
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
