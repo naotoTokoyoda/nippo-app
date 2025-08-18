@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 // テストデータの設定
 const CONFIG = {
-  users: 10,           // 作業者数
+  users: 8,            // 作業者数（実際の名前の数に合わせて修正）
   customers: 50,       // 客先数
   machines: 12,        // 機械種類数（実際の機械名の数に合わせて修正）
   workOrders: 200,     // 工番数
@@ -51,10 +51,21 @@ interface Report {
 
 // 作業者データ
 const generateUsers = () => {
+  const actualNames = [
+    '橋本正朗',
+    '常世田博',
+    '野城喜幸',
+    '三好耕平',
+    '高梨純一',
+    '（トン）シーワイ チャナラット',
+    '（ポーン）テートシームアン タナーポーン',
+    '（コー）ジャンペンペーン パッタウィ',
+  ];
+  
   const users = [];
-  for (let i = 0; i < CONFIG.users; i++) {
+  for (let i = 0; i < actualNames.length; i++) {
     users.push({
-      name: faker.person.fullName(),
+      name: actualNames[i],
     });
   }
   return users;

@@ -7,7 +7,7 @@ const TEST_CONFIG = {
   iterations: 10,
   filters: [
     { month: '2024-01' },
-    { month: '2024-01', workerName: '田中太郎' },
+    { month: '2024-01', workerName: '橋本正朗' },
     { month: '2024-01', customerName: '株式会社テスト' },
     { month: '2024-01', machineType: 'MILLAC 1052 VII' },
     { month: '2024-01', workNumberFront: 'ABC123' },
