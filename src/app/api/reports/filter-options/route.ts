@@ -83,8 +83,17 @@ export async function GET() {
 
   } catch (error) {
     console.error('フィルター選択肢取得エラー:', error);
+    console.error('エラーの詳細:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : 'Unknown'
+    });
     return NextResponse.json(
-      { success: false, error: 'フィルター選択肢の取得に失敗しました' },
+      { 
+        success: false, 
+        error: 'フィルター選択肢の取得に失敗しました',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

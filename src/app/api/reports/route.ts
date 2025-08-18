@@ -22,15 +22,14 @@ export async function GET(request: NextRequest) {
     let dateFilter = {};
     if (month) {
       const [year, monthNum] = month.split('-');
-      const startDateStr = `${year}-${monthNum.padStart(2, '0')}-01`;
+      const startDate = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
       const endDate = new Date(parseInt(year), parseInt(monthNum), 0);
-      const endDateStr = endDate.toISOString().split('T')[0];
       
       dateFilter = {
         report: {
           date: {
-            gte: startDateStr,
-            lte: endDateStr,
+            gte: startDate,
+            lte: endDate,
           },
         },
       };
@@ -195,8 +194,17 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('日報データ取得エラー:', error);
+    console.error('エラーの詳細:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : 'Unknown'
+    });
     return NextResponse.json(
-      { success: false, error: '日報データの取得に失敗しました' },
+      { 
+        success: false, 
+        error: '日報データの取得に失敗しました',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

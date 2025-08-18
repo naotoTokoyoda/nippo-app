@@ -59,6 +59,9 @@ export default function ReportsList() {
   const fetchFilterOptions = useCallback(async () => {
     try {
       const response = await fetch('/api/reports/filter-options');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const result = await response.json();
       
       if (result.success) {
@@ -80,9 +83,12 @@ export default function ReportsList() {
             month: latestMonth
           }));
         }
+      } else {
+        throw new Error(result.error || 'フィルター選択肢の取得に失敗しました');
       }
     } catch (err) {
       console.error('フィルター選択肢の取得エラー:', err);
+      setError(err instanceof Error ? err.message : 'フィルター選択肢の取得に失敗しました');
     }
   }, []);
 
@@ -105,6 +111,9 @@ export default function ReportsList() {
       params.append('limit', pagination.limit.toString());
       
       const response = await fetch(`/api/reports?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const result: ReportsApiResponse = await response.json();
 
       if (result.success) {
@@ -118,7 +127,7 @@ export default function ReportsList() {
       }
     } catch (err) {
       console.error('データ取得エラー:', err);
-      setError('データの取得中にエラーが発生しました');
+      setError(err instanceof Error ? err.message : 'データの取得中にエラーが発生しました');
     } finally {
       setLoading(false);
     }
@@ -176,8 +185,17 @@ export default function ReportsList() {
   if (error) {
     return (
       <div className="max-w-7xl mx-auto p-10 bg-gray-100">
-        <div className="flex justify-center items-center h-64">
-          <div className="text-lg text-red-600">エラー: {error}</div>
+        <div className="flex flex-col justify-center items-center h-64">
+          <div className="text-lg text-red-600 mb-4">エラー: {error}</div>
+          <button
+            onClick={() => {
+              setError(null);
+              fetchFilterOptions();
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            再試行
+          </button>
         </div>
       </div>
     );

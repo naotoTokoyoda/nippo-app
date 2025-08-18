@@ -1,7 +1,7 @@
 // データベースから取得するレポートの型定義
 export interface DatabaseReport {
   id: string;
-  date: string;
+  date: string; // APIでは文字列として返される
   workerName: string;
   submittedAt: string;
   workItems: DatabaseWorkItem[];
@@ -11,14 +11,14 @@ export interface DatabaseReport {
 export interface DatabaseWorkItem {
   id: string;
   reportId: string;
-  reportDate: string;
+  reportDate: string; // APIでは文字列として返される
   workerName: string;
   customerName: string;
   workNumberFront: string;
   workNumberBack: string;
   name: string;
-  startTime: string;
-  endTime: string;
+  startTime: string; // APIでは文字列として返される
+  endTime: string; // APIでは文字列として返される
   machineType: string;
   remarks: string;
   workStatus: string;
