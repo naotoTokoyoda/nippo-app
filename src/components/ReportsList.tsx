@@ -62,13 +62,24 @@ export default function ReportsList() {
       const result = await response.json();
       
       if (result.success) {
-        setFilterOptions({
+        const newFilterOptions = {
           availableMonths: result.availableMonths || [],
           uniqueWorkers: result.uniqueWorkers || [],
           uniqueCustomerNames: result.uniqueCustomerNames || [],
           uniqueWorkNumbers: result.uniqueWorkNumbers || [],
           uniqueMachineTypes: result.uniqueMachineTypes || [],
-        });
+        };
+        
+        setFilterOptions(newFilterOptions);
+        
+        // 利用可能な年月がある場合、最新の年月をデフォルトに設定
+        if (newFilterOptions.availableMonths.length > 0) {
+          const latestMonth = newFilterOptions.availableMonths[0]; // 既に新しい順でソート済み
+          setFilters(prev => ({
+            ...prev,
+            month: latestMonth
+          }));
+        }
       }
     } catch (err) {
       console.error('フィルター選択肢の取得エラー:', err);
@@ -117,10 +128,16 @@ export default function ReportsList() {
   useEffect(() => {
     const initializeData = async () => {
       await fetchFilterOptions();
-      await fetchReports(filters, 1);
     };
     initializeData();
-  }, [fetchFilterOptions, fetchReports, filters]);
+  }, [fetchFilterOptions]);
+
+  // フィルター変更時にデータを再取得
+  useEffect(() => {
+    if (filterOptions.availableMonths.length > 0) {
+      fetchReports(filters, 1);
+    }
+  }, [fetchReports, filters, filterOptions.availableMonths.length]);
 
   // ページ変更時の処理
   const handlePageChange = (newPage: number) => {
@@ -128,8 +145,12 @@ export default function ReportsList() {
   };
 
   const clearFilters = () => {
+    const latestMonth = filterOptions.availableMonths.length > 0 
+      ? filterOptions.availableMonths[0] 
+      : currentYearMonth;
+      
     setFilters({
-      month: currentYearMonth,
+      month: latestMonth,
       workerName: '',
       customerName: '',
       workNumberFront: '',
