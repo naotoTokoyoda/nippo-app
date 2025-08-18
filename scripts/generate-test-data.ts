@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 const CONFIG = {
   users: 10,           // 作業者数
   customers: 50,       // 客先数
-  machines: 20,        // 機械種類数
+  machines: 12,        // 機械種類数（実際の機械名の数に合わせて修正）
   workOrders: 200,     // 工番数
   reports: 1000,       // 日報数
   reportItemsPerReport: 5, // 1日報あたりの作業項目数
@@ -75,10 +75,9 @@ const generateCustomers = () => {
 // 機械データ
 const generateMachines = () => {
   const machineTypes = [
-    'NC旋盤', 'マシニングセンター', 'ボール盤', 'フライス盤', '研削盤',
-    '放電加工機', 'レーザー加工機', '溶接機', 'プレス機', '射出成形機',
-    '3Dプリンター', 'レーザー切断機', '折り曲げ機', 'せん断機', 'タップ加工機',
-    'リーマー加工機', 'ホーニング加工機', 'ラッピング加工機', 'バフ研磨機', '超音波洗浄機'
+    'MILLAC 1052 VII', 'MILLAC 761 VII', '250：NC旋盤マザック', '350：NC旋盤マザック', '汎用旋盤',
+    'スマート250 L：NC旋盤', 'Mazak REX', 'Mazatrol M-32', '正面盤：Chubu LF 500', '12尺：汎用旋盤',
+    '溶接', '該当なし',
   ];
   
   const machines = [];

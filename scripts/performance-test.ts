@@ -9,7 +9,7 @@ const TEST_CONFIG = {
     { month: '2024-01' },
     { month: '2024-01', workerName: '田中太郎' },
     { month: '2024-01', customerName: '株式会社テスト' },
-    { month: '2024-01', machineType: 'NC旋盤' },
+    { month: '2024-01', machineType: 'MILLAC 1052 VII' },
     { month: '2024-01', workNumberFront: 'ABC123' },
   ]
 };
