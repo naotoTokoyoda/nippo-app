@@ -11,6 +11,9 @@ const CONFIG = {
   workOrders: 200,     // 工番数
   reports: 1000,       // 日報数
   reportItemsPerReport: 5, // 1日報あたりの作業項目数
+  // 本番導入を想定したデータ範囲
+  startYear: 2024,     // 開始年
+  endYear: 2025,       // 終了年
 };
 
 // 型定義
@@ -105,40 +108,72 @@ const generateWorkOrders = (customers: Customer[]) => {
 // 日報データ
 const generateReports = (users: User[]) => {
   const reports = [];
-  const startDate = new Date('2023-01-01');
-  const endDate = new Date('2024-12-31');
+  const startDate = new Date(CONFIG.startYear, 0, 1); // 2024年1月1日
+  const endDate = new Date(CONFIG.endYear, 11, 31);   // 2025年12月31日
   
   // 既存の組み合わせを追跡するためのSet
   const existingCombinations = new Set<string>();
   
-  for (let i = 0; i < CONFIG.reports; i++) {
+  // 2024年と2025年のデータを配分（2024年: 60%, 2025年: 40%）
+  const reports2024 = Math.floor(CONFIG.reports * 0.6);
+  const reports2025 = CONFIG.reports - reports2024;
+  
+  // 2024年のデータ生成
+  const startDate2024 = new Date(2024, 0, 1);
+  const endDate2024 = new Date(2024, 11, 31);
+  
+  for (let i = 0; i < reports2024; i++) {
     let randomDate: Date;
     let randomUser: User;
     let combinationKey: string;
     
-    // 重複しない組み合わせを見つけるまで繰り返す
     let attempts = 0;
     do {
-      randomDate = new Date(startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime()));
+      randomDate = new Date(startDate2024.getTime() + Math.random() * (endDate2024.getTime() - startDate2024.getTime()));
       randomUser = users[Math.floor(Math.random() * users.length)];
       combinationKey = `${randomDate.toISOString().split('T')[0]}-${randomUser.id}`;
       attempts++;
       
-      // 無限ループを防ぐ
-      if (attempts > 1000) {
-        console.log('⚠️ 重複しない組み合わせが見つからないため、日報数を調整します');
-        break;
-      }
+      if (attempts > 1000) break;
     } while (existingCombinations.has(combinationKey));
     
-    // 組み合わせが見つかった場合のみ追加
     if (!existingCombinations.has(combinationKey)) {
       existingCombinations.add(combinationKey);
       
       reports.push({
         date: randomDate,
         workerId: randomUser.id,
-        submittedAt: new Date(randomDate.getTime() + Math.random() * 24 * 60 * 60 * 1000), // 同日のランダムな時間
+        submittedAt: new Date(randomDate.getTime() + Math.random() * 24 * 60 * 60 * 1000),
+      });
+    }
+  }
+  
+  // 2025年のデータ生成
+  const startDate2025 = new Date(2025, 0, 1);
+  const endDate2025 = new Date(2025, 11, 31);
+  
+  for (let i = 0; i < reports2025; i++) {
+    let randomDate: Date;
+    let randomUser: User;
+    let combinationKey: string;
+    
+    let attempts = 0;
+    do {
+      randomDate = new Date(startDate2025.getTime() + Math.random() * (endDate2025.getTime() - startDate2025.getTime()));
+      randomUser = users[Math.floor(Math.random() * users.length)];
+      combinationKey = `${randomDate.toISOString().split('T')[0]}-${randomUser.id}`;
+      attempts++;
+      
+      if (attempts > 1000) break;
+    } while (existingCombinations.has(combinationKey));
+    
+    if (!existingCombinations.has(combinationKey)) {
+      existingCombinations.add(combinationKey);
+      
+      reports.push({
+        date: randomDate,
+        workerId: randomUser.id,
+        submittedAt: new Date(randomDate.getTime() + Math.random() * 24 * 60 * 60 * 1000),
       });
     }
   }
@@ -268,6 +303,11 @@ async function generateTestData() {
     console.log(`   - 工番: ${stats[3]}件`);
     console.log(`   - 日報: ${stats[4]}件`);
     console.log(`   - 作業項目: ${stats[5]}件`);
+    console.log('\n📅 データ期間:');
+    console.log(`   - 開始: ${CONFIG.startYear}年1月`);
+    console.log(`   - 終了: ${CONFIG.endYear}年12月`);
+    console.log(`   - 2024年: 約${Math.floor(CONFIG.reports * 0.6)}件`);
+    console.log(`   - 2025年: 約${Math.floor(CONFIG.reports * 0.4)}件`);
     
   } catch (error) {
     console.error('❌ エラーが発生しました:', error);
