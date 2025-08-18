@@ -23,7 +23,15 @@ export async function GET(request: NextRequest) {
     if (month) {
       const [year, monthNum] = month.split('-');
       const startDate = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
-      const endDate = new Date(parseInt(year), parseInt(monthNum), 0);
+      const endDate = new Date(parseInt(year), parseInt(monthNum), 0, 23, 59, 59, 999);
+      
+      console.log('日付フィルター:', {
+        month,
+        year,
+        monthNum,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString()
+      });
       
       dateFilter = {
         report: {
