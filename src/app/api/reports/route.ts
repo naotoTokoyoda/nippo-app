@@ -34,13 +34,9 @@ export async function GET(request: NextRequest) {
     if (month) {
       const [year, monthNum] = month.split('-');
       
-      // 指定された月の最初の日と最後の日を計算（タイムゾーン考慮）
-      const startDate = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
-      const endDate = new Date(parseInt(year), parseInt(monthNum), 0);
-      
-      // 日本時間の開始と終了を設定（UTC-9時間で調整）
-      const jstStartDate = new Date(startDate.getTime() - 9 * 60 * 60 * 1000); // UTC-9時間
-      const jstEndDate = new Date(endDate.getTime() + 15 * 60 * 60 * 1000 - 1); // UTC+15時間-1ミリ秒
+      // 指定された月の最初の日と最後の日を計算（UTCの正午基準）
+      const startDate = new Date(parseInt(year), parseInt(monthNum) - 1, 1, 12, 0, 0, 0);
+      const endDate = new Date(parseInt(year), parseInt(monthNum), 0, 12, 0, 0, 0);
       
       console.log('日付フィルター詳細:', {
         month,
@@ -48,23 +44,15 @@ export async function GET(request: NextRequest) {
         monthNum,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
-        jstStartDate: jstStartDate.toISOString(),
-        jstEndDate: jstEndDate.toISOString(),
         startDateLocal: startDate.toLocaleDateString('ja-JP'),
-        endDateLocal: endDate.toLocaleDateString('ja-JP'),
-        startDateYear: startDate.getFullYear(),
-        startDateMonth: startDate.getMonth() + 1,
-        startDateDay: startDate.getDate(),
-        endDateYear: endDate.getFullYear(),
-        endDateMonth: endDate.getMonth() + 1,
-        endDateDay: endDate.getDate()
+        endDateLocal: endDate.toLocaleDateString('ja-JP')
       });
       
       dateFilter = {
         report: {
           date: {
-            gte: jstStartDate,
-            lte: jstEndDate,
+            gte: startDate,
+            lte: endDate,
           },
         },
       };
@@ -261,10 +249,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // レポートを作成
+    // レポートを作成（日本時間の日付をUTCの正午として保存）
     const report = await prisma.report.create({
       data: {
-        date: new Date(date + 'T00:00:00.000Z'), // UTC時間として明示的に設定
+        date: new Date(date + 'T12:00:00.000Z'), // UTCの正午として保存（タイムゾーンの影響を回避）
         workerId: worker.id,
         submittedAt: new Date(),
       },
