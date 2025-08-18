@@ -34,10 +34,13 @@ export async function GET(request: NextRequest) {
     if (month) {
       const [year, monthNum] = month.split('-');
       
-      // 指定された月の最初の日と最後の日を計算
+      // 指定された月の最初の日と最後の日を計算（タイムゾーン考慮）
       const startDate = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
-      // 次の月の0日目 = 現在の月の最後の日
       const endDate = new Date(parseInt(year), parseInt(monthNum), 0);
+      
+      // 日本時間の開始と終了を設定（UTC-9時間で調整）
+      const jstStartDate = new Date(startDate.getTime() - 9 * 60 * 60 * 1000); // UTC-9時間
+      const jstEndDate = new Date(endDate.getTime() + 15 * 60 * 60 * 1000 - 1); // UTC+15時間-1ミリ秒
       
       console.log('日付フィルター詳細:', {
         month,
@@ -45,6 +48,8 @@ export async function GET(request: NextRequest) {
         monthNum,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
+        jstStartDate: jstStartDate.toISOString(),
+        jstEndDate: jstEndDate.toISOString(),
         startDateLocal: startDate.toLocaleDateString('ja-JP'),
         endDateLocal: endDate.toLocaleDateString('ja-JP'),
         startDateYear: startDate.getFullYear(),
@@ -58,8 +63,8 @@ export async function GET(request: NextRequest) {
       dateFilter = {
         report: {
           date: {
-            gte: startDate,
-            lte: endDate,
+            gte: jstStartDate,
+            lte: jstEndDate,
           },
         },
       };
