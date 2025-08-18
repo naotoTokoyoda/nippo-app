@@ -29,52 +29,49 @@ export async function GET(request: NextRequest) {
       limit
     });
     
-    // 日付フィルターの設定
-    let dateFilter = {};
-    if (month) {
-      const [year, monthNum] = month.split('-');
-      
-      // 指定された月の最初の日と最後の日を計算（UTCの正午基準）
-      const startDate = new Date(parseInt(year), parseInt(monthNum) - 1, 1, 12, 0, 0, 0);
-      const endDate = new Date(parseInt(year), parseInt(monthNum), 0, 12, 0, 0, 0);
-      
-      console.log('日付フィルター詳細:', {
-        month,
-        year,
-        monthNum,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        startDateLocal: startDate.toLocaleDateString('ja-JP'),
-        endDateLocal: endDate.toLocaleDateString('ja-JP')
-      });
-      
-      dateFilter = {
-        report: {
-          date: {
-            gte: startDate,
-            lte: endDate,
-          },
-        },
+    // レポートフィルターの設定
+    let reportFilter = {};
+    if (month || workerName) {
+      reportFilter = {
+        report: {}
       };
-    }
+      
+      // 日付フィルターの設定
+      if (month) {
+        const [year, monthNum] = month.split('-');
+        
+        // 指定された月の最初の日と最後の日を計算（UTCの正午基準）
+        const startDate = new Date(parseInt(year), parseInt(monthNum) - 1, 1, 12, 0, 0, 0);
+        const endDate = new Date(parseInt(year), parseInt(monthNum), 0, 12, 0, 0, 0);
+        
+        console.log('日付フィルター詳細:', {
+          month,
+          year,
+          monthNum,
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+          startDateLocal: startDate.toLocaleDateString('ja-JP'),
+          endDateLocal: endDate.toLocaleDateString('ja-JP')
+        });
+        
+        reportFilter.report.date = {
+          gte: startDate,
+          lte: endDate,
+        };
+      }
 
-    // 作業者フィルターの設定
-    let workerFilter = {};
-    if (workerName) {
-      workerFilter = {
-        report: {
-          worker: {
-            name: workerName,
-          },
-        },
-      };
+      // 作業者フィルターの設定
+      if (workerName) {
+        reportFilter.report.worker = {
+          name: workerName,
+        };
+      }
     }
 
     // 総件数を取得
     const totalCount = await prisma.reportItem.count({
       where: {
-        ...dateFilter,
-        ...workerFilter,
+        ...reportFilter,
         ...(customerName && {
           customer: {
             name: {
@@ -107,8 +104,7 @@ export async function GET(request: NextRequest) {
     // 単一の最適化されたクエリでデータを取得（ページネーション付き）
     const reportItems = await prisma.reportItem.findMany({
       where: {
-        ...dateFilter,
-        ...workerFilter,
+        ...reportFilter,
         ...(customerName && {
           customer: {
             name: {
