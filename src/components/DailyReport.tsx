@@ -122,13 +122,6 @@ export default function DailyReport() {
     }
   };
 
-  // 合計作業時間を計算する関数（現在は使用されていないが、将来の機能拡張のために残す）
-  // const calculateTotalTime = () => {
-  //   return reportData.workItems.reduce((total, item) => {
-  //     const workTime = calculateWorkTime(item.startTime, item.endTime, item.workStatus);
-  //     return total + workTime;
-  //   }, 0);
-  // };
 
   // 基本情報のリアルタイムバリデーション
   React.useEffect(() => {
