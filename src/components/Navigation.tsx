@@ -10,8 +10,6 @@ export default function Navigation() {
     { href: '/', label: 'ホーム' },
     { href: '/daily-report', label: '日報作成' },
     { href: '/reports', label: '日報一覧' },
-    { href: '/database', label: 'DB管理' },
-    { href: '/data-migration', label: 'データ移行' },
   ]
 
   return (
