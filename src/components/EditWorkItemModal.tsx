@@ -199,30 +199,19 @@ export default function EditWorkItemModal({
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">選択してください</option>
-                <option value="旋盤">旋盤</option>
-                <option value="フライス盤">フライス盤</option>
-                <option value="ボール盤">ボール盤</option>
-                <option value="研削盤">研削盤</option>
-                <option value="NC旋盤">NC旋盤</option>
-                <option value="NCフライス盤">NCフライス盤</option>
-                <option value="マシニングセンター">マシニングセンター</option>
-                <option value="その他">その他</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                作業状況
-              </label>
-              <select
-                value={formData.workStatus}
-                onChange={(e) => handleInputChange('workStatus', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="completed">完了</option>
-                <option value="working">作業中</option>
-                <option value="break">休憩中</option>
+                <option value=""></option>
+                <option value="MILLAC 1052 VII">MILLAC 1052 VII</option>
+                <option value="MILLAC 761 VII">MILLAC 761 VII</option>
+                <option value="250 : NC旋盤マザック">250 : NC旋盤マザック</option>
+                <option value="350 : NC旋盤マザック">350 : NC旋盤マザック</option>
+                <option value="スマート250 L : NC旋盤">スマート250 L : NC旋盤</option>
+                <option value="Mazak REX">Mazak REX</option>
+                <option value="Mazatrol M-32">Mazatrol M-32</option>
+                <option value="正面盤 : Chubu LF 500">正面盤 : Chubu LF 500</option>
+                <option value="12尺 : 汎用旋盤">12尺 : 汎用旋盤</option>
+                <option value="汎用旋盤">汎用旋盤</option>
+                <option value="溶接">溶接</option>
+                <option value="該当なし">該当なし</option>
               </select>
             </div>
           </div>

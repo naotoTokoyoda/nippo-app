@@ -1,24 +1,29 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { calculateWorkTime, formatTime, formatDecimalTime } from '@/utils/timeCalculation';
 import { getRowBackgroundClass } from '@/utils/conditionalFormatting';
 import DatabaseClientNameInput from './DatabaseClientNameInput';
 import EditWorkItemModal from './EditWorkItemModal';
 import { WorkItemData } from '@/types/daily-report';
-import { DatabaseReport, DatabaseWorkItem, ReportsApiResponse } from '@/types/database';
+import { DatabaseWorkItem, ReportsApiResponse, PaginationInfo } from '@/types/database';
 
 export default function ReportsList() {
   const router = useRouter();
   
   // データベースから取得したデータ
-  const [reports, setReports] = useState<DatabaseReport[]>([]);
   const [filteredWorkItems, setFilteredWorkItems] = useState<DatabaseWorkItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    page: 1,
+    limit: 50,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPrevPage: false,
+  });
   
   // 編集モーダルの状態
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -41,12 +46,11 @@ export default function ReportsList() {
     machineType: ''
   });
 
-  // データベースからデータを取得する関数
-  const fetchReports = async (filterParams: typeof filters) => {
+  // データベースからデータを取得する関数（最適化版）
+  const fetchReports = useCallback(async (filterParams: typeof filters, page: number = 1) => {
     try {
       setLoading(true);
       setError(null);
-      setProgress(0);
       
       const params = new URLSearchParams();
       if (filterParams.month) params.append('month', filterParams.month);
@@ -55,28 +59,20 @@ export default function ReportsList() {
       if (filterParams.workNumberFront) params.append('workNumberFront', filterParams.workNumberFront);
       if (filterParams.workNumberBack) params.append('workNumberBack', filterParams.workNumberBack);
       if (filterParams.machineType) params.append('machineType', filterParams.machineType);
-
-      // プログレスバーのシミュレーション
-      const progressInterval = setInterval(() => {
-        setProgress(prev => {
-          if (prev >= 90) return prev;
-          return prev + Math.random() * 10;
-        });
-      }, 100);
-
-      // 人工的な遅延を追加（プログレスバーを表示するため）
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // ページネーションパラメータ
+      params.append('page', page.toString());
+      params.append('limit', pagination.limit.toString());
       
       const response = await fetch(`/api/reports?${params.toString()}`);
       const result: ReportsApiResponse = await response.json();
 
-      clearInterval(progressInterval);
-      setProgress(100);
-
       if (result.success) {
-        setReports(result.data);
         setFilteredWorkItems(result.filteredItems);
         setTotalCount(result.totalCount || 0);
+        if (result.pagination) {
+          setPagination(result.pagination);
+        }
       } else {
         setError(result.error || 'データの取得に失敗しました');
       }
@@ -84,40 +80,52 @@ export default function ReportsList() {
       console.error('データ取得エラー:', err);
       setError('データの取得中にエラーが発生しました');
     } finally {
-      setTimeout(() => {
-        setLoading(false);
-        setProgress(0);
-      }, 500); // プログレスバーを少し表示してから非表示
+      setLoading(false);
     }
-  };
+  }, [pagination.limit]);
 
   // 初期データ取得
   useEffect(() => {
-    fetchReports(filters);
-  }, []);
+    fetchReports(filters, 1);
+  }, [fetchReports, filters]);
 
-  // フィルター変更時にデータを再取得
-  useEffect(() => {
-    fetchReports(filters);
-  }, [filters]);
+  // ページ変更時の処理
+  const handlePageChange = (newPage: number) => {
+    fetchReports(filters, newPage);
+  };
 
-  // 利用可能な年月の取得
+  // 利用可能な年月の取得（最適化版）
   const availableMonths = useMemo(() => {
     const months = new Set<string>();
-    reports.forEach(report => {
-      if (report.date) {
-        const yearMonth = report.date.substring(0, 7); // YYYY-MM形式
+    filteredWorkItems.forEach(item => {
+      if (item.reportDate) {
+        const yearMonth = item.reportDate.substring(0, 7); // YYYY-MM形式
         months.add(yearMonth);
       }
     });
     return Array.from(months).sort().reverse(); // 新しい順にソート
-  }, [reports]);
+  }, [filteredWorkItems]);
 
-  // ユニークな値の取得
-  const uniqueWorkers = [...new Set(reports.map(r => r.workerName))].filter(Boolean);
-  const uniqueCustomerNames = [...new Set(filteredWorkItems.map(w => w.customerName))].filter(Boolean);
-  const uniqueWorkNumbers = [...new Set(filteredWorkItems.map(w => w.workNumberFront))].filter(Boolean);
-  const uniqueMachineTypes = [...new Set(filteredWorkItems.map(w => w.machineType))].filter(Boolean);
+  // ユニークな値の取得（最適化版）
+  const uniqueWorkers = useMemo(() => 
+    [...new Set(filteredWorkItems.map(item => item.workerName))].filter(Boolean), 
+    [filteredWorkItems]
+  );
+  
+  const uniqueCustomerNames = useMemo(() => 
+    [...new Set(filteredWorkItems.map(item => item.customerName))].filter(Boolean), 
+    [filteredWorkItems]
+  );
+  
+  const uniqueWorkNumbers = useMemo(() => 
+    [...new Set(filteredWorkItems.map(item => item.workNumberFront))].filter(Boolean), 
+    [filteredWorkItems]
+  );
+  
+  const uniqueMachineTypes = useMemo(() => 
+    [...new Set(filteredWorkItems.map(item => item.machineType))].filter(Boolean), 
+    [filteredWorkItems]
+  );
 
   const clearFilters = () => {
     setFilters({
@@ -272,7 +280,12 @@ export default function ReportsList() {
 
       {/* 結果件数 */}
       <div className="mb-4 text-sm text-gray-600">
-        {filteredWorkItems.length}件の作業項目が見つかりました
+        {totalCount}件の作業項目が見つかりました
+        {pagination.totalPages > 1 && (
+          <span className="ml-2">
+            （{pagination.page} / {pagination.totalPages}ページ）
+          </span>
+        )}
       </div>
 
       {/* 作業項目一覧テーブル */}
@@ -300,28 +313,9 @@ export default function ReportsList() {
                 <tr>
                   <td colSpan={12} className="px-3 py-8 text-center">
                     <div className="flex flex-col items-center space-y-4">
-                      {/* プログレスバー */}
-                      <div className="w-64 bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
-                          style={{ width: `${progress}%` }}
-                        ></div>
-                      </div>
-                      
-                      {/* プログレステキスト */}
-                      <div className="text-center">
-                        <p className="text-sm text-gray-600 mb-1">
-                          データを読み込み中... {Math.round(progress)}%
-                        </p>
-                        {totalCount > 0 && (
-                          <p className="text-xs text-gray-500">
-                            {totalCount}件のデータを処理中
-                          </p>
-                        )}
-                      </div>
-                      
                       {/* スピナー */}
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      <p className="text-sm text-gray-600">データを読み込み中...</p>
                     </div>
                   </td>
                 </tr>
@@ -335,9 +329,10 @@ export default function ReportsList() {
                 filteredWorkItems.map((item, index) => {
                   const workTime = calculateWorkTime(item.startTime, item.endTime, item.workStatus);
                   const rowClass = getRowBackgroundClass(item.machineType, item.customerName);
+                  const itemNumber = (pagination.page - 1) * pagination.limit + index + 1;
                   return (
                     <tr key={`${item.reportId}-${item.id}`} className={`${rowClass} border-b border-gray-200 hover:bg-gray-50`}>
-                      <td className="px-3 py-3 text-gray-900 whitespace-nowrap font-medium">{index + 1}</td>
+                      <td className="px-3 py-3 text-gray-900 whitespace-nowrap font-medium">{itemNumber}</td>
                       <td className="px-3 py-3 text-gray-900 whitespace-nowrap">{item.customerName || '未入力'}</td>
                       <td className="px-3 py-3 text-gray-900 whitespace-nowrap">{item.workNumberFront}</td>
                       <td className="px-3 py-3 text-gray-900 whitespace-nowrap">{item.workNumberBack}</td>
@@ -366,6 +361,31 @@ export default function ReportsList() {
           </table>
         </div>
       </div>
+
+      {/* ページネーション */}
+      {pagination.totalPages > 1 && (
+        <div className="mt-6 flex justify-center items-center space-x-2">
+          <button
+            onClick={() => handlePageChange(pagination.page - 1)}
+            disabled={!pagination.hasPrevPage}
+            className="px-3 py-2 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          >
+            前へ
+          </button>
+          
+          <span className="px-3 py-2 text-sm text-gray-600">
+            {pagination.page} / {pagination.totalPages}
+          </span>
+          
+          <button
+            onClick={() => handlePageChange(pagination.page + 1)}
+            disabled={!pagination.hasNextPage}
+            className="px-3 py-2 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          >
+            次へ
+          </button>
+        </div>
+      )}
 
       {/* 編集モーダル */}
       <EditWorkItemModal

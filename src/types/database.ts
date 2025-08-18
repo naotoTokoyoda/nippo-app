@@ -24,6 +24,15 @@ export interface DatabaseWorkItem {
   workStatus: string;
 }
 
+// ページネーション情報の型定義
+export interface PaginationInfo {
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
 // APIレスポンスの型定義
 export interface ReportsApiResponse {
   success: boolean;
@@ -31,6 +40,7 @@ export interface ReportsApiResponse {
   filteredItems: DatabaseWorkItem[];
   totalCount?: number;
   totalReports?: number;
+  pagination?: PaginationInfo;
   error?: string;
 }
 

@@ -14,6 +14,7 @@ model User {
   updatedAt DateTime @updatedAt @map("updated_at")
   reports   Report[]
 
+  @@index([name])
   @@map("users")
 }
 
@@ -26,6 +27,7 @@ model Customer {
   reportItems ReportItem[]
   workOrders  WorkOrder[]
 
+  @@index([name])
   @@map("customers")
 }
 
@@ -37,6 +39,7 @@ model Machine {
   updatedAt   DateTime     @updatedAt @map("updated_at")
   reportItems ReportItem[]
 
+  @@index([category])
   @@map("machines")
 }
 
@@ -52,6 +55,8 @@ model WorkOrder {
   customer    Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@unique([frontNumber, backNumber])
+  @@index([frontNumber])
+  @@index([backNumber])
   @@map("work_orders")
 }
 
@@ -66,6 +71,8 @@ model Report {
   worker      User         @relation(fields: [workerId], references: [id], onDelete: Cascade)
 
   @@unique([date, workerId])
+  @@index([date])
+  @@index([workerId])
   @@map("reports")
 }
 
@@ -77,7 +84,7 @@ model ReportItem {
   machineId   String    @map("machine_id")
   startTime   DateTime  @map("start_time")
   endTime     DateTime  @map("end_time")
-  workStatus  String?   @map("work_status") @db.VarChar(20)
+  workStatus  String?   @map("work_status") @db.VarChar(20) @default("normal") // 勤務状況: normal, lunch_overtime, early_leave, late_arrival, overtime, early_start
   remarks     String?
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
@@ -86,5 +93,9 @@ model ReportItem {
   report      Report    @relation(fields: [reportId], references: [id], onDelete: Cascade)
   workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
 
+  @@index([reportId])
+  @@index([customerId])
+  @@index([workOrderId])
+  @@index([machineId])
   @@map("report_items")
 }

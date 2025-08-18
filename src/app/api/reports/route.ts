@@ -12,6 +12,11 @@ export async function GET(request: NextRequest) {
     const workNumberFront = searchParams.get('workNumberFront');
     const workNumberBack = searchParams.get('workNumberBack');
     const machineType = searchParams.get('machineType');
+    
+    // ページネーションパラメータ
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '50');
+    const skip = (page - 1) * limit;
 
     // 日付フィルターの設定
     let dateFilter = {};
@@ -21,9 +26,11 @@ export async function GET(request: NextRequest) {
       const endDate = new Date(parseInt(year), parseInt(monthNum), 0);
       
       dateFilter = {
-        date: {
-          gte: startDate,
-          lte: endDate,
+        report: {
+          date: {
+            gte: startDate,
+            lte: endDate,
+          },
         },
       };
     }
@@ -32,40 +39,19 @@ export async function GET(request: NextRequest) {
     let workerFilter = {};
     if (workerName) {
       workerFilter = {
-        worker: {
-          name: workerName,
+        report: {
+          worker: {
+            name: workerName,
+          },
         },
       };
     }
 
-    // レポートデータを取得
-    const reports = await prisma.report.findMany({
+    // 総件数を取得
+    const totalCount = await prisma.reportItem.count({
       where: {
         ...dateFilter,
         ...workerFilter,
-      },
-      include: {
-        worker: true,
-        reportItems: {
-          include: {
-            customer: true,
-            workOrder: true,
-            machine: true,
-          },
-        },
-      },
-      orderBy: {
-        date: 'desc',
-      },
-    });
-
-    // フィルタリングされたレポートアイテムを取得
-    const filteredReportItems = await prisma.reportItem.findMany({
-      where: {
-        report: {
-          ...dateFilter,
-          ...workerFilter,
-        },
         ...(customerName && {
           customer: {
             name: {
@@ -93,63 +79,117 @@ export async function GET(request: NextRequest) {
           },
         }),
       },
-      include: {
+    });
+
+    // 単一の最適化されたクエリでデータを取得（ページネーション付き）
+    const reportItems = await prisma.reportItem.findMany({
+      where: {
+        ...dateFilter,
+        ...workerFilter,
+        ...(customerName && {
+          customer: {
+            name: {
+              contains: customerName,
+              mode: 'insensitive',
+            },
+          },
+        }),
+        ...(workNumberFront && {
+          workOrder: {
+            frontNumber: workNumberFront,
+          },
+        }),
+        ...(workNumberBack && {
+          workOrder: {
+            backNumber: {
+              contains: workNumberBack,
+              mode: 'insensitive',
+            },
+          },
+        }),
+        ...(machineType && {
+          machine: {
+            category: machineType,
+          },
+        }),
+      },
+      select: {
+        id: true,
+        reportId: true,
+        startTime: true,
+        endTime: true,
+        workStatus: true,
+        remarks: true,
         report: {
-          include: {
-            worker: true,
+          select: {
+            date: true,
+            worker: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
-        customer: true,
-        workOrder: true,
-        machine: true,
+        customer: {
+          select: {
+            name: true,
+          },
+        },
+        workOrder: {
+          select: {
+            frontNumber: true,
+            backNumber: true,
+            description: true,
+          },
+        },
+        machine: {
+          select: {
+            category: true,
+          },
+        },
       },
       orderBy: {
         report: {
           date: 'desc',
         },
       },
+      skip,
+      take: limit,
     });
 
     // フロントエンドで使用しやすい形式に変換
-    const formattedReports = reports.map((report) => ({
-      id: report.id,
-      date: report.date.toISOString().split('T')[0],
-      workerName: report.worker.name,
-      submittedAt: report.submittedAt.toISOString(),
-      workItems: report.reportItems.map((item) => ({
-        id: item.id,
-        customerName: item.customer.name,
-        workNumberFront: item.workOrder.frontNumber,
-        workNumberBack: item.workOrder.backNumber,
-        name: item.workOrder.description || '未入力',
-        startTime: item.startTime.toTimeString().slice(0, 5),
-        endTime: item.endTime.toTimeString().slice(0, 5),
-        machineType: item.machine.category,
-        remarks: item.remarks || '',
-        workStatus: item.workStatus || 'completed',
-      })),
+    const formattedItems = reportItems.map((item) => ({
+      id: item.id,
+      reportId: item.reportId,
+      reportDate: item.report.date.toISOString().split('T')[0],
+      workerName: item.report.worker.name,
+      customerName: item.customer.name,
+      workNumberFront: item.workOrder.frontNumber,
+      workNumberBack: item.workOrder.backNumber,
+      name: item.workOrder.description || '未入力',
+      startTime: item.startTime.toTimeString().slice(0, 5),
+      endTime: item.endTime.toTimeString().slice(0, 5),
+      machineType: item.machine.category,
+      remarks: item.remarks || '',
+      workStatus: item.workStatus || 'completed',
     }));
+
+    // ユニークなレポートIDを取得してレポート数を計算
+    const uniqueReportIds = [...new Set(reportItems.map(item => item.reportId))];
 
     return NextResponse.json({
       success: true,
-      data: formattedReports,
-      filteredItems: filteredReportItems.map((item) => ({
-        id: item.id,
-        reportId: item.reportId,
-        reportDate: item.report.date.toISOString().split('T')[0],
-        workerName: item.report.worker.name,
-        customerName: item.customer.name,
-        workNumberFront: item.workOrder.frontNumber,
-        workNumberBack: item.workOrder.backNumber,
-        name: item.workOrder.description || '未入力',
-        startTime: item.startTime.toTimeString().slice(0, 5),
-        endTime: item.endTime.toTimeString().slice(0, 5),
-        machineType: item.machine.category,
-        remarks: item.remarks || '',
-        workStatus: item.workStatus || 'completed',
-      })),
-      totalCount: filteredReportItems.length,
-      totalReports: reports.length,
+      data: [], // フロントエンドでは使用しないため空配列
+      filteredItems: formattedItems,
+      totalCount,
+      totalReports: uniqueReportIds.length,
+      pagination: {
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit),
+        hasNextPage: page * limit < totalCount,
+        hasPrevPage: page > 1,
+      },
     });
 
   } catch (error) {
