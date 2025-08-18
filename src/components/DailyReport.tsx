@@ -17,7 +17,7 @@ export default function DailyReport() {
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [basicInfoErrors, setBasicInfoErrors] = useState<ValidationError[]>([]);
   // 既存日報の状態管理
-  const [existingReport, setExistingReport] = useState<{
+  const [, setExistingReport] = useState<{
     exists: boolean;
     reportId?: string;
     workItems: WorkItemData[];
@@ -116,7 +116,7 @@ export default function DailyReport() {
       } else {
         setExistingReport({ exists: false, workItems: [] });
       }
-    } catch (error) {
+    } catch {
       
       setExistingReport({ exists: false, workItems: [] });
     }

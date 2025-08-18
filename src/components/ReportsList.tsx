@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import { calculateWorkTime, formatTime, formatDecimalTime } from '@/utils/timeCalculation';
 import { getRowBackgroundClass } from '@/utils/conditionalFormatting';
 import DatabaseClientNameInput from './DatabaseClientNameInput';
@@ -10,7 +9,6 @@ import { WorkItemData } from '@/types/daily-report';
 import { DatabaseWorkItem, ReportsApiResponse, PaginationInfo } from '@/types/database';
 
 export default function ReportsList() {
-  const router = useRouter();
   
   // データベースから取得したデータ
   const [filteredWorkItems, setFilteredWorkItems] = useState<DatabaseWorkItem[]>([]);
@@ -111,7 +109,7 @@ export default function ReportsList() {
       console.error('フィルター選択肢の取得エラー:', err);
       setError(err instanceof Error ? err.message : 'フィルター選択肢の取得に失敗しました');
     }
-  }, []);
+  }, [currentYearMonth]);
 
   // データベースからデータを取得する関数（最適化版）
   const fetchReports = useCallback(async (filterParams: typeof filters, page: number = 1) => {

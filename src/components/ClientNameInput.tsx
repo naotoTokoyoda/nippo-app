@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { getDatabaseClientNameSuggestions } from '@/utils/clientNameSearch';
 
 interface ClientNameInputProps {
@@ -26,13 +26,12 @@ export default function ClientNameInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  // availableNamesをメモ化
-  const memoizedAvailableNames = useMemo(() => availableNames, [availableNames.length]);
+
 
   // 入力値が変更されたときに候補を更新
-  const updateSuggestions = useCallback(() => {
+  useEffect(() => {
     if (value.trim()) {
-      const newSuggestions = getDatabaseClientNameSuggestions(value, memoizedAvailableNames, 8);
+      const newSuggestions = getDatabaseClientNameSuggestions(value, availableNames, 8);
       setSuggestions(newSuggestions);
       setShowSuggestions(newSuggestions.length > 0);
       setSelectedIndex(-1);
@@ -41,11 +40,7 @@ export default function ClientNameInput({
       setShowSuggestions(false);
       setSelectedIndex(-1);
     }
-  }, [value, memoizedAvailableNames]);
-
-  useEffect(() => {
-    updateSuggestions();
-  }, [updateSuggestions]);
+  }, [value, availableNames.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // クリックで候補を非表示
   useEffect(() => {
@@ -68,7 +63,7 @@ export default function ClientNameInput({
     onChange(e.target.value);
   }, [onChange]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!showSuggestions) return;
 
     switch (e.key) {
@@ -95,7 +90,7 @@ export default function ClientNameInput({
         setSelectedIndex(-1);
         break;
     }
-  }, [showSuggestions, suggestions.length, selectedIndex, onChange]);
+  };
 
   const handleSuggestionClick = useCallback((suggestion: string) => {
     onChange(suggestion);

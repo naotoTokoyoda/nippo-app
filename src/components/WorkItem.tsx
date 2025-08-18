@@ -5,7 +5,7 @@ import { WorkItemData, WORK_STATUS_OPTIONS } from '@/types/daily-report';
 import { ValidationError } from '@/utils/validation';
 import { generateTimeOptions } from '@/utils/timeCalculation';
 import { validateWorkItem } from '@/utils/validation';
-import { checkTimeContinuity, TimeContinuityCheck } from '@/utils/timeValidation';
+import { TimeContinuityCheck } from '@/utils/timeValidation';
 
 import ClientNameInput from './ClientNameInput';
 
