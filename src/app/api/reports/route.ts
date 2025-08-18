@@ -18,16 +18,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const skip = (page - 1) * limit;
 
-    console.log('API パラメータ:', {
-      month,
-      workerName,
-      customerName,
-      workNumberFront,
-      workNumberBack,
-      machineType,
-      page,
-      limit
-    });
+
     
     // レポートフィルターの設定
     let reportFilter: {
@@ -49,15 +40,7 @@ export async function GET(request: NextRequest) {
         const startDate = new Date(parseInt(year), parseInt(monthNum) - 1, 1, 12, 0, 0, 0);
         const endDate = new Date(parseInt(year), parseInt(monthNum), 0, 12, 0, 0, 0);
         
-        console.log('日付フィルター詳細:', {
-          month,
-          year,
-          monthNum,
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString(),
-          startDateLocal: startDate.toLocaleDateString('ja-JP'),
-          endDateLocal: endDate.toLocaleDateString('ja-JP')
-        });
+
         
         reportFilter.report!.date = {
           gte: startDate,

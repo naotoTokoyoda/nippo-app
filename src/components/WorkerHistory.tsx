@@ -50,7 +50,6 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
           });
           
           const reports = Array.from(reportsMap.values());
-          console.log('変換されたレポートデータ:', reports);
           setReports(reports);
         } else {
           setReports([]);

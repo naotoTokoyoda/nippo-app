@@ -152,7 +152,7 @@ export default function DailyReport() {
         setExistingReport({ exists: false, workItems: [] });
       }
     } catch (error) {
-      console.error('既存日報チェックエラー:', error);
+      
       setExistingReport({ exists: false, workItems: [] });
     }
   };

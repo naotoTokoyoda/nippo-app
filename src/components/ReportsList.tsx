@@ -43,13 +43,6 @@ export default function ReportsList() {
   const currentYearMonth = useMemo(() => {
     const now = new Date();
     const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    console.log('現在の年月:', {
-      now: now.toISOString(),
-      nowLocal: now.toLocaleDateString('ja-JP'),
-      year: now.getFullYear(),
-      month: now.getMonth() + 1,
-      yearMonth
-    });
     return yearMonth;
   }, []);
 
@@ -83,12 +76,6 @@ export default function ReportsList() {
         
         setFilterOptions(newFilterOptions);
         
-        console.log('フィルターオプション取得結果:', {
-          availableMonths: newFilterOptions.availableMonths,
-          currentYearMonth,
-          hasData: newFilterOptions.availableMonths.length > 0
-        });
-
         // データがない場合は当月を含む選択肢を生成
         if (newFilterOptions.availableMonths.length === 0) {
           const now = new Date();
@@ -101,7 +88,6 @@ export default function ReportsList() {
             fallbackMonths.push(monthString);
           }
           
-          console.log('フォールバック月生成:', fallbackMonths);
           newFilterOptions.availableMonths = fallbackMonths;
           setFilterOptions(newFilterOptions);
           
@@ -113,7 +99,6 @@ export default function ReportsList() {
         } else {
           // 日本でのみ使用するため、常に当月をデフォルトに設定
           // 当月のデータがない場合でも、当月を選択して「データなし」を表示
-          console.log('データあり - 当月に設定:', currentYearMonth);
           setFilters(prev => ({
             ...prev,
             month: currentYearMonth

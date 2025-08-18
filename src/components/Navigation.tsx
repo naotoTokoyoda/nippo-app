@@ -28,7 +28,7 @@ export default function Navigation() {
                   key={item.href}
                   href={item.href}
                   onClick={(e) => {
-                    console.log('Navigation clicked:', item.href);
+                
                   }}
                   className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
                     pathname === item.href
