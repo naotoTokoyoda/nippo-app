@@ -190,8 +190,8 @@ export async function GET(request: NextRequest) {
       workNumberFront: item.workOrder.frontNumber,
       workNumberBack: item.workOrder.backNumber,
       name: item.workOrder.description || '未入力',
-      startTime: item.startTime.toTimeString().slice(0, 5),
-      endTime: item.endTime.toTimeString().slice(0, 5),
+      startTime: item.startTime.toISOString().slice(11, 16), // UTCからHH:MM形式で取得
+      endTime: item.endTime.toISOString().slice(11, 16), // UTCからHH:MM形式で取得
       machineType: item.machine.category,
       remarks: item.remarks || '',
       workStatus: item.workStatus || 'completed',
