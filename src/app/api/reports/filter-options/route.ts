@@ -18,7 +18,7 @@ export async function GET() {
         },
         distinct: ['date'],
         orderBy: {
-          date: 'desc',
+          date: 'asc', // 昇順に変更
         },
       }).then(reports => {
         const months = new Set<string>();
@@ -26,7 +26,7 @@ export async function GET() {
           const yearMonth = report.date.toISOString().split('T')[0].substring(0, 7);
           months.add(yearMonth);
         });
-        return Array.from(months).sort().reverse(); // 新しい順にソート
+        return Array.from(months).sort(); // 昇順でソート
       }),
 
       // ユニークな作業者名を取得

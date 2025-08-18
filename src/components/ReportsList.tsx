@@ -74,7 +74,7 @@ export default function ReportsList() {
         
         // 利用可能な年月がある場合、最新の年月をデフォルトに設定
         if (newFilterOptions.availableMonths.length > 0) {
-          const latestMonth = newFilterOptions.availableMonths[0]; // 既に新しい順でソート済み
+          const latestMonth = newFilterOptions.availableMonths[newFilterOptions.availableMonths.length - 1]; // 昇順ソートなので最後の要素が最新
           setFilters(prev => ({
             ...prev,
             month: latestMonth
@@ -146,7 +146,7 @@ export default function ReportsList() {
 
   const clearFilters = () => {
     const latestMonth = filterOptions.availableMonths.length > 0 
-      ? filterOptions.availableMonths[0] 
+      ? filterOptions.availableMonths[filterOptions.availableMonths.length - 1] // 昇順ソートなので最後の要素が最新
       : currentYearMonth;
       
     setFilters({
@@ -316,6 +316,7 @@ export default function ReportsList() {
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
                 <th className="px-3 py-3 text-left font-medium text-gray-700 sticky top-0 bg-gray-50 whitespace-nowrap">No</th>
+                <th className="px-3 py-3 text-left font-medium text-gray-700 sticky top-0 bg-gray-50 whitespace-nowrap">作業日</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-700 sticky top-0 bg-gray-50 whitespace-nowrap">客先名</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-700 sticky top-0 bg-gray-50 whitespace-nowrap">工番（前番）</th>
                 <th className="px-3 py-3 text-left font-medium text-gray-700 sticky top-0 bg-gray-50 whitespace-nowrap">工番（後番）</th>
@@ -332,7 +333,7 @@ export default function ReportsList() {
             <tbody className="max-h-96 overflow-y-auto">
               {loading ? (
                 <tr>
-                  <td colSpan={12} className="px-3 py-8 text-center">
+                  <td colSpan={13} className="px-3 py-8 text-center">
                     <div className="flex flex-col items-center space-y-4">
                       {/* スピナー */}
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -342,7 +343,7 @@ export default function ReportsList() {
                 </tr>
               ) : filteredWorkItems.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="px-3 py-8 text-center text-gray-500">
+                  <td colSpan={13} className="px-3 py-8 text-center text-gray-500">
                     作業項目が見つかりません
                   </td>
                 </tr>
@@ -351,9 +352,22 @@ export default function ReportsList() {
                   const workTime = calculateWorkTime(item.startTime, item.endTime, item.workStatus);
                   const rowClass = getRowBackgroundClass(item.machineType, item.customerName);
                   const itemNumber = (pagination.page - 1) * pagination.limit + index + 1;
+                  
+                  // 作業日をフォーマット
+                  const formatWorkDate = (dateString: string) => {
+                    if (!dateString) return '未入力';
+                    const date = new Date(dateString);
+                    return date.toLocaleDateString('ja-JP', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit'
+                    });
+                  };
+                  
                   return (
                     <tr key={`${item.reportId}-${item.id}`} className={`${rowClass} border-b border-gray-200 hover:bg-gray-50`}>
                       <td className="px-3 py-3 text-gray-900 whitespace-nowrap font-medium">{itemNumber}</td>
+                      <td className="px-3 py-3 text-gray-900 whitespace-nowrap">{formatWorkDate(item.reportDate)}</td>
                       <td className="px-3 py-3 text-gray-900 whitespace-nowrap">{item.customerName || '未入力'}</td>
                       <td className="px-3 py-3 text-gray-900 whitespace-nowrap">{item.workNumberFront}</td>
                       <td className="px-3 py-3 text-gray-900 whitespace-nowrap">{item.workNumberBack}</td>

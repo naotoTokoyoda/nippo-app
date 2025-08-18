@@ -22,14 +22,15 @@ export async function GET(request: NextRequest) {
     let dateFilter = {};
     if (month) {
       const [year, monthNum] = month.split('-');
-      const startDate = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
+      const startDateStr = `${year}-${monthNum.padStart(2, '0')}-01`;
       const endDate = new Date(parseInt(year), parseInt(monthNum), 0);
+      const endDateStr = endDate.toISOString().split('T')[0];
       
       dateFilter = {
         report: {
           date: {
-            gte: startDate,
-            lte: endDate,
+            gte: startDateStr,
+            lte: endDateStr,
           },
         },
       };
@@ -150,7 +151,7 @@ export async function GET(request: NextRequest) {
       },
       orderBy: {
         report: {
-          date: 'desc',
+          date: 'asc', // 昇順に変更（1日から月末まで）
         },
       },
       skip,
