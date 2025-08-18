@@ -75,8 +75,28 @@ export default function ReportsList() {
         
         setFilterOptions(newFilterOptions);
         
-        // 利用可能な年月がある場合、最新の年月をデフォルトに設定
-        if (newFilterOptions.availableMonths.length > 0) {
+        // データがない場合は当月を含む選択肢を生成
+        if (newFilterOptions.availableMonths.length === 0) {
+          const now = new Date();
+          const fallbackMonths = [];
+          
+          // 過去2ヶ月、当月、翌月まで生成
+          for (let i = -2; i <= 1; i++) {
+            const date = new Date(now.getFullYear(), now.getMonth() + i, 1);
+            const monthString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            fallbackMonths.push(monthString);
+          }
+          
+          newFilterOptions.availableMonths = fallbackMonths;
+          setFilterOptions(newFilterOptions);
+          
+          // デフォルトを当月に設定
+          setFilters(prev => ({
+            ...prev,
+            month: currentYearMonth
+          }));
+        } else {
+          // 利用可能な年月がある場合、最新の年月をデフォルトに設定
           const latestMonth = newFilterOptions.availableMonths[newFilterOptions.availableMonths.length - 1]; // 昇順ソートなので最後の要素が最新
           setFilters(prev => ({
             ...prev,
@@ -143,7 +163,8 @@ export default function ReportsList() {
 
   // フィルター変更時にデータを再取得
   useEffect(() => {
-    if (filterOptions.availableMonths.length > 0) {
+    // フィルター選択肢が設定されていて、フィルターに月が設定されている場合にデータを取得
+    if (filterOptions.availableMonths.length > 0 && filters.month) {
       fetchReports(filters, 1);
     }
   }, [fetchReports, filters, filterOptions.availableMonths.length]);
@@ -154,12 +175,13 @@ export default function ReportsList() {
   };
 
   const clearFilters = () => {
-    const latestMonth = filterOptions.availableMonths.length > 0 
+    // データがある場合は最新月、ない場合は当月をデフォルトに
+    const defaultMonth = filterOptions.availableMonths.length > 0 
       ? filterOptions.availableMonths[filterOptions.availableMonths.length - 1] // 昇順ソートなので最後の要素が最新
       : currentYearMonth;
       
     setFilters({
-      month: latestMonth,
+      month: defaultMonth,
       workerName: '',
       customerName: '',
       workNumberFront: '',
