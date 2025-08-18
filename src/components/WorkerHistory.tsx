@@ -145,6 +145,19 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
         作業者履歴: {workerName}
       </h3>
       
+      {/* ローディング表示 */}
+      {loading && (
+        <div className="flex flex-col items-center space-y-4 py-8">
+          {/* スピナー */}
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="text-sm text-gray-600">データを読み込み中...</p>
+        </div>
+      )}
+      
+      {/* データ読み込み完了後の表示 */}
+      {!loading && (
+        <>
+      
       {/* 8時間労働の警告 */}
       {hasTodayReport && !isEightHoursComplete && (
         <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-md">
@@ -332,6 +345,8 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
             投稿履歴はありません
           </p>
         </div>
+      )}
+        </>
       )}
     </div>
   );
