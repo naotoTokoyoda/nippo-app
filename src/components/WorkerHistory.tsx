@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect } from 'react';
 import { calculateWorkTime, formatTime, formatDecimalTime } from '@/utils/timeCalculation';
-import { DatabaseReport } from '@/types/database';
+import { DatabaseReport, DatabaseWorkItem } from '@/types/database';
 
 interface WorkerHistoryProps {
   workerName: string;
@@ -33,7 +33,7 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
           // reportIdでグループ化してDatabaseReport形式に変換
           const reportsMap = new Map<string, DatabaseReport>();
           
-          workItems.forEach((item) => {
+          workItems.forEach((item: DatabaseWorkItem) => {
             const reportId = item.reportId;
             if (!reportsMap.has(reportId)) {
               reportsMap.set(reportId, {
