@@ -8,7 +8,6 @@ import { useRouter } from 'next/navigation';
 import { validateDailyReport, validateBasicInfo } from '@/utils/validation';
 
 import { DailyReportData, WorkItemData, WORKER_OPTIONS, ValidationError } from '@/types/daily-report';
-import { useCountdown } from '@/hooks/useCountdown';
 import React from 'react'; // Added missing import for React
 
 export default function DailyReport() {
@@ -17,8 +16,6 @@ export default function DailyReport() {
   const [showValidation, setShowValidation] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [basicInfoErrors, setBasicInfoErrors] = useState<ValidationError[]>([]);
-  const [showSuccess, setShowSuccess] = useState(false);
-  
   // 既存日報の状態管理
   const [existingReport, setExistingReport] = useState<{
     exists: boolean;
@@ -46,21 +43,7 @@ export default function DailyReport() {
     }]
   });
 
-  // カウントダウンとナビゲーション処理
-  const { count: countdown, start: startCountdown, stop: stopCountdown } = useCountdown({
-    initialCount: 3,
-    onComplete: () => {
-      // カウントダウン完了時にナビゲーション
-      router.push('/reports');
-    },
-  });
 
-  // コンポーネントのアンマウント時にカウントダウンを停止
-  React.useEffect(() => {
-    return () => {
-      stopCountdown();
-    };
-  }, [stopCountdown]);
 
 
 
@@ -218,9 +201,8 @@ export default function DailyReport() {
       const result = await response.json();
 
       if (result.success) {
-        // 成功メッセージを表示
-        setShowSuccess(true);
-        startCountdown();
+        // 成功時に即座に日報一覧ページに遷移
+        router.push('/reports');
       } else {
         // エラーハンドリング
         console.error('保存エラー:', result.error);
@@ -339,7 +321,7 @@ export default function DailyReport() {
         <div className="text-center">
           <button
             onClick={handleSubmit}
-            disabled={isSubmitting || showSuccess || validationErrors.length > 0 || basicInfoErrors.length > 0}
+            disabled={isSubmitting || validationErrors.length > 0 || basicInfoErrors.length > 0}
             className={`px-8 py-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg font-semibold shadow-sm flex items-center justify-center mx-auto ${
               validationErrors.length > 0 || basicInfoErrors.length > 0
                 ? 'bg-gray-400 text-white cursor-not-allowed'
@@ -353,13 +335,6 @@ export default function DailyReport() {
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
                 送信中...
-              </>
-            ) : showSuccess ? (
-              <>
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                日報を送信しました！{countdown}秒後に一覧ページに移動します...
               </>
             ) : validationErrors.length > 0 || basicInfoErrors.length > 0 ? (
               <>
