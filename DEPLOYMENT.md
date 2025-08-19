@@ -8,12 +8,12 @@
 - **理由**: マイグレーション練習しやすい、コストゼロに近い、Vercel統合が簡単
 
 ### 小規模本番環境
-- **データベース**: Vercel Postgres Hobby/Pro
+- **データベース**: Neon（本番用インスタンス）
 - **ORM**: Prisma
-- **理由**: Vercelと一体で運用が最短、障害対応もシンプル
+- **理由**: Vercelと統合が簡単、Neonの充実した無料枠を活用
 
 ### 本番成長時
-- **オプション1**: Vercel Postgres Pro継続
+- **オプション1**: Neon Pro継続（月190時間CPU時間、10プロジェクトまで無料）
 - **オプション2**: Supabase移行（RLSやストレージも活用）
 
 ## Neonセットアップ手順
@@ -66,7 +66,7 @@ DATABASE_URL="postgresql://username:password@host:port/database?schema=public"
 NODE_ENV=staging
 ```
 
-### 3. 本番環境（Vercel Postgres）
+### 3. 本番環境（Neon Production）
 
 ```bash
 # Vercel Environment Variables
@@ -128,18 +128,18 @@ import { migrateLocalStorageData } from '@/lib/migration'
 await migrateLocalStorageData()
 ```
 
-### 2. Neon → Vercel Postgres移行
+### 2. 開発環境 → 本番環境データ移行
 
-1. Vercel Postgresで新しいデータベースを作成
-2. 環境変数の `DATABASE_URL` を更新
+1. 本番用Neonデータベースで新しいインスタンスを作成
+2. 環境変数の `DATABASE_URL` を本番用に更新
 3. マイグレーションを実行
 4. データの整合性を確認
 
 ## バックアップ戦略
 
 ### 自動バックアップ
-- Neon: 自動バックアップ（7日間）
-- Vercel Postgres: 自動バックアップ（7日間）
+- Neon（開発環境）: 自動バックアップ（7日間）
+- Neon（本番環境）: 自動バックアップ（7日間）
 
 ### 手動バックアップ
 ```bash
@@ -184,7 +184,7 @@ psql $DATABASE_URL < backup_20241201.sql
 ## 推奨設定
 
 ### 迷ったら
-**「Neon（旧Vercel PostgreSQL、開発用）＋ Vercel Postgres（本番）」** が、導入スピード・運用しやすさ・コストのバランス最強です。
+**「Neon（開発用）＋ Neon（本番用）」** が、導入スピード・運用しやすさ・コストのバランス最強です。同じプラットフォームで開発から本番まで一貫して管理でき、Neonの豊富な無料枠（月190時間CPU時間、10プロジェクトまで）を最大限活用できます。
 
 ### 長期的な設計
 - 集計系を別スキーマ/別DBに分離
