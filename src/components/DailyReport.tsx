@@ -6,6 +6,7 @@ import WorkerHistory from '@/components/WorkerHistory';
 import { useRouter } from 'next/navigation';
 // import { calculateWorkTime } from '@/utils/timeCalculation'; // 現在は使用されていない
 import { validateDailyReport, validateBasicInfo } from '@/utils/validation';
+import { getTodayInJST } from '@/utils/timeCalculation';
 
 import { DailyReportData, WorkItemData, WORKER_OPTIONS, ValidationError } from '@/types/daily-report';
 import React from 'react'; // Added missing import for React
@@ -27,7 +28,7 @@ export default function DailyReport() {
   });
   
   const [reportData, setReportData] = useState<DailyReportData>({
-    date: new Date().toISOString().split('T')[0],
+    date: getTodayInJST(),
     workerName: '',
     workItems: [{
       id: '1',

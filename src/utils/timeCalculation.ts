@@ -130,4 +130,17 @@ export function isZeroWorkTime(startTime: string, endTime: string): boolean {
   
   // 0分かどうかをチェック（1分未満を0分とみなす）
   return workTimeMs < 60 * 1000; // 1分 = 60秒 * 1000ミリ秒
+}
+
+/**
+ * 日本時間（JST）で今日の日付をYYYY-MM-DD形式で取得
+ * @returns 日本時間での今日の日付文字列
+ */
+export function getTodayInJST(): string {
+  // 日本時間を取得（UTC+9）
+  const now = new Date();
+  const jstDate = new Date(now.getTime() + (9 * 60 * 60 * 1000)); // UTC+9時間
+  
+  // YYYY-MM-DD形式で返す
+  return jstDate.toISOString().split('T')[0];
 } 
