@@ -218,7 +218,7 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
                       <span className="ml-2 text-gray-600">{item.name}</span>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-700">客先:</span>
+                      <span className="font-medium text-gray-700">客先名:</span>
                       <span className="ml-2 text-gray-600">{item.customerName}</span>
                     </div>
                     <div>
@@ -228,17 +228,17 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
                       </span>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-700">時間:</span>
+                      <span className="font-medium text-gray-700">作業時間:</span>
                       <span className="ml-2 text-gray-600">
                         {item.startTime} - {item.endTime}
                       </span>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-700">機械:</span>
+                      <span className="font-medium text-gray-700">機械種類:</span>
                       <span className="ml-2 text-gray-600">{item.machineType}</span>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-700">作業時間:</span>
+                      <span className="font-medium text-gray-700">作業合計時間:</span>
                       <span className="ml-2 text-gray-600">
                         {formatTime(workTime)} ({formatDecimalTime(workTime)}時間)
                       </span>
@@ -290,7 +290,7 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
                       <span className="ml-2 text-gray-600">{item.name}</span>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-700">客先:</span>
+                      <span className="font-medium text-gray-700">客先名:</span>
                       <span className="ml-2 text-gray-600">{item.customerName}</span>
                     </div>
                     <div>
@@ -300,17 +300,17 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
                       </span>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-700">時間:</span>
+                      <span className="font-medium text-gray-700">作業時間:</span>
                       <span className="ml-2 text-gray-600">
                         {item.startTime} - {item.endTime}
                       </span>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-700">機械:</span>
+                      <span className="font-medium text-gray-700">機械種類:</span>
                       <span className="ml-2 text-gray-600">{item.machineType}</span>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-700">作業時間:</span>
+                      <span className="font-medium text-gray-700">作業合計時間:</span>
                       <span className="ml-2 text-gray-600">
                         {formatTime(workTime)} ({formatDecimalTime(workTime)}時間)
                       </span>
