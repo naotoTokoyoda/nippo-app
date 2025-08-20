@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { formatDateToISO, formatTimeToHHMM, getJSTTimestamp } from '@/utils/timeCalculation';
+import { formatDateToISO, getJSTTimestamp, createJSTDateTime, formatUTCToJSTTime } from '@/utils/timeCalculation';
 
 // Prismaの戻り値の型を定義
 type ReportItemWithRelations = {
@@ -202,8 +202,8 @@ export async function GET(request: NextRequest) {
       workNumberFront: item.workOrder.frontNumber,
       workNumberBack: item.workOrder.backNumber,
       name: item.workOrder.description || '未入力',
-      startTime: formatTimeToHHMM(item.startTime),
-      endTime: formatTimeToHHMM(item.endTime),
+      startTime: formatUTCToJSTTime(item.startTime),
+      endTime: formatUTCToJSTTime(item.endTime),
       machineType: item.machine.category,
       remarks: item.remarks || '',
       workStatus: item.workStatus || 'completed',
@@ -330,14 +330,8 @@ export async function POST(request: NextRequest) {
       }
 
       // レポートアイテムを作成
-      const [startHour, startMinute] = workItem.startTime.split(':').map(Number);
-      const [endHour, endMinute] = workItem.endTime.split(':').map(Number);
-      
-      const startDateTime = new Date(date + 'T00:00:00.000Z');
-      startDateTime.setUTCHours(startHour, startMinute, 0, 0);
-      
-      const endDateTime = new Date(date + 'T00:00:00.000Z');
-      endDateTime.setUTCHours(endHour, endMinute, 0, 0);
+      const startDateTime = createJSTDateTime(date, workItem.startTime);
+      const endDateTime = createJSTDateTime(date, workItem.endTime);
 
       await prisma.reportItem.create({
         data: {

@@ -165,4 +165,28 @@ export function formatTimeToHHMM(date: Date | string | dayjs.Dayjs): string {
  */
 export function getJSTTimestamp(): string {
   return dayjs().toISOString();
+}
+
+/**
+ * 日付と時間文字列からJST基準のDateTimeを作成
+ * @param date 日付文字列 (YYYY-MM-DD)
+ * @param time 時間文字列 (HH:MM)
+ * @returns UTC時間として保存するためのDateオブジェクト
+ */
+export function createJSTDateTime(date: string, time: string): Date {
+  // 日本時間として解釈してUTC時間に変換
+  return dayjs(`${date} ${time}`, 'YYYY-MM-DD HH:mm')
+    .subtract(9, 'hour') // JST -> UTC変換
+    .toDate();
+}
+
+/**
+ * UTC時間として保存されているDateオブジェクトからJST時間文字列を取得
+ * @param utcDate UTC時間として保存されているDateオブジェクト
+ * @returns JST時間文字列 (HH:MM)
+ */
+export function formatUTCToJSTTime(utcDate: Date): string {
+  return dayjs(utcDate)
+    .add(9, 'hour') // UTC -> JST変換
+    .format('HH:mm');
 } 
