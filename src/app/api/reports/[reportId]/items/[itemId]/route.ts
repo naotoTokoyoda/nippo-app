@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { formatDateToISO, createJSTDateTime, formatUTCToJSTTime } from '@/utils/timeCalculation';
 
 export async function PUT(
   request: NextRequest,
@@ -69,15 +70,10 @@ export async function PUT(
       );
     }
 
-    // 時間をDateTimeに変換
-    const [startHour, startMinute] = startTime.split(':').map(Number);
-    const [endHour, endMinute] = endTime.split(':').map(Number);
-    
-    const startDateTime = new Date(report.date);
-    startDateTime.setHours(startHour, startMinute, 0, 0);
-    
-    const endDateTime = new Date(report.date);
-    endDateTime.setHours(endHour, endMinute, 0, 0);
+    // 時間をDateTimeに変換（JST基準でUTC時間として保存）
+    const reportDate = formatDateToISO(report.date);
+    const startDateTime = createJSTDateTime(reportDate, startTime);
+    const endDateTime = createJSTDateTime(reportDate, endTime);
 
     // レポートアイテムを更新
     const updatedItem = await prisma.reportItem.update({
@@ -109,14 +105,14 @@ export async function PUT(
       data: {
         id: updatedItem.id,
         reportId: updatedItem.reportId,
-        reportDate: updatedItem.report.date.toISOString().split('T')[0],
+        reportDate: formatDateToISO(updatedItem.report.date),
         workerName: updatedItem.report.worker.name,
         customerName: updatedItem.customer.name,
         workNumberFront: updatedItem.workOrder.frontNumber,
         workNumberBack: updatedItem.workOrder.backNumber,
         name: updatedItem.workOrder.description || '未入力',
-        startTime: updatedItem.startTime.toTimeString().slice(0, 5),
-        endTime: updatedItem.endTime.toTimeString().slice(0, 5),
+        startTime: formatUTCToJSTTime(updatedItem.startTime),
+        endTime: formatUTCToJSTTime(updatedItem.endTime),
         machineType: updatedItem.machine.category,
         remarks: updatedItem.remarks || '',
         workStatus: updatedItem.workStatus || 'completed',

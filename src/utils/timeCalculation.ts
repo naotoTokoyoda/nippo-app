@@ -1,4 +1,5 @@
 import { WORK_STATUS_OPTIONS } from '@/types/daily-report';
+import dayjs from 'dayjs';
 
 /**
  * 作業時間を計算する（昼休憩時間を考慮）
@@ -130,4 +131,62 @@ export function isZeroWorkTime(startTime: string, endTime: string): boolean {
   
   // 0分かどうかをチェック（1分未満を0分とみなす）
   return workTimeMs < 60 * 1000; // 1分 = 60秒 * 1000ミリ秒
+}
+
+/**
+ * 日本時間（JST）で今日の日付をYYYY-MM-DD形式で取得
+ * @returns 日本時間での今日の日付文字列
+ */
+export function getTodayInJST(): string {
+  return dayjs().format('YYYY-MM-DD');
+}
+
+/**
+ * 指定した日付をYYYY-MM-DD形式でフォーマット
+ * @param date 日付（Date、dayjs、文字列など）
+ * @returns YYYY-MM-DD形式の日付文字列
+ */
+export function formatDateToISO(date: Date | string | dayjs.Dayjs): string {
+  return dayjs(date).format('YYYY-MM-DD');
+}
+
+/**
+ * 指定した日付をHH:MM形式でフォーマット
+ * @param date 日付（Date、dayjs、文字列など）
+ * @returns HH:MM形式の時間文字列
+ */
+export function formatTimeToHHMM(date: Date | string | dayjs.Dayjs): string {
+  return dayjs(date).format('HH:mm');
+}
+
+/**
+ * 日本時間でのタイムスタンプを取得
+ * @returns ISO形式のタイムスタンプ文字列
+ */
+export function getJSTTimestamp(): string {
+  return dayjs().toISOString();
+}
+
+/**
+ * 日付と時間文字列からJST基準のDateTimeを作成
+ * @param date 日付文字列 (YYYY-MM-DD)
+ * @param time 時間文字列 (HH:MM)
+ * @returns UTC時間として保存するためのDateオブジェクト
+ */
+export function createJSTDateTime(date: string, time: string): Date {
+  // 日本時間として解釈してUTC時間に変換
+  return dayjs(`${date} ${time}`, 'YYYY-MM-DD HH:mm')
+    .subtract(9, 'hour') // JST -> UTC変換
+    .toDate();
+}
+
+/**
+ * UTC時間として保存されているDateオブジェクトからJST時間文字列を取得
+ * @param utcDate UTC時間として保存されているDateオブジェクト
+ * @returns JST時間文字列 (HH:MM)
+ */
+export function formatUTCToJSTTime(utcDate: Date): string {
+  return dayjs(utcDate)
+    .add(9, 'hour') // UTC -> JST変換
+    .format('HH:mm');
 } 

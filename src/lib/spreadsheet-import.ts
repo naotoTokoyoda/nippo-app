@@ -1,4 +1,5 @@
 import { DailyReportData, WorkItemData } from '@/types/daily-report';
+import { getJSTTimestamp } from '@/utils/timeCalculation';
 
 // スプレッドシートの行データの型定義
 export interface SpreadsheetRow {
@@ -29,7 +30,7 @@ export function convertSpreadsheetToDailyReports(rows: SpreadsheetRow[]): DailyR
         date: row.date,
         workerName: row.workerName,
         workItems: [],
-        submittedAt: new Date().toISOString()
+        submittedAt: getJSTTimestamp()
       });
     }
 
