@@ -4,6 +4,7 @@ import FeedbackEmail from '@/emails/FeedbackEmail';
 import { FeedbackResponse } from '@/types/feedback';
 import { FeedbackRequestSchema } from '@/lib/validation/feedback';
 import { logger } from '@/lib/logger';
+import { getJSTTimestamp } from '@/utils/timeCalculation';
 
 // Resendインスタンスの初期化
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
     // 自動収集情報の追加
     const userAgent = request.headers.get('user-agent') || undefined;
     const url = request.headers.get('referer') || request.url;
-    const timestamp = new Date().toISOString();
+    const timestamp = getJSTTimestamp();
     
     // アプリバージョンの取得（package.jsonから）
     const packageJson = await import('../../../../package.json');

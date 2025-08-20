@@ -1,5 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { formatDateToISO, formatTimeToHHMM, getJSTTimestamp } from '@/utils/timeCalculation';
+
+// Prismaの戻り値の型を定義
+type ReportItemWithRelations = {
+  id: string;
+  reportId: string;
+  startTime: Date;
+  endTime: Date;
+  remarks: string | null;
+  workStatus: string | null;
+  report: {
+    date: Date;
+    worker: {
+      name: string;
+    };
+  };
+  customer: {
+    name: string;
+  };
+  workOrder: {
+    frontNumber: string;
+    backNumber: string;
+    description: string | null;
+  };
+  machine: {
+    category: string;
+  };
+};
 
 export async function GET(request: NextRequest) {
   try {
@@ -165,24 +193,24 @@ export async function GET(request: NextRequest) {
     });
 
     // フロントエンドで使用しやすい形式に変換
-    const formattedItems = reportItems.map((item) => ({
+    const formattedItems = reportItems.map((item: ReportItemWithRelations) => ({
       id: item.id,
       reportId: item.reportId,
-      reportDate: item.report.date.toISOString().split('T')[0],
+      reportDate: formatDateToISO(item.report.date),
       workerName: item.report.worker.name,
       customerName: item.customer.name,
       workNumberFront: item.workOrder.frontNumber,
       workNumberBack: item.workOrder.backNumber,
       name: item.workOrder.description || '未入力',
-      startTime: item.startTime.toISOString().slice(11, 16), // UTCからHH:MM形式で取得
-      endTime: item.endTime.toISOString().slice(11, 16), // UTCからHH:MM形式で取得
+      startTime: formatTimeToHHMM(item.startTime),
+      endTime: formatTimeToHHMM(item.endTime),
       machineType: item.machine.category,
       remarks: item.remarks || '',
       workStatus: item.workStatus || 'completed',
     }));
 
     // ユニークなレポートIDを取得してレポート数を計算
-    const uniqueReportIds = [...new Set(reportItems.map(item => item.reportId))];
+    const uniqueReportIds = [...new Set(reportItems.map((item: ReportItemWithRelations) => item.reportId))];
 
     return NextResponse.json({
       success: true,
@@ -247,7 +275,7 @@ export async function POST(request: NextRequest) {
         data: {
           date: new Date(date + 'T12:00:00.000Z'), // UTCの正午として保存（タイムゾーンの影響を回避）
           workerId: worker.id,
-          submittedAt: new Date(),
+          submittedAt: new Date(getJSTTimestamp()),
         },
       });
     }

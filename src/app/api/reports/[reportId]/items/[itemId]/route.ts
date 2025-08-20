@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { formatDateToISO } from '@/utils/timeCalculation';
 
 export async function PUT(
   request: NextRequest,
@@ -109,7 +110,7 @@ export async function PUT(
       data: {
         id: updatedItem.id,
         reportId: updatedItem.reportId,
-        reportDate: updatedItem.report.date.toISOString().split('T')[0],
+        reportDate: formatDateToISO(updatedItem.report.date),
         workerName: updatedItem.report.worker.name,
         customerName: updatedItem.customer.name,
         workNumberFront: updatedItem.workOrder.frontNumber,

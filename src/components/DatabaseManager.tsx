@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import EnvironmentBadge from './EnvironmentBadge'
+import { getJSTTimestamp } from '@/utils/timeCalculation'
 
 interface DatabaseHealth {
   success: boolean
@@ -49,7 +50,7 @@ export default function DatabaseManager() {
       console.error('ヘルスチェックエラー:', error)
       setHealth({
         success: false,
-        timestamp: new Date().toISOString(),
+        timestamp: getJSTTimestamp(),
         environment: {
           nodeEnv: 'unknown',
           databaseUrl: 'error',

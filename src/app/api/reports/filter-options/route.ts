@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import dayjs from 'dayjs';
 
 export async function GET() {
   try {
@@ -23,7 +24,7 @@ export async function GET() {
       }).then(reports => {
         const months = new Set<string>();
         reports.forEach(report => {
-          const yearMonth = report.date.toISOString().split('T')[0].substring(0, 7);
+          const yearMonth = dayjs(report.date).format('YYYY-MM');
           months.add(yearMonth);
         });
         return Array.from(months).sort(); // 昇順でソート

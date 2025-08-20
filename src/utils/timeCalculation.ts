@@ -1,4 +1,5 @@
 import { WORK_STATUS_OPTIONS } from '@/types/daily-report';
+import dayjs from 'dayjs';
 
 /**
  * 作業時間を計算する（昼休憩時間を考慮）
@@ -137,10 +138,31 @@ export function isZeroWorkTime(startTime: string, endTime: string): boolean {
  * @returns 日本時間での今日の日付文字列
  */
 export function getTodayInJST(): string {
-  // 日本時間を取得（UTC+9）
-  const now = new Date();
-  const jstDate = new Date(now.getTime() + (9 * 60 * 60 * 1000)); // UTC+9時間
-  
-  // YYYY-MM-DD形式で返す
-  return jstDate.toISOString().split('T')[0];
+  return dayjs().format('YYYY-MM-DD');
+}
+
+/**
+ * 指定した日付をYYYY-MM-DD形式でフォーマット
+ * @param date 日付（Date、dayjs、文字列など）
+ * @returns YYYY-MM-DD形式の日付文字列
+ */
+export function formatDateToISO(date: Date | string | dayjs.Dayjs): string {
+  return dayjs(date).format('YYYY-MM-DD');
+}
+
+/**
+ * 指定した日付をHH:MM形式でフォーマット
+ * @param date 日付（Date、dayjs、文字列など）
+ * @returns HH:MM形式の時間文字列
+ */
+export function formatTimeToHHMM(date: Date | string | dayjs.Dayjs): string {
+  return dayjs(date).format('HH:mm');
+}
+
+/**
+ * 日本時間でのタイムスタンプを取得
+ * @returns ISO形式のタイムスタンプ文字列
+ */
+export function getJSTTimestamp(): string {
+  return dayjs().toISOString();
 } 
