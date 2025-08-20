@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
-import { calculateWorkTime, formatTime, formatDecimalTime } from '@/utils/timeCalculation';
+import { calculateWorkTime, formatTime, formatDecimalTime, calculateNonOverlappingWorkTime } from '@/utils/timeCalculation';
 import { DatabaseReport, DatabaseWorkItem } from '@/types/database';
 
 interface WorkerHistoryProps {
@@ -114,13 +114,14 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
     return null;
   }, [reports, workerName, currentDate, loading]);
 
-  // 今日の合計作業時間を計算（分単位）
+  // 今日の合計作業時間を計算（分単位、重複時間を除去）
   const todayTotalTime = useMemo(() => {
     if (!todayReport) return 0;
-    return todayReport.workItems.reduce((total: number, item) => {
-      const workTimeHours = calculateWorkTime(item.startTime, item.endTime, item.workStatus);
-      return total + (workTimeHours * 60); // 時間を分に変換
-    }, 0);
+    
+    // 重複を除去した実際の作業時間を計算
+    const actualWorkTimeHours = calculateNonOverlappingWorkTime(todayReport.workItems);
+    
+    return actualWorkTimeHours * 60; // 時間を分に変換
   }, [todayReport]);
 
   // 8時間労働のチェック

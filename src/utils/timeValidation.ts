@@ -1,5 +1,5 @@
 import { DailyReportData, WorkItemData } from '@/types/daily-report';
-import { calculateWorkTime } from './timeCalculation';
+import { calculateNonOverlappingWorkTime } from './timeCalculation';
 
 export interface TimeContinuityCheck {
   isValid: boolean;
@@ -93,15 +93,11 @@ export function checkTimeContinuity(
   };
 }
 
-// 1日の合計作業時間を計算
+// 1日の合計作業時間を計算（重複時間を除去）
 export function calculateTotalWorkTime(workItems: WorkItemData[]): number {
-  return workItems.reduce((total, item) => {
-    if (!item.startTime || !item.endTime) return total;
-    
-    // 新しいcalculateWorkTime関数を使用
-    const workTimeHours = calculateWorkTime(item.startTime, item.endTime, item.workStatus);
-    return total + (workTimeHours * 60); // 時間を分に変換
-  }, 0);
+  // 重複を除去した実際の作業時間を計算
+  const actualWorkTimeHours = calculateNonOverlappingWorkTime(workItems);
+  return actualWorkTimeHours * 60; // 時間を分に変換
 }
 
 // 8時間労働のチェック

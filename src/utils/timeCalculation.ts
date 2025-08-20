@@ -189,4 +189,155 @@ export function formatUTCToJSTTime(utcDate: Date): string {
   return dayjs(utcDate)
     .add(9, 'hour') // UTC -> JST変換
     .format('HH:mm');
+}
+
+/**
+ * 新しい仕様に基づいて作業時間を計算する
+ * 1. 並行作業（同じ時刻の複数作業）: それぞれ独立してカウント
+ * 2. 完全包含: 独立してカウント
+ * 3. 部分重複: 重複部分を除去してマージ
+ * @param workItems 作業項目の配列
+ * @returns 計算された実際の作業時間（時間単位）
+ */
+export function calculateNonOverlappingWorkTime(workItems: Array<{
+  startTime: string;
+  endTime: string;
+  workStatus?: string;
+}>): number {
+  if (!workItems || workItems.length === 0) return 0;
+
+  // 個別の作業時間を先に計算
+  const individualWorkTimes: Array<{
+    start: number;
+    end: number;
+    workTime: number;
+    workStatus?: string;
+    index: number;
+  }> = [];
+
+  // 昼休憩時間の定義
+  const lunchStart = new Date(`2000-01-01T12:00:00`).getTime();
+  const lunchEnd = new Date(`2000-01-01T13:00:00`).getTime();
+  const lunchDuration = 60 * 60 * 1000; // 1時間をミリ秒に変換
+
+  workItems.forEach((item, index) => {
+    if (!item.startTime || !item.endTime) return;
+
+    const start = new Date(`2000-01-01T${item.startTime}:00`);
+    const end = new Date(`2000-01-01T${item.endTime}:00`);
+    
+    // 終了時間が開始時間より前の場合は日をまたいでいると仮定
+    if (end < start) {
+      end.setDate(end.getDate() + 1);
+    }
+
+    const startMs = start.getTime();
+    const endMs = end.getTime();
+    let workTimeMs = endMs - startMs;
+
+    // 昼休憩時間をまたぐかチェック
+    const crossesLunch = startMs < lunchStart && endMs > lunchEnd;
+    const hasLunchOvertime = item.workStatus === 'lunch_overtime';
+    
+    if (crossesLunch && !hasLunchOvertime) {
+      workTimeMs -= lunchDuration;
+    }
+
+    individualWorkTimes.push({
+      start: startMs,
+      end: endMs,
+      workTime: Math.max(0, workTimeMs / (1000 * 60 * 60)), // 時間単位
+      workStatus: item.workStatus,
+      index
+    });
+  });
+
+  // 並行作業と包含関係の識別
+  const processedIndices = new Set<number>();
+  let totalHours = 0;
+
+  for (let i = 0; i < individualWorkTimes.length; i++) {
+    if (processedIndices.has(i)) continue;
+
+    const currentWork = individualWorkTimes[i];
+    const relatedWorks = [currentWork];
+    processedIndices.add(i);
+
+    // 同じ時刻または包含関係の作業を探す
+    for (let j = i + 1; j < individualWorkTimes.length; j++) {
+      if (processedIndices.has(j)) continue;
+
+      const otherWork = individualWorkTimes[j];
+      
+      // 完全に同じ時刻（並行作業）
+      const isSameTime = currentWork.start === otherWork.start && currentWork.end === otherWork.end;
+      
+      // 完全包含関係
+      const isContained = 
+        (currentWork.start <= otherWork.start && currentWork.end >= otherWork.end) ||
+        (otherWork.start <= currentWork.start && otherWork.end >= currentWork.end);
+
+      if (isSameTime || isContained) {
+        relatedWorks.push(otherWork);
+        processedIndices.add(j);
+      }
+    }
+
+    // 並行作業・包含関係の場合は全て独立してカウント
+    for (const work of relatedWorks) {
+      totalHours += work.workTime;
+    }
+  }
+
+  // 残りの作業（部分重複）を処理
+  const remainingWorks = individualWorkTimes.filter((_, index) => !processedIndices.has(index));
+  
+  if (remainingWorks.length > 0) {
+    // 部分重複をマージして処理
+    remainingWorks.sort((a, b) => a.start - b.start);
+    
+    const mergedRanges: Array<{ start: number; end: number; hasLunchOvertime: boolean }> = [];
+    
+    for (const work of remainingWorks) {
+      const hasLunchOvertime = work.workStatus === 'lunch_overtime';
+      
+      if (mergedRanges.length === 0) {
+        mergedRanges.push({ 
+          start: work.start, 
+          end: work.end,
+          hasLunchOvertime
+        });
+      } else {
+        const lastRange = mergedRanges[mergedRanges.length - 1];
+        
+        // 重複している場合はマージ
+        if (work.start <= lastRange.end) {
+          lastRange.end = Math.max(lastRange.end, work.end);
+          lastRange.hasLunchOvertime = lastRange.hasLunchOvertime || hasLunchOvertime;
+        } else {
+          // 重複していない場合は新しい範囲として追加
+          mergedRanges.push({ 
+            start: work.start, 
+            end: work.end,
+            hasLunchOvertime
+          });
+        }
+      }
+    }
+    
+    // マージされた範囲の時間を計算
+    for (const range of mergedRanges) {
+      let rangeTimeMs = range.end - range.start;
+      
+      const crossesLunch = range.start < lunchStart && range.end > lunchEnd;
+      
+      if (crossesLunch && !range.hasLunchOvertime) {
+        rangeTimeMs -= lunchDuration;
+      }
+      
+      totalHours += Math.max(0, rangeTimeMs / (1000 * 60 * 60));
+    }
+  }
+
+  return totalHours;
 } 
