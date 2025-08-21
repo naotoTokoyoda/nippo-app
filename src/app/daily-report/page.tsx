@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default function DailyReportPage() {
   return (
-    <PageLayout title="日報" showListButton={true}>
+    <PageLayout title="日報入力" showListButton={true}>
       <DailyReport />
     </PageLayout>
   );
