@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 
 import DatabaseClientNameInput from './DatabaseClientNameInput';
 import { WorkItemData } from '@/types/daily-report';
+import { generateTimeOptions } from '@/utils/timeCalculation';
 
 // WorkItemData型を使用するため、このインターフェースは削除
 // interface WorkItem {
@@ -96,6 +97,18 @@ export default function EditWorkItemModal({
     }));
   };
 
+  // 15分刻みの時間選択肢を生成
+  const mainWorkTimes = generateTimeOptions(8, 17).filter(time => {
+    const [hour, minute] = time.split(':').map(Number);
+    return hour < 17 || (hour === 17 && minute === 0);
+  }); // 8:00-17:00まで
+  
+  const otherTimes = [
+    ...generateTimeOptions(0, 7),   // 0:00-7:45
+    ...generateTimeOptions(17, 17).filter(time => time !== '17:00'), // 17:15, 17:30, 17:45
+    ...generateTimeOptions(18, 23)  // 18:00-23:45
+  ];
+
   if (!isOpen || !workItem) return null;
 
   return (
@@ -172,26 +185,48 @@ export default function EditWorkItemModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 開始時間 <span className="text-red-500">*</span>
               </label>
-              <input
-                type="time"
+              <select
                 value={formData.startTime}
                 onChange={(e) => handleInputChange('startTime', e.target.value)}
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              >
+                <option value=""></option>
+                <optgroup label="メイン稼働時間 (8:00-17:00)">
+                  {mainWorkTimes.map(time => (
+                    <option key={time} value={time}>{time}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="その他 (0:00-7:45, 17:00-23:45)">
+                  {otherTimes.map(time => (
+                    <option key={time} value={time}>{time}</option>
+                  ))}
+                </optgroup>
+              </select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 終了時間 <span className="text-red-500">*</span>
               </label>
-              <input
-                type="time"
+              <select
                 value={formData.endTime}
                 onChange={(e) => handleInputChange('endTime', e.target.value)}
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              >
+                <option value=""></option>
+                <optgroup label="メイン稼働時間 (8:00-17:00)">
+                  {mainWorkTimes.map(time => (
+                    <option key={time} value={time}>{time}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="その他 (0:00-7:45, 17:00-23:45)">
+                  {otherTimes.map(time => (
+                    <option key={time} value={time}>{time}</option>
+                  ))}
+                </optgroup>
+              </select>
             </div>
 
             <div>
