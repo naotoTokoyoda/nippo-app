@@ -15,7 +15,8 @@
     "postinstall": "prisma generate",
     "generate-test-data": "tsx scripts/generate-test-data.ts",
     "clear-test-data": "tsx scripts/clear-test-data.ts",
-    "performance-test": "tsx scripts/performance-test.ts"
+    "performance-test": "tsx scripts/performance-test.ts",
+    "migrate-work-descriptions": "tsx scripts/migrate-work-descriptions.ts"
   },
   "dependencies": {
     "@faker-js/faker": "^9.9.0",
