@@ -77,21 +77,22 @@ model Report {
 }
 
 model ReportItem {
-  id          String    @id @default(cuid())
-  reportId    String    @map("report_id")
-  customerId  String    @map("customer_id")
-  workOrderId String    @map("work_order_id")
-  machineId   String    @map("machine_id")
-  startTime   DateTime  @map("start_time")
-  endTime     DateTime  @map("end_time")
-  workStatus  String?   @map("work_status") @db.VarChar(20) @default("normal") // 勤務状況: normal, lunch_overtime, early_leave, late_arrival, overtime, early_start
-  remarks     String?
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  customer    Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  machine     Machine   @relation(fields: [machineId], references: [id], onDelete: Cascade)
-  report      Report    @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  id              String    @id @default(cuid())
+  reportId        String    @map("report_id")
+  customerId      String    @map("customer_id")
+  workOrderId     String    @map("work_order_id")
+  machineId       String    @map("machine_id")
+  startTime       DateTime  @map("start_time")
+  endTime         DateTime  @map("end_time")
+  workStatus      String?   @map("work_status") @db.VarChar(20) @default("normal") // 勤務状況: normal, lunch_overtime, early_leave, late_arrival, overtime, early_start
+  workDescription String?   @map("work_description") @db.VarChar(200) // 作業内容の説明
+  remarks         String?
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  customer        Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  machine         Machine   @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  report          Report    @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  workOrder       WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
 
   @@index([reportId])
   @@index([customerId])

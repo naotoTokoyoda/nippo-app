@@ -85,6 +85,7 @@ export async function PUT(
         startTime: startDateTime,
         endTime: endDateTime,
         workStatus: workStatus || 'completed',
+        workDescription: name, // 作業内容をworkDescriptionに保存
         remarks: remarks,
       },
       include: {
@@ -110,7 +111,7 @@ export async function PUT(
         customerName: updatedItem.customer.name,
         workNumberFront: updatedItem.workOrder.frontNumber,
         workNumberBack: updatedItem.workOrder.backNumber,
-        name: updatedItem.workOrder.description || '未入力',
+        name: updatedItem.workDescription || updatedItem.workOrder.description || '未入力', // workDescriptionを優先
         startTime: formatUTCToJSTTime(updatedItem.startTime),
         endTime: formatUTCToJSTTime(updatedItem.endTime),
         machineType: updatedItem.machine.category,

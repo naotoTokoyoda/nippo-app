@@ -10,6 +10,7 @@ type ReportItemWithRelations = {
   endTime: Date;
   remarks: string | null;
   workStatus: string | null;
+  workDescription: string | null; // workDescriptionフィールドを追加
   report: {
     date: Date;
     worker: {
@@ -154,6 +155,7 @@ export async function GET(request: NextRequest) {
         startTime: true,
         endTime: true,
         workStatus: true,
+        workDescription: true, // workDescriptionを取得
         remarks: true,
         report: {
           select: {
@@ -201,7 +203,7 @@ export async function GET(request: NextRequest) {
       customerName: item.customer.name,
       workNumberFront: item.workOrder.frontNumber,
       workNumberBack: item.workOrder.backNumber,
-      name: item.workOrder.description || '未入力',
+      name: item.workDescription || item.workOrder.description || '未入力', // workDescriptionを優先、フォールバック付き
       startTime: formatUTCToJSTTime(item.startTime),
       endTime: formatUTCToJSTTime(item.endTime),
       machineType: item.machine.category,
@@ -342,6 +344,7 @@ export async function POST(request: NextRequest) {
           startTime: startDateTime,
           endTime: endDateTime,
           workStatus: workItem.workStatus || 'completed',
+          workDescription: workItem.name, // 作業内容をworkDescriptionに保存
           remarks: workItem.remarks,
         }
       });
