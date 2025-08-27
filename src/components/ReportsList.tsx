@@ -366,7 +366,7 @@ export default function ReportsList() {
               ) : (
                 filteredWorkItems.map((item, index) => {
                   const workTime = calculateWorkTime(item.startTime, item.endTime, item.workStatus);
-                  const rowClass = getRowBackgroundClass(item.machineType, item.customerName);
+                  const rowClass = getRowBackgroundClass(item.machineType, item.customerName, item.workNumberBack);
                   const itemNumber = (pagination.page - 1) * pagination.limit + index + 1;
                   
                   // 作業日をフォーマット
