@@ -10,7 +10,7 @@ export default function HomePage() {
         <p className="text-xl text-gray-600">作業日報を作成・管理するアプリケーション</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-2xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
         {/* 日報入力ボタン */}
         <Link href="/daily-report">
           <div className="bg-white rounded-xl shadow-lg p-8 cursor-pointer border border-gray-100 h-full">
@@ -37,6 +37,21 @@ export default function HomePage() {
               </div>
               <h2 className="text-2xl font-semibold text-gray-800 mb-2">日報一覧</h2>
               <p className="text-gray-600">送信された日報を確認・管理します</p>
+            </div>
+          </div>
+        </Link>
+
+        {/* 集計ボタン */}
+        <Link href="/aggregation">
+          <div className="bg-white rounded-xl shadow-lg p-8 cursor-pointer border border-gray-100 h-full">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-semibold text-gray-800 mb-2">集計</h2>
+              <p className="text-gray-600">工数集計・単価計算・請求書作成</p>
             </div>
           </div>
         </Link>
