@@ -6,6 +6,7 @@ interface SaveModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => Promise<void>;
+  onExecuteSave?: (executeSave: () => Promise<void>) => void;
   changes: Array<{
     activity: string;
     activityName: string;
@@ -23,6 +24,7 @@ export default function SaveModal({
   isOpen, 
   onClose, 
   onConfirm, 
+  onExecuteSave,
   changes 
 }: SaveModalProps) {
   const [modalState, setModalState] = useState<ModalState>('loading');
@@ -30,25 +32,32 @@ export default function SaveModal({
 
   if (!isOpen) return null;
 
-  // モーダルが開かれたら自動的に保存処理を開始
-  const handleAutoSave = async () => {
-    if (modalState === 'loading') {
-      try {
-        await onConfirm();
-        setModalState('success');
-      } catch (error) {
-        setErrorMessage(error instanceof Error ? error.message : '保存中にエラーが発生しました');
-        setModalState('error');
-      }
+  // 保存処理の実行（外部から呼び出される）
+  const executeSave = async () => {
+    setModalState('loading');
+    try {
+      await onConfirm();
+      setModalState('success');
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : '保存中にエラーが発生しました');
+      setModalState('error');
     }
   };
 
-  // モーダルが開かれたときに自動保存を実行
+  // モーダルが開かれたときに状態をリセット
   React.useEffect(() => {
-    if (isOpen && modalState === 'loading') {
-      handleAutoSave();
+    if (isOpen) {
+      setModalState('loading');
+      setErrorMessage('');
     }
   }, [isOpen]);
+
+  // 親コンポーネントにexecuteSave関数を提供
+  React.useEffect(() => {
+    if (onExecuteSave) {
+      onExecuteSave(executeSave);
+    }
+  }, [onExecuteSave]);
 
   const handleClose = () => {
     setModalState('loading');
