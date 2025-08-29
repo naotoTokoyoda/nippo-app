@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 
 interface SaveModalProps {
   isOpen: boolean;
@@ -17,7 +17,7 @@ interface SaveModalProps {
   }>;
 }
 
-type ModalState = 'confirm' | 'loading' | 'success' | 'error';
+type ModalState = 'loading' | 'success' | 'error';
 
 export default function SaveModal({ 
   isOpen, 
@@ -25,13 +25,40 @@ export default function SaveModal({
   onConfirm, 
   changes 
 }: SaveModalProps) {
-  const [modalState, setModalState] = useState<ModalState>('confirm');
+  const [modalState, setModalState] = useState<ModalState>('loading');
   const [errorMessage, setErrorMessage] = useState('');
 
   if (!isOpen) return null;
 
-  const handleConfirm = async () => {
+  // モーダルが開かれたら自動的に保存処理を開始
+  const handleAutoSave = async () => {
+    if (modalState === 'loading') {
+      try {
+        await onConfirm();
+        setModalState('success');
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : '保存中にエラーが発生しました');
+        setModalState('error');
+      }
+    }
+  };
+
+  // モーダルが開かれたときに自動保存を実行
+  React.useEffect(() => {
+    if (isOpen && modalState === 'loading') {
+      handleAutoSave();
+    }
+  }, [isOpen]);
+
+  const handleClose = () => {
     setModalState('loading');
+    setErrorMessage('');
+    onClose();
+  };
+
+  const handleRetry = async () => {
+    setModalState('loading');
+    setErrorMessage('');
     try {
       await onConfirm();
       setModalState('success');
@@ -39,12 +66,6 @@ export default function SaveModal({
       setErrorMessage(error instanceof Error ? error.message : '保存中にエラーが発生しました');
       setModalState('error');
     }
-  };
-
-  const handleClose = () => {
-    setModalState('confirm');
-    setErrorMessage('');
-    onClose();
   };
 
   const formatCurrency = (amount: number) => {
@@ -57,77 +78,6 @@ export default function SaveModal({
 
   const renderContent = () => {
     switch (modalState) {
-      case 'confirm':
-        return (
-          <>
-            {/* ヘッダー */}
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">保存内容の確認</h2>
-              <p className="text-sm text-gray-600 mt-1">
-                以下の変更内容で保存します。よろしいですか？
-              </p>
-            </div>
-
-            {/* 変更内容 */}
-            <div className="px-6 py-4 max-h-96 overflow-y-auto">
-              {changes.length === 0 ? (
-                <p className="text-gray-500">変更はありません。</p>
-              ) : (
-                <div className="space-y-4">
-                  {changes.map((change, index) => (
-                    <div key={index} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h3 className="font-medium text-gray-900">{change.activityName}</h3>
-                          <p className="text-sm text-gray-600">
-                            {change.hours}時間 × 単価変更
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm text-gray-600">
-                            {formatCurrency(change.oldRate)} → {formatCurrency(change.newRate)}
-                          </div>
-                          <div className={`text-sm font-medium ${
-                            change.adjustment > 0 ? 'text-green-600' : 
-                            change.adjustment < 0 ? 'text-red-600' : 'text-gray-600'
-                          }`}>
-                            調整額: {change.adjustment > 0 ? '+' : ''}{formatCurrency(change.adjustment)}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {change.memo && (
-                        <div className="mt-2 p-2 bg-yellow-50 rounded border-l-4 border-yellow-400">
-                          <p className="text-sm text-gray-700">
-                            <span className="font-medium">備考:</span> {change.memo}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* フッター */}
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
-              <button
-                onClick={handleClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                キャンセル
-              </button>
-              <button
-                onClick={handleConfirm}
-                disabled={changes.length === 0}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-              >
-                保存する
-              </button>
-            </div>
-          </>
-        );
-
       case 'loading':
         return (
           <div className="px-6 py-8 text-center">
@@ -205,7 +155,7 @@ export default function SaveModal({
                 キャンセル
               </button>
               <button
-                onClick={handleConfirm}
+                onClick={handleRetry}
                 className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
               >
                 再試行

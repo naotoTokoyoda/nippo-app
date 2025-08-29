@@ -150,13 +150,14 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
     }>;
   };
 
-  // 保存ボタンクリック時（モーダルを表示）
+  // 保存ボタンクリック時
   const handleSaveClick = () => {
     const changes = calculateChanges();
     if (changes.length === 0) {
       alert('変更がありません。');
       return;
     }
+    // 変更がある場合のみモーダルを表示（自動的に保存処理開始）
     setShowSaveModal(true);
   };
 
