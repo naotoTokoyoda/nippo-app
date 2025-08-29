@@ -320,15 +320,20 @@ export async function PATCH(
                 const reportItems = await tx.reportItem.findMany({
                   where: {
                     workOrderId: id,
-                    activity,
                   },
-                  select: {
-                    startTime: true,
-                    endTime: true,
+                  include: {
+                    report: {
+                      include: {
+                        worker: true,
+                      },
+                    },
+                    machine: true,
                   },
                 });
                 
-                const totalHours = reportItems.reduce((sum, item) => {
+                // activityが一致するreportItemsのみを集計
+                const filteredItems = reportItems.filter(item => determineActivity(item) === activity);
+                const totalHours = filteredItems.reduce((sum, item) => {
                   const hours = (item.endTime.getTime() - item.startTime.getTime()) / (1000 * 60 * 60);
                   return sum + hours;
                 }, 0);
