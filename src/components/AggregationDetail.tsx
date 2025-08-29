@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import PageLayout from '@/components/PageLayout';
+import SaveConfirmModal from './SaveConfirmModal';
+import SaveSuccessModal from './SaveSuccessModal';
 
 // 型定義
 interface ActivitySummary {
@@ -32,6 +34,8 @@ interface WorkOrderDetail {
     amount: number;
     reason: string;
     memo?: string;
+    createdAt: string;
+    createdBy: string;
   }>;
 }
 
@@ -45,6 +49,9 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editedRates, setEditedRates] = useState<Record<string, { billRate: string; memo: string }>>({});
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+  const [showSaveSuccess, setShowSaveSuccess] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // APIからデータを取得
   const fetchWorkOrderDetail = async () => {
@@ -114,8 +121,53 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
     }));
   };
 
-  const handleSave = async () => {
+  // 変更内容を計算する関数
+  const calculateChanges = () => {
+    if (!workOrder) return [];
+    
+    return Object.entries(editedRates).map(([activity, data]) => {
+      const activityData = workOrder.activities.find(a => a.activity === activity);
+      if (!activityData) return null;
+      
+      const oldRate = activityData.billRate;
+      const newRate = parseInt(data.billRate) || 0;
+      const adjustment = (newRate - oldRate) * activityData.hours;
+      
+      return {
+        activity,
+        activityName: activityData.activityName,
+        oldRate,
+        newRate,
+        memo: data.memo || '',
+        hours: activityData.hours,
+        adjustment,
+      };
+    }).filter(Boolean) as Array<{
+      activity: string;
+      activityName: string;
+      oldRate: number;
+      newRate: number;
+      memo: string;
+      hours: number;
+      adjustment: number;
+    }>;
+  };
+
+  // 保存ボタンクリック時（確認モーダルを表示）
+  const handleSaveClick = () => {
+    const changes = calculateChanges();
+    if (changes.length === 0) {
+      alert('変更がありません。');
+      return;
+    }
+    setShowSaveConfirm(true);
+  };
+
+  // 実際の保存処理
+  const handleSaveConfirm = async () => {
     try {
+      setIsSaving(true);
+      
       // 文字列を数値に変換してAPIに送信
       const adjustmentsForAPI: Record<string, { billRate: number; memo: string }> = {};
       Object.entries(editedRates).forEach(([activity, data]) => {
@@ -124,8 +176,6 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
           memo: data.memo || '',
         };
       });
-
-
 
       const response = await fetch(`/api/aggregation/${workOrderId}`, {
         method: 'PATCH',
@@ -142,15 +192,24 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
         throw new Error(errorData.error || '保存に失敗しました');
       }
 
-      alert('変更が保存されました');
+      // 確認モーダルを閉じる
+      setShowSaveConfirm(false);
+      
+      // 編集状態をリセット
       setIsEditing(false);
       setEditedRates({});
       
       // データを再取得して最新状態を表示
       await fetchWorkOrderDetail();
+      
+      // 成功モーダルを表示
+      setShowSaveSuccess(true);
+      
     } catch (error) {
       console.error('保存エラー:', error);
       alert(error instanceof Error ? error.message : '保存中にエラーが発生しました');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -301,12 +360,19 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
                     >
                       キャンセル
                     </button>
-                    <button
-                      onClick={handleSave}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                    >
-                      保存
-                    </button>
+                                      <button
+                    onClick={handleSaveClick}
+                    disabled={isSaving}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm disabled:opacity-50 flex items-center"
+                  >
+                    {isSaving && (
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    )}
+                    {isSaving ? '保存中...' : '保存'}
+                  </button>
                   </>
                 )}
                 <button
@@ -467,41 +533,57 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-4">調整履歴</h3>
             <div className="space-y-3">
-              {workOrder.adjustments.map((adjustment) => (
-                <div key={adjustment.id} className="py-3 px-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-900">{adjustment.reason}</div>
-                      {adjustment.memo && (
-                        <div className="text-sm text-gray-600 mt-1">{adjustment.memo}</div>
-                      )}
-                      <div className="text-xs text-gray-500 mt-2">
-                        {new Date(adjustment.createdAt).toLocaleString('ja-JP', {
-                          year: 'numeric',
-                          month: '2-digit',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          timeZone: 'Asia/Tokyo'
-                        })} - {adjustment.createdBy}
-                      </div>
-                    </div>
-                    <div className={`font-semibold text-lg ml-4 ${
-                      adjustment.amount === 0 
-                        ? 'text-gray-900' 
-                        : adjustment.amount > 0 
-                          ? 'text-green-600' 
-                          : 'text-red-600'
-                    }`}>
-                      {adjustment.amount > 0 ? '+' : ''}{formatCurrency(adjustment.amount)}
-                    </div>
-                  </div>
-                </div>
-              ))}
+                              {workOrder.adjustments.map((adjustment) => (
+                 <div key={adjustment.id} className="py-3 px-4 bg-gray-50 rounded-lg">
+                   <div className="flex items-start justify-between">
+                     <div className="flex-1">
+                       <div className="font-medium text-gray-900">{adjustment.reason}</div>
+                       {adjustment.memo && (
+                         <div className="text-sm text-gray-600 mt-1">{adjustment.memo}</div>
+                       )}
+                       <div className="text-xs text-gray-500 mt-2">
+                         {new Date(adjustment.createdAt).toLocaleString('ja-JP', {
+                           year: 'numeric',
+                           month: '2-digit',
+                           day: '2-digit',
+                           hour: '2-digit',
+                           minute: '2-digit',
+                           second: '2-digit',
+                           timeZone: 'Asia/Tokyo'
+                         })} - {adjustment.createdBy}
+                       </div>
+                     </div>
+                     <div className={`font-semibold text-lg ml-4 ${
+                       adjustment.amount === 0 
+                         ? 'text-gray-900' 
+                         : adjustment.amount > 0 
+                           ? 'text-green-600' 
+                           : 'text-red-600'
+                     }`}>
+                       {adjustment.amount > 0 ? '+' : ''}{formatCurrency(adjustment.amount)}
+                     </div>
+                   </div>
+                 </div>
+                ))}
             </div>
           </div>
         )}
       </div>
+
+      {/* 保存確認モーダル */}
+      <SaveConfirmModal
+        isOpen={showSaveConfirm}
+        onClose={() => setShowSaveConfirm(false)}
+        onConfirm={handleSaveConfirm}
+        changes={calculateChanges()}
+      />
+
+      {/* 保存成功モーダル */}
+      <SaveSuccessModal
+        isOpen={showSaveSuccess}
+        onClose={() => setShowSaveSuccess(false)}
+        message="単価の変更が保存されました"
+      />
     </PageLayout>
   );
 }

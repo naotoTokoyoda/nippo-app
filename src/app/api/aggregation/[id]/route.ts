@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
+// 通貨フォーマット関数
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('ja-JP', {
+    style: 'currency',
+    currency: 'JPY',
+    minimumFractionDigits: 0,
+  }).format(amount);
+}
+
 // Activity判定ロジック
 function determineActivity(reportItem: any): string {
   // 1. 実習生判定（作業者名がカタカナ）
@@ -290,19 +299,21 @@ export async function PATCH(
                 const rateDifference = newBillRate - oldBillRate;
                 
                 // この工番のこのactivityの総時間を取得
-                const activityHours = await tx.reportItem.aggregate({
+                const reportItems = await tx.reportItem.findMany({
                   where: {
-                    report: {
-                      workOrderId: id,
-                    },
+                    workOrderId: id,
                     activity,
                   },
-                  _sum: {
-                    hours: true,
+                  select: {
+                    startTime: true,
+                    endTime: true,
                   },
                 });
                 
-                const totalHours = activityHours._sum.hours || 0;
+                const totalHours = reportItems.reduce((sum, item) => {
+                  const hours = (item.endTime.getTime() - item.startTime.getTime()) / (1000 * 60 * 60);
+                  return sum + hours;
+                }, 0);
                 const totalAdjustment = Math.round(totalHours * rateDifference);
 
                 await tx.adjustment.create({
@@ -310,7 +321,7 @@ export async function PATCH(
                     workOrderId: id,
                     type: 'rate_adjustment',
                     amount: totalAdjustment,
-                    reason: `${activity}単価調整 (${oldBillRate}円 → ${newBillRate}円)`,
+                    reason: `${activity}単価調整 (${formatCurrency(oldBillRate)} → ${formatCurrency(newBillRate)})`,
                     memo: adjustment.memo,
                     createdBy: firstUser.id,
                   },
