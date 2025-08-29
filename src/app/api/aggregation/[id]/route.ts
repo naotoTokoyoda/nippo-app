@@ -133,11 +133,26 @@ export async function GET(
           },
         });
 
+        // 最初（デフォルト）の単価を取得
+        const originalRate = await prisma.rate.findFirst({
+          where: {
+            activity: activityData.activity,
+          },
+          orderBy: {
+            effectiveFrom: 'asc',
+          },
+        });
+
         const costRate = rate?.costRate || 11000; // デフォルト単価
         const billRate = rate?.billRate || 11000;
+        const originalBillRate = originalRate?.billRate || 11000;
         const hours = Math.round(activityData.hours * 10) / 10;
         const costAmount = Math.round(hours * costRate);
         const billAmount = Math.round(hours * billRate);
+        
+        // 調整額 = 現在の請求額 - 元の請求額
+        const originalBillAmount = Math.round(hours * originalBillRate);
+        const adjustment = billAmount - originalBillAmount;
 
         return {
           activity: activityData.activity,
@@ -147,7 +162,7 @@ export async function GET(
           billRate,
           costAmount,
           billAmount,
-          adjustment: 0, // 調整額は別途計算
+          adjustment,
         };
       })
     );
@@ -205,6 +220,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
+
     const validatedData = updateSchema.parse(body);
 
     // 工番の存在確認
@@ -265,16 +281,41 @@ export async function PATCH(
 
             // 調整履歴を記録（備考がある場合）
             if (adjustment.memo) {
-              await tx.adjustment.create({
-                data: {
-                  workOrderId: id,
-                  type: 'rate_adjustment',
-                  amount: 0, // 金額差は別途計算
-                  reason: `${activity}単価調整`,
-                  memo: adjustment.memo,
-                  createdBy: 'system', // TODO: 実際のユーザーIDを使用
-                },
-              });
+              // 実在するユーザーIDを取得（暫定的に最初のユーザーを使用）
+              const firstUser = await tx.user.findFirst();
+              if (firstUser) {
+                // 金額差を計算
+                const oldBillRate = currentRate.billRate;
+                const newBillRate = adjustment.billRate;
+                const rateDifference = newBillRate - oldBillRate;
+                
+                // この工番のこのactivityの総時間を取得
+                const activityHours = await tx.reportItem.aggregate({
+                  where: {
+                    report: {
+                      workOrderId: id,
+                    },
+                    activity,
+                  },
+                  _sum: {
+                    hours: true,
+                  },
+                });
+                
+                const totalHours = activityHours._sum.hours || 0;
+                const totalAdjustment = Math.round(totalHours * rateDifference);
+
+                await tx.adjustment.create({
+                  data: {
+                    workOrderId: id,
+                    type: 'rate_adjustment',
+                    amount: totalAdjustment,
+                    reason: `${activity}単価調整 (${oldBillRate}円 → ${newBillRate}円)`,
+                    memo: adjustment.memo,
+                    createdBy: firstUser.id,
+                  },
+                });
+              }
             }
           }
         }

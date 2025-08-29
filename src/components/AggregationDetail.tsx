@@ -73,9 +73,33 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
     if (!workOrder) return { costTotal: 0, billTotal: 0, adjustmentTotal: 0, finalAmount: 0 };
 
     const costTotal = workOrder.activities.reduce((sum, activity) => sum + activity.costAmount, 0);
-    const billTotal = workOrder.activities.reduce((sum, activity) => sum + activity.billAmount, 0);
-    const adjustmentTotal = workOrder.activities.reduce((sum, activity) => sum + activity.adjustment, 0);
-    const finalAmount = billTotal + adjustmentTotal;
+    
+    // 請求小計：編集された単価を使用してリアルタイム計算
+    const billTotal = workOrder.activities.reduce((sum, activity) => {
+      const editedRate = editedRates[activity.activity];
+      const currentBillRate = editedRate ? parseInt(editedRate.billRate) || activity.billRate : activity.billRate;
+      return sum + (activity.hours * currentBillRate);
+    }, 0);
+    
+    // 調整額：APIから返された値＋編集中の調整額を計算
+    const adjustmentTotal = workOrder.activities.reduce((sum, activity) => {
+      const editedRate = editedRates[activity.activity];
+      
+      // 編集中の場合は差額を計算
+      if (editedRate) {
+        const currentBillRate = parseInt(editedRate.billRate) || 0;
+        const originalBillRate = activity.billRate;
+        const originalAmount = activity.hours * originalBillRate;
+        const newAmount = activity.hours * currentBillRate;
+        const editingAdjustment = newAmount - originalAmount;
+        return sum + editingAdjustment;
+      }
+      
+      // 編集されていない場合はAPIから返された調整額を使用
+      return sum + activity.adjustment;
+    }, 0);
+    
+    const finalAmount = billTotal;
 
     return { costTotal, billTotal, adjustmentTotal, finalAmount };
   };
@@ -97,9 +121,11 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
       Object.entries(editedRates).forEach(([activity, data]) => {
         adjustmentsForAPI[activity] = {
           billRate: parseInt(data.billRate) || 0,
-          memo: data.memo,
+          memo: data.memo || '',
         };
       });
+
+
 
       const response = await fetch(`/api/aggregation/${workOrderId}`, {
         method: 'PATCH',
@@ -358,12 +384,40 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {formatCurrency(activity.billAmount)}
+                      {(() => {
+                        const editedRate = editedRates[activity.activity];
+                        const currentBillRate = editedRate ? parseInt(editedRate.billRate) || activity.billRate : activity.billRate;
+                        const currentBillAmount = activity.hours * currentBillRate;
+                        return formatCurrency(currentBillAmount);
+                      })()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                      <span className={activity.adjustment === 0 ? 'text-gray-900' : activity.adjustment > 0 ? 'text-green-600' : 'text-red-600'}>
-                        {formatCurrency(activity.adjustment)}
-                      </span>
+                      {(() => {
+                        const editedRate = editedRates[activity.activity];
+                        
+                        // 編集中の場合は差額を計算
+                        if (editedRate) {
+                          const currentBillRate = parseInt(editedRate.billRate) || 0;
+                          const originalBillRate = activity.billRate;
+                          const originalAmount = activity.hours * originalBillRate;
+                          const newAmount = activity.hours * currentBillRate;
+                          const adjustment = newAmount - originalAmount;
+                          
+                          return (
+                            <span className={adjustment === 0 ? 'text-gray-900' : adjustment > 0 ? 'text-green-600' : 'text-red-600'}>
+                              {formatCurrency(adjustment)}
+                            </span>
+                          );
+                        }
+                        
+                        // 編集されていない場合はAPIから返された調整額を使用
+                        const adjustment = activity.adjustment;
+                        return (
+                          <span className={adjustment === 0 ? 'text-gray-900' : adjustment > 0 ? 'text-green-600' : 'text-red-600'}>
+                            {formatCurrency(adjustment)}
+                          </span>
+                        );
+                      })()}
                     </td>
                     {isEditing && (
                       <td className="px-6 py-4 text-sm">
@@ -414,15 +468,33 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
             <h3 className="text-lg font-medium text-gray-900 mb-4">調整履歴</h3>
             <div className="space-y-3">
               {workOrder.adjustments.map((adjustment) => (
-                <div key={adjustment.id} className="flex items-center justify-between py-2 px-4 bg-gray-50 rounded-lg">
-                  <div>
-                    <div className="font-medium">{adjustment.reason}</div>
-                    {adjustment.memo && (
-                      <div className="text-sm text-gray-600">{adjustment.memo}</div>
-                    )}
-                  </div>
-                  <div className={`font-semibold ${adjustment.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatCurrency(adjustment.amount)}
+                <div key={adjustment.id} className="py-3 px-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900">{adjustment.reason}</div>
+                      {adjustment.memo && (
+                        <div className="text-sm text-gray-600 mt-1">{adjustment.memo}</div>
+                      )}
+                      <div className="text-xs text-gray-500 mt-2">
+                        {new Date(adjustment.createdAt).toLocaleString('ja-JP', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          timeZone: 'Asia/Tokyo'
+                        })} - {adjustment.createdBy}
+                      </div>
+                    </div>
+                    <div className={`font-semibold text-lg ml-4 ${
+                      adjustment.amount === 0 
+                        ? 'text-gray-900' 
+                        : adjustment.amount > 0 
+                          ? 'text-green-600' 
+                          : 'text-red-600'
+                    }`}>
+                      {adjustment.amount > 0 ? '+' : ''}{formatCurrency(adjustment.amount)}
+                    </div>
                   </div>
                 </div>
               ))}

@@ -40,21 +40,31 @@ async function clearTestData() {
       await new Promise(resolve => setTimeout(resolve, 10000));
     }
 
-    // ReportItemを削除（外部キー制約のため先に削除）
+    // 外部キー制約を考慮した順序で削除
+
+    // Adjustmentを削除（WorkOrderに依存）
+    const deletedAdjustments = await prisma.adjustment.deleteMany();
+    console.log(`✅ 調整履歴を削除しました: ${deletedAdjustments.count}件`);
+
+    // ReportItemを削除（Report、WorkOrder、Customer、Machineに依存）
     const deletedReportItems = await prisma.reportItem.deleteMany();
     console.log(`✅ 作業項目を削除しました: ${deletedReportItems.count}件`);
 
-    // Reportを削除
+    // Reportを削除（Userに依存）
     const deletedReports = await prisma.report.deleteMany();
     console.log(`✅ 日報を削除しました: ${deletedReports.count}件`);
 
-    // WorkOrderを削除
+    // WorkOrderを削除（Customerに依存）
     const deletedWorkOrders = await prisma.workOrder.deleteMany();
-    console.log(`✅ 工事番号を削除しました: ${deletedWorkOrders.count}件`);
+    console.log(`✅ 工番を削除しました: ${deletedWorkOrders.count}件`);
+
+    // Rateを削除（独立テーブル）
+    const deletedRates = await prisma.rate.deleteMany();
+    console.log(`✅ 単価履歴を削除しました: ${deletedRates.count}件`);
 
     // Customerを削除
     const deletedCustomers = await prisma.customer.deleteMany();
-    console.log(`✅ 客先を削除しました: ${deletedCustomers.count}件`);
+    console.log(`✅ 顧客を削除しました: ${deletedCustomers.count}件`);
 
     // Machineを削除
     const deletedMachines = await prisma.machine.deleteMany();
