@@ -49,7 +49,6 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
   const [isEditing, setIsEditing] = useState(false);
   const [editedRates, setEditedRates] = useState<Record<string, { billRate: string; memo: string }>>({});
   const [showSaveModal, setShowSaveModal] = useState(false);
-  const [executeModalSave, setExecuteModalSave] = useState<(() => Promise<void>) | null>(null);
 
   // APIからデータを取得
   const fetchWorkOrderDetail = async () => {
@@ -158,15 +157,8 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
       alert('変更がありません。');
       return;
     }
-    // モーダルを表示
+    // モーダルを表示（保存処理は手動実行）
     setShowSaveModal(true);
-    
-    // 少し待ってから保存処理を実行（モーダルが表示されてから）
-    setTimeout(async () => {
-      if (executeModalSave) {
-        await executeModalSave();
-      }
-    }, 100);
   };
 
   // 実際の保存処理
@@ -558,7 +550,6 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
         isOpen={showSaveModal}
         onClose={() => setShowSaveModal(false)}
         onConfirm={handleSaveConfirm}
-        onExecuteSave={setExecuteModalSave}
       />
     </PageLayout>
   );

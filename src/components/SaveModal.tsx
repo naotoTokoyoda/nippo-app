@@ -6,22 +6,20 @@ interface SaveModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => Promise<void>;
-  onExecuteSave?: (executeSave: () => Promise<void>) => void;
 }
 
-type ModalState = 'loading' | 'success' | 'error';
+type ModalState = 'confirm' | 'loading' | 'success' | 'error';
 
 export default function SaveModal({ 
   isOpen, 
   onClose, 
-  onConfirm, 
-  onExecuteSave
+  onConfirm
 }: SaveModalProps) {
-  const [modalState, setModalState] = useState<ModalState>('loading');
+  const [modalState, setModalState] = useState<ModalState>('confirm');
   const [errorMessage, setErrorMessage] = useState('');
 
-  // 保存処理の実行（外部から呼び出される）
-  const executeSave = React.useCallback(async () => {
+  // 確認ボタンクリック時の処理
+  const handleConfirm = async () => {
     try {
       setModalState('loading');
       await onConfirm();
@@ -30,26 +28,18 @@ export default function SaveModal({
       setErrorMessage(error instanceof Error ? error.message : '保存中にエラーが発生しました');
       setModalState('error');
     }
-  }, [onConfirm]);
+  };
 
   // モーダルが開かれたときに状態をリセット
   React.useEffect(() => {
     if (isOpen) {
-      setModalState('loading');
+      setModalState('confirm'); // 確認状態から開始
       setErrorMessage('');
     }
   }, [isOpen]);
 
-  // 親コンポーネントにexecuteSave関数を提供
-  React.useEffect(() => {
-    if (onExecuteSave && isOpen) {
-      onExecuteSave(executeSave);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onExecuteSave, isOpen]);
-
   const handleClose = React.useCallback(() => {
-    setModalState('loading');
+    setModalState('confirm');
     setErrorMessage('');
     onClose();
   }, [onClose]);
@@ -70,6 +60,30 @@ export default function SaveModal({
 
   const renderContent = () => {
     switch (modalState) {
+      case 'confirm':
+        return (
+          <div className="px-6 py-8">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">保存確認</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              請求単価の変更を保存しますか？
+            </p>
+            <div className="flex space-x-3">
+              <button
+                onClick={handleClose}
+                className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={handleConfirm}
+                className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                保存
+              </button>
+            </div>
+          </div>
+        );
+
       case 'loading':
         return (
           <div className="px-6 py-8 text-center">
