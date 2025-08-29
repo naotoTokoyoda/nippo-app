@@ -559,7 +559,6 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
         onClose={() => setShowSaveModal(false)}
         onConfirm={handleSaveConfirm}
         onExecuteSave={setExecuteModalSave}
-        changes={calculateChanges()}
       />
     </PageLayout>
   );

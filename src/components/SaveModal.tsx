@@ -7,15 +7,6 @@ interface SaveModalProps {
   onClose: () => void;
   onConfirm: () => Promise<void>;
   onExecuteSave?: (executeSave: () => Promise<void>) => void;
-  changes: Array<{
-    activity: string;
-    activityName: string;
-    oldRate: number;
-    newRate: number;
-    memo: string;
-    hours: number;
-    adjustment: number;
-  }>;
 }
 
 type ModalState = 'loading' | 'success' | 'error';
@@ -24,16 +15,13 @@ export default function SaveModal({
   isOpen, 
   onClose, 
   onConfirm, 
-  onExecuteSave,
-  changes 
+  onExecuteSave
 }: SaveModalProps) {
   const [modalState, setModalState] = useState<ModalState>('loading');
   const [errorMessage, setErrorMessage] = useState('');
 
-  if (!isOpen) return null;
-
   // 保存処理の実行（外部から呼び出される）
-  const executeSave = async () => {
+  const executeSave = React.useCallback(async () => {
     setModalState('loading');
     try {
       await onConfirm();
@@ -42,7 +30,7 @@ export default function SaveModal({
       setErrorMessage(error instanceof Error ? error.message : '保存中にエラーが発生しました');
       setModalState('error');
     }
-  };
+  }, [onConfirm]);
 
   // モーダルが開かれたときに状態をリセット
   React.useEffect(() => {
@@ -57,15 +45,15 @@ export default function SaveModal({
     if (onExecuteSave) {
       onExecuteSave(executeSave);
     }
-  }, [onExecuteSave]);
+  }, [onExecuteSave, executeSave]);
 
-  const handleClose = () => {
+  const handleClose = React.useCallback(() => {
     setModalState('loading');
     setErrorMessage('');
     onClose();
-  };
+  }, [onClose]);
 
-  const handleRetry = async () => {
+  const handleRetry = React.useCallback(async () => {
     setModalState('loading');
     setErrorMessage('');
     try {
@@ -75,15 +63,9 @@ export default function SaveModal({
       setErrorMessage(error instanceof Error ? error.message : '保存中にエラーが発生しました');
       setModalState('error');
     }
-  };
+  }, [onConfirm]);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('ja-JP', {
-      style: 'currency',
-      currency: 'JPY',
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
+  if (!isOpen) return null;
 
   const renderContent = () => {
     switch (modalState) {
