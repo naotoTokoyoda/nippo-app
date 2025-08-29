@@ -306,16 +306,16 @@ export async function PATCH(
               },
             });
 
-            // 調整履歴を記録（備考がある場合）
-            if (adjustment.memo) {
+            // 金額差を計算
+            const oldBillRate = currentRate.billRate;
+            const newBillRate = adjustment.billRate;
+            const rateDifference = newBillRate - oldBillRate;
+            
+            // 単価が変更された場合のみ調整履歴を記録
+            if (rateDifference !== 0) {
               // 実在するユーザーIDを取得（暫定的に最初のユーザーを使用）
               const firstUser = await tx.user.findFirst();
               if (firstUser) {
-                // 金額差を計算
-                const oldBillRate = currentRate.billRate;
-                const newBillRate = adjustment.billRate;
-                const rateDifference = newBillRate - oldBillRate;
-                
                 // この工番のこのactivityの総時間を取得
                 const reportItems = await tx.reportItem.findMany({
                   where: {
@@ -345,7 +345,7 @@ export async function PATCH(
                     type: 'rate_adjustment',
                     amount: totalAdjustment,
                     reason: `${activity}単価調整 (${formatCurrency(oldBillRate)} → ${formatCurrency(newBillRate)})`,
-                    memo: adjustment.memo,
+                    memo: adjustment.memo || null, // 備考は任意（空の場合はnull）
                     createdBy: firstUser.id,
                   },
                 });
