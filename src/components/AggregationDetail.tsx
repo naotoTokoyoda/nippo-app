@@ -44,7 +44,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
   const [workOrder, setWorkOrder] = useState<WorkOrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const [editedRates, setEditedRates] = useState<Record<string, { billRate: number; memo: string }>>({});
+  const [editedRates, setEditedRates] = useState<Record<string, { billRate: string; memo: string }>>({});
 
   // APIからデータを取得
   const fetchWorkOrderDetail = async () => {
@@ -80,7 +80,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
     return { costTotal, billTotal, adjustmentTotal, finalAmount };
   };
 
-  const handleRateEdit = (activity: string, field: 'billRate' | 'memo', value: string | number) => {
+  const handleRateEdit = (activity: string, field: 'billRate' | 'memo', value: string) => {
     setEditedRates(prev => ({
       ...prev,
       [activity]: {
@@ -92,13 +92,22 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
 
   const handleSave = async () => {
     try {
+      // 文字列を数値に変換してAPIに送信
+      const adjustmentsForAPI: Record<string, { billRate: number; memo: string }> = {};
+      Object.entries(editedRates).forEach(([activity, data]) => {
+        adjustmentsForAPI[activity] = {
+          billRate: parseInt(data.billRate) || 0,
+          memo: data.memo,
+        };
+      });
+
       const response = await fetch(`/api/aggregation/${workOrderId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          billRateAdjustments: editedRates,
+          billRateAdjustments: adjustmentsForAPI,
         }),
       });
 
@@ -239,7 +248,18 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
               <>
                 {!isEditing ? (
                   <button
-                    onClick={() => setIsEditing(true)}
+                    onClick={() => {
+                      // 編集開始時に現在の値で初期化
+                      const initialRates: Record<string, { billRate: string; memo: string }> = {};
+                      workOrder.activities.forEach(activity => {
+                        initialRates[activity.activity] = {
+                          billRate: activity.billRate.toString(),
+                          memo: ''
+                        };
+                      });
+                      setEditedRates(initialRates);
+                      setIsEditing(true);
+                    }}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                   >
                     編集
@@ -247,7 +267,10 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
                 ) : (
                   <>
                     <button
-                      onClick={() => setIsEditing(false)}
+                      onClick={() => {
+                        setIsEditing(false);
+                        setEditedRates({});
+                      }}
                       className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
                     >
                       キャンセル
@@ -324,9 +347,11 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
                       {isEditing ? (
                         <input
                           type="number"
-                          value={editedRates[activity.activity]?.billRate || activity.billRate}
-                          onChange={(e) => handleRateEdit(activity.activity, 'billRate', parseInt(e.target.value))}
+                          value={editedRates[activity.activity]?.billRate ?? activity.billRate.toString()}
+                          onChange={(e) => handleRateEdit(activity.activity, 'billRate', e.target.value)}
                           className="w-24 px-2 py-1 border border-gray-300 rounded text-right"
+                          min="0"
+                          step="1000"
                         />
                       ) : (
                         formatCurrency(activity.billRate)
