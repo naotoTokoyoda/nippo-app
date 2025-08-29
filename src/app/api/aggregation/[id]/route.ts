@@ -2,6 +2,28 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
+// 型定義
+interface ReportItem {
+  id: string;
+  startTime: Date;
+  endTime: Date;
+  workDescription: string | null;
+  machine: {
+    name: string;
+  };
+  report: {
+    worker: {
+      name: string;
+    };
+  };
+}
+
+interface ActivityGroup {
+  activity: string;
+  hours: number;
+  items: ReportItem[];
+}
+
 // 通貨フォーマット関数
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('ja-JP', {
@@ -12,7 +34,7 @@ function formatCurrency(amount: number): string {
 }
 
 // Activity判定ロジック
-function determineActivity(reportItem: any): string {
+function determineActivity(reportItem: ReportItem): string {
   // 1. 実習生判定（作業者名がカタカナ）
   const workerName = reportItem.report.worker.name;
   if (/^[\u30A0-\u30FF\s]+$/.test(workerName)) {
@@ -96,11 +118,7 @@ export async function GET(
     }
 
     // Activity別に集計
-    const activityMap = new Map<string, {
-      activity: string;
-      hours: number;
-      items: any[];
-    }>();
+    const activityMap = new Map<string, ActivityGroup>();
 
     // 各レポートアイテムのActivityを判定し、時間を集計
     workOrder.reportItems.forEach(item => {

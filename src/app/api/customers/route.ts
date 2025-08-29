@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 // 顧客一覧を取得
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const customers = await prisma.customer.findMany({
       select: {

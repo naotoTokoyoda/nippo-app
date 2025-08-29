@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
+
+// Prismaが生成する型を使用
 
 // 集計一覧用のクエリパラメータスキーマ
 const aggregationListQuerySchema = z.object({
@@ -24,7 +27,7 @@ export async function GET(request: NextRequest) {
     const validatedParams = aggregationListQuerySchema.parse(queryParams);
 
     // フィルタ条件を構築
-    const whereConditions: any = {
+    const whereConditions: Prisma.WorkOrderWhereInput = {
       status: validatedParams.status,
     };
 

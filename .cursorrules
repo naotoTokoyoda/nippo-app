@@ -131,6 +131,30 @@ git branch -d <作業ブランチ>
 - AI 生成コードは必ず本ドキュメントと照らしてレビュー
 - 差分は最小単位で適用（過剰な修正を避ける）
 
+## 🔹 コミット・プッシュルール
+
+### 変更量の制限
+- **1回のコミット/プッシュは500行以内に収める**
+- 大きな機能は複数の小さなコミットに分割する
+- レビュー効率を考慮し、理解しやすい単位でコミットする
+
+### 分割の指針
+- 機能単位でコミットを分ける（例：API実装 → フロントエンド → テスト）
+- ファイル追加とロジック変更を分ける
+- リファクタリングと新機能追加を分ける
+- 500行を超える場合は、論理的な区切りで複数コミットに分割
+
+### コミット例
+```bash
+# 悪い例（1855行の大きなコミット）
+git commit -m "feat: Implement complete aggregation system"
+
+# 良い例（機能を分割）
+git commit -m "feat: Add aggregation API endpoints" (300行)
+git commit -m "feat: Add aggregation detail component" (250行)
+git commit -m "feat: Add toast notification system" (200行)
+```
+
 ## 🔹 その他ルール
 
 - 意図しないファイルの変更を含めないように注意

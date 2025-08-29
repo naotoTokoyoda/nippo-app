@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import PageLayout from '@/components/PageLayout';
 
@@ -24,7 +24,7 @@ export default function AggregationList() {
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // APIからデータを取得
-  const fetchAggregationItems = async () => {
+  const fetchAggregationItems = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -46,11 +46,11 @@ export default function AggregationList() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterTerm, filterCustomer, searchQuery]);
 
   useEffect(() => {
     fetchAggregationItems();
-  }, [filterTerm, filterCustomer, searchQuery]);
+  }, [fetchAggregationItems]);
 
   // 期区分の選択肢を取得（APIから別途取得することも可能）
   const termOptions = ['59期', '59期-JFE', '60期'];
