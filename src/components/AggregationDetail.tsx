@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import PageLayout from '@/components/PageLayout';
-import SaveConfirmModal from './SaveConfirmModal';
-import SaveSuccessModal from './SaveSuccessModal';
+import SaveModal from './SaveModal';
 
 // 型定義
 interface ActivitySummary {
@@ -49,9 +48,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editedRates, setEditedRates] = useState<Record<string, { billRate: string; memo: string }>>({});
-  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
-  const [showSaveSuccess, setShowSaveSuccess] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
 
   // APIからデータを取得
   const fetchWorkOrderDetail = async () => {
@@ -153,64 +150,48 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
     }>;
   };
 
-  // 保存ボタンクリック時（確認モーダルを表示）
+  // 保存ボタンクリック時（モーダルを表示）
   const handleSaveClick = () => {
     const changes = calculateChanges();
     if (changes.length === 0) {
       alert('変更がありません。');
       return;
     }
-    setShowSaveConfirm(true);
+    setShowSaveModal(true);
   };
 
   // 実際の保存処理
   const handleSaveConfirm = async () => {
-    try {
-      setIsSaving(true);
-      
-      // 文字列を数値に変換してAPIに送信
-      const adjustmentsForAPI: Record<string, { billRate: number; memo: string }> = {};
-      Object.entries(editedRates).forEach(([activity, data]) => {
-        adjustmentsForAPI[activity] = {
-          billRate: parseInt(data.billRate) || 0,
-          memo: data.memo || '',
-        };
-      });
+    // 文字列を数値に変換してAPIに送信
+    const adjustmentsForAPI: Record<string, { billRate: number; memo: string }> = {};
+    Object.entries(editedRates).forEach(([activity, data]) => {
+      adjustmentsForAPI[activity] = {
+        billRate: parseInt(data.billRate) || 0,
+        memo: data.memo || '',
+      };
+    });
 
-      const response = await fetch(`/api/aggregation/${workOrderId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          billRateAdjustments: adjustmentsForAPI,
-        }),
-      });
+    const response = await fetch(`/api/aggregation/${workOrderId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        billRateAdjustments: adjustmentsForAPI,
+      }),
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || '保存に失敗しました');
-      }
-
-      // 確認モーダルを閉じる
-      setShowSaveConfirm(false);
-      
-      // 編集状態をリセット
-      setIsEditing(false);
-      setEditedRates({});
-      
-      // データを再取得して最新状態を表示
-      await fetchWorkOrderDetail();
-      
-      // 成功モーダルを表示
-      setShowSaveSuccess(true);
-      
-    } catch (error) {
-      console.error('保存エラー:', error);
-      alert(error instanceof Error ? error.message : '保存中にエラーが発生しました');
-    } finally {
-      setIsSaving(false);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || '保存に失敗しました');
     }
+
+    // 編集状態をリセット
+    setIsEditing(false);
+    setEditedRates({});
+    
+    // データを再取得して最新状態を表示
+    await fetchWorkOrderDetail();
   };
 
   const handleFinalize = async () => {
@@ -362,16 +343,9 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
                     </button>
                                       <button
                     onClick={handleSaveClick}
-                    disabled={isSaving}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm disabled:opacity-50 flex items-center"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                   >
-                    {isSaving && (
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                    )}
-                    {isSaving ? '保存中...' : '保存'}
+                    保存
                   </button>
                   </>
                 )}
@@ -570,19 +544,12 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
         )}
       </div>
 
-      {/* 保存確認モーダル */}
-      <SaveConfirmModal
-        isOpen={showSaveConfirm}
-        onClose={() => setShowSaveConfirm(false)}
+      {/* 保存モーダル */}
+      <SaveModal
+        isOpen={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
         onConfirm={handleSaveConfirm}
         changes={calculateChanges()}
-      />
-
-      {/* 保存成功モーダル */}
-      <SaveSuccessModal
-        isOpen={showSaveSuccess}
-        onClose={() => setShowSaveSuccess(false)}
-        message="単価の変更が保存されました"
       />
     </PageLayout>
   );
