@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import PageLayout from '@/components/PageLayout';
 import SaveConfirmModal from './SaveConfirmModal';
-import SaveSuccessModal from './SaveSuccessModal';
+import { useToast } from './ToastProvider';
 
 // 型定義
 interface ActivitySummary {
@@ -45,16 +45,16 @@ interface AggregationDetailProps {
 
 export default function AggregationDetail({ workOrderId }: AggregationDetailProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [workOrder, setWorkOrder] = useState<WorkOrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editedRates, setEditedRates] = useState<Record<string, { billRate: string; memo: string }>>({});
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
-  const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   // APIからデータを取得
-  const fetchWorkOrderDetail = async () => {
+  const fetchWorkOrderDetail = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/aggregation/${workOrderId}`);
@@ -70,11 +70,11 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
     } finally {
       setLoading(false);
     }
-  };
+  }, [workOrderId]);
 
   useEffect(() => {
     fetchWorkOrderDetail();
-  }, [workOrderId]);
+  }, [fetchWorkOrderDetail]);
 
   const calculateTotals = () => {
     if (!workOrder) return { costTotal: 0, billTotal: 0, adjustmentTotal: 0, finalAmount: 0 };
@@ -202,12 +202,12 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
       // データを再取得して最新状態を表示
       await fetchWorkOrderDetail();
       
-      // 成功モーダルを表示
-      setShowSaveSuccess(true);
+      // 成功トーストを表示
+      showToast('単価の更新が保存されました', 'success');
       
     } catch (error) {
       console.error('保存エラー:', error);
-      alert(error instanceof Error ? error.message : '保存中にエラーが発生しました');
+      showToast(error instanceof Error ? error.message : '保存中にエラーが発生しました', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -578,12 +578,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
         changes={calculateChanges()}
       />
 
-      {/* 保存成功モーダル */}
-      <SaveSuccessModal
-        isOpen={showSaveSuccess}
-        onClose={() => setShowSaveSuccess(false)}
-        message="単価の変更が保存されました"
-      />
+
     </PageLayout>
   );
 }
