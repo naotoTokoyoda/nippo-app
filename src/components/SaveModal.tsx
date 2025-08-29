@@ -22,8 +22,8 @@ export default function SaveModal({
 
   // 保存処理の実行（外部から呼び出される）
   const executeSave = React.useCallback(async () => {
-    setModalState('loading');
     try {
+      setModalState('loading');
       await onConfirm();
       setModalState('success');
     } catch (error) {
@@ -42,10 +42,11 @@ export default function SaveModal({
 
   // 親コンポーネントにexecuteSave関数を提供
   React.useEffect(() => {
-    if (onExecuteSave) {
+    if (onExecuteSave && isOpen) {
       onExecuteSave(executeSave);
     }
-  }, [onExecuteSave, executeSave]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onExecuteSave, isOpen]);
 
   const handleClose = React.useCallback(() => {
     setModalState('loading');
