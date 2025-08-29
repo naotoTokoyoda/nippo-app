@@ -46,74 +46,27 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
   const [isEditing, setIsEditing] = useState(false);
   const [editedRates, setEditedRates] = useState<Record<string, { billRate: number; memo: string }>>({});
 
-  // ダミーデータ（後でAPIから取得に変更）
-  const dummyData: WorkOrderDetail = {
-    id: workOrderId,
-    workNumber: '5927-12120',
-    customerName: '○○製鉄株式会社',
-    projectName: '高炉設備メンテナンス',
-    term: '59期',
-    status: 'aggregating',
-    totalHours: 160.5,
-    activities: [
-      {
-        activity: 'NORMAL',
-        activityName: '通常',
-        hours: 80.5,
-        costRate: 11000,
-        billRate: 11000,
-        costAmount: 885500,
-        billAmount: 885500,
-        adjustment: 0,
-      },
-      {
-        activity: 'TRAINEE1',
-        activityName: '1号実習生',
-        hours: 40.0,
-        costRate: 11000,
-        billRate: 9000,
-        costAmount: 440000,
-        billAmount: 360000,
-        adjustment: -80000,
-      },
-      {
-        activity: 'M_1052',
-        activityName: '1052',
-        hours: 20.0,
-        costRate: 13000,
-        billRate: 13000,
-        costAmount: 260000,
-        billAmount: 260000,
-        adjustment: 0,
-      },
-      {
-        activity: 'M_SHOMEN',
-        activityName: '正面盤',
-        hours: 20.0,
-        costRate: 13000,
-        billRate: 13000,
-        costAmount: 260000,
-        billAmount: 260000,
-        adjustment: 0,
-      },
-    ],
-    adjustments: [
-      {
-        id: '1',
-        type: 'trainee_adjustment',
-        amount: -80000,
-        reason: '実習生効率調整',
-        memo: '作業効率を考慮した単価調整',
-      },
-    ],
+  // APIからデータを取得
+  const fetchWorkOrderDetail = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/aggregation/${workOrderId}`);
+      if (!response.ok) {
+        throw new Error('データの取得に失敗しました');
+      }
+
+      const data = await response.json();
+      setWorkOrder(data);
+    } catch (error) {
+      console.error('集計詳細取得エラー:', error);
+      alert('データの取得に失敗しました。再度お試しください。');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    // 実際はAPIからデータを取得
-    setTimeout(() => {
-      setWorkOrder(dummyData);
-      setLoading(false);
-    }, 500);
+    fetchWorkOrderDetail();
   }, [workOrderId]);
 
   const calculateTotals = () => {
@@ -137,19 +90,59 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
     }));
   };
 
-  const handleSave = () => {
-    // TODO: API呼び出しで保存
-    console.log('保存データ:', editedRates);
-    setIsEditing(false);
-    alert('変更が保存されました');
+  const handleSave = async () => {
+    try {
+      const response = await fetch(`/api/aggregation/${workOrderId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          billRateAdjustments: editedRates,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '保存に失敗しました');
+      }
+
+      alert('変更が保存されました');
+      setIsEditing(false);
+      setEditedRates({});
+      
+      // データを再取得して最新状態を表示
+      await fetchWorkOrderDetail();
+    } catch (error) {
+      console.error('保存エラー:', error);
+      alert(error instanceof Error ? error.message : '保存中にエラーが発生しました');
+    }
   };
 
-  const handleFinalize = () => {
+  const handleFinalize = async () => {
     if (confirm('単価を確定しますか？確定後は編集できなくなります。')) {
-      // TODO: API呼び出しでステータス変更
-      console.log('単価確定:', workOrderId);
-      alert('単価が確定されました');
-      router.push('/aggregation');
+      try {
+        const response = await fetch(`/api/aggregation/${workOrderId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            status: 'aggregated',
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || '確定処理に失敗しました');
+        }
+
+        alert('単価が確定されました');
+        router.push('/aggregation');
+      } catch (error) {
+        console.error('確定エラー:', error);
+        alert(error instanceof Error ? error.message : '確定処理中にエラーが発生しました');
+      }
     }
   };
 

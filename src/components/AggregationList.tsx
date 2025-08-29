@@ -23,61 +23,37 @@ export default function AggregationList() {
   const [filterCustomer, setFilterCustomer] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // ダミーデータ（後でAPIから取得に変更）
-  const dummyData: AggregationItem[] = [
-    {
-      id: '1',
-      workNumber: '5927-12120',
-      customerName: '○○製鉄株式会社',
-      projectName: '高炉設備メンテナンス',
-      totalHours: 120.5,
-      lastUpdated: '2024-01-15',
-      status: 'aggregating',
-      term: '59期',
-    },
-    {
-      id: '2',
-      workNumber: '5927-J-726',
-      customerName: 'JFE△△製鉄',
-      projectName: '転炉修理作業',
-      totalHours: 85.0,
-      lastUpdated: '2024-01-14',
-      status: 'aggregating',
-      term: '59期-JFE',
-    },
-    {
-      id: '3',
-      workNumber: '5927-15200',
-      customerName: '□□鉄鋼工業',
-      projectName: '溶射作業一式',
-      totalHours: 200.0,
-      lastUpdated: '2024-01-13',
-      status: 'aggregating',
-      term: '59期',
-    },
-  ];
+  // APIからデータを取得
+  const fetchAggregationItems = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (filterTerm) params.append('term', filterTerm);
+      if (filterCustomer) params.append('customer', filterCustomer);
+      if (searchQuery) params.append('search', searchQuery);
+      params.append('status', 'aggregating');
+
+      const response = await fetch(`/api/aggregation?${params}`);
+      if (!response.ok) {
+        throw new Error('データの取得に失敗しました');
+      }
+
+      const data = await response.json();
+      setItems(data.items);
+    } catch (error) {
+      console.error('集計一覧取得エラー:', error);
+      alert('データの取得に失敗しました。再度お試しください。');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // 実際はAPIからデータを取得
-    setTimeout(() => {
-      setItems(dummyData);
-      setLoading(false);
-    }, 500);
-  }, []);
+    fetchAggregationItems();
+  }, [filterTerm, filterCustomer, searchQuery]);
 
-  // フィルタリング処理
-  const filteredItems = items.filter(item => {
-    const matchesTerm = !filterTerm || item.term === filterTerm;
-    const matchesCustomer = !filterCustomer || item.customerName.includes(filterCustomer);
-    const matchesSearch = !searchQuery || 
-      item.workNumber.includes(searchQuery) || 
-      item.projectName.includes(searchQuery);
-    
-    return matchesTerm && matchesCustomer && matchesSearch;
-  });
-
-  // 期区分の選択肢を取得
-  const termOptions = [...new Set(items.map(item => item.term).filter(Boolean))];
+  // 期区分の選択肢を取得（APIから別途取得することも可能）
+  const termOptions = ['59期', '59期-JFE', '60期'];
 
   const handleSync = () => {
     // TODO: Jooto API同期処理
@@ -116,7 +92,7 @@ export default function AggregationList() {
         {/* ヘッダーアクション */}
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
           <div className="text-sm text-gray-600">
-            {filteredItems.length}件の集計対象案件
+            {items.length}件の集計対象案件
           </div>
           <div className="flex gap-2">
             <button
@@ -208,7 +184,7 @@ export default function AggregationList() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredItems.map((item) => (
+                {items.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {item.workNumber}
@@ -246,7 +222,7 @@ export default function AggregationList() {
             </table>
           </div>
           
-          {filteredItems.length === 0 && (
+          {items.length === 0 && (
             <div className="text-center py-12">
               <div className="text-gray-500">
                 表示できる集計対象案件がありません

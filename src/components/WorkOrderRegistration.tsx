@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import PageLayout from '@/components/PageLayout';
 
@@ -27,13 +27,29 @@ export default function WorkOrderRegistration() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [customers, setCustomers] = useState<Array<{ id: string; name: string; code: string }>>([]);
+  const [loadingCustomers, setLoadingCustomers] = useState(true);
 
-  // ダミー顧客データ（後で実際のAPIから取得）
-  const customers = [
-    { id: '1', name: '○○製鉄株式会社', code: 'ST001' },
-    { id: '2', name: 'JFE△△製鉄', code: 'JFE001' },
-    { id: '3', name: '□□鉄鋼工業', code: 'TK001' },
-  ];
+  // 顧客データをAPIから取得
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      try {
+        const response = await fetch('/api/customers');
+        if (!response.ok) {
+          throw new Error('顧客データの取得に失敗しました');
+        }
+        const data = await response.json();
+        setCustomers(data);
+      } catch (error) {
+        console.error('顧客取得エラー:', error);
+        alert('顧客データの取得に失敗しました');
+      } finally {
+        setLoadingCustomers(false);
+      }
+    };
+
+    fetchCustomers();
+  }, []);
 
   const handleInputChange = (field: keyof WorkOrderFormData, value: string | number | null) => {
     setFormData(prev => ({
@@ -94,17 +110,32 @@ export default function WorkOrderRegistration() {
     setSubmitting(true);
 
     try {
-      // TODO: 実際のAPI呼び出しに変更
-      console.log('登録データ:', formData);
-      
-      // 仮の処理（成功をシミュレート）
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      alert('工番が正常に登録されました');
+      const response = await fetch('/api/work-orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          frontNumber: formData.frontNumber,
+          backNumber: formData.backNumber,
+          customerId: formData.customerId,
+          projectName: formData.projectName,
+          handling: formData.handling || undefined,
+          quantity: formData.quantity || undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '登録に失敗しました');
+      }
+
+      const result = await response.json();
+      alert(`工番 ${result.workNumber} が正常に登録されました`);
       router.push('/aggregation');
     } catch (error) {
       console.error('登録エラー:', error);
-      alert('登録中にエラーが発生しました');
+      alert(error instanceof Error ? error.message : '登録中にエラーが発生しました');
     } finally {
       setSubmitting(false);
     }
@@ -165,11 +196,14 @@ export default function WorkOrderRegistration() {
               <select
                 value={formData.customerId}
                 onChange={(e) => handleCustomerChange(e.target.value)}
+                disabled={loadingCustomers}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   errors.customerId ? 'border-red-500' : 'border-gray-300'
-                }`}
+                } ${loadingCustomers ? 'bg-gray-100 cursor-not-allowed' : ''}`}
               >
-                <option value="">顧客を選択してください</option>
+                <option value="">
+                  {loadingCustomers ? '顧客データを読み込み中...' : '顧客を選択してください'}
+                </option>
                 {customers.map(customer => (
                   <option key={customer.id} value={customer.id}>
                     {customer.name} ({customer.code})
