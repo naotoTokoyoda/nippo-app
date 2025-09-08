@@ -134,25 +134,31 @@ git branch -d <作業ブランチ>
 ## 🔹 コミット・プッシュルール
 
 ### 変更量の制限
-- **1回のコミット/プッシュは500行以内に収める**
-- 大きな機能は複数の小さなコミットに分割する
-- レビュー効率を考慮し、理解しやすい単位でコミットする
+- **1ブランチにつき追記500行以内に収める**
+- **1回のコミット/プッシュも500行以内を維持**
+- 大きな機能は複数の小さなブランチ・コミットに分割する
+- レビュー効率を考慮し、理解しやすい単位でブランチ・コミットを作成する
 
 ### 分割の指針
-- 機能単位でコミットを分ける（例：API実装 → フロントエンド → テスト）
+- 機能単位でブランチ・コミットを分ける（例：API実装 → フロントエンド → テスト）
 - ファイル追加とロジック変更を分ける
 - リファクタリングと新機能追加を分ける
-- 500行を超える場合は、論理的な区切りで複数コミットに分割
+- 500行を超える場合は、論理的な区切りで複数ブランチ・コミットに分割
 
-### コミット例
+### ブランチ・コミット例
 ```bash
-# 悪い例（1855行の大きなコミット）
+# 悪い例（1855行の大きなブランチ・コミット）
 git commit -m "feat: Implement complete aggregation system"
 
-# 良い例（機能を分割）
-git commit -m "feat: Add aggregation API endpoints" (300行)
-git commit -m "feat: Add aggregation detail component" (250行)
-git commit -m "feat: Add toast notification system" (200行)
+# 良い例（機能を複数ブランチに分割）
+# ブランチ1: feature/add-aggregation-api (300行)
+git commit -m "feat: Add aggregation API endpoints"
+
+# ブランチ2: feature/add-aggregation-detail-ui (250行) 
+git commit -m "feat: Add aggregation detail component"
+
+# ブランチ3: feature/add-toast-notification (200行)
+git commit -m "feat: Add toast notification system"
 ```
 
 ## 🔹 その他ルール
