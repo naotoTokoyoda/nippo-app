@@ -35,7 +35,11 @@ export async function searchJootoTasks(searchQuery: string): Promise<JootoSearch
       throw new Error(`Jooto API error: ${response.status} ${response.statusText}`);
     }
 
-    const data: JootoSearchResponse = await response.json();
+    const data = await response.json();
+    
+    // デバッグ用: 実際のレスポンス構造をログ出力
+    console.log('Jooto API Response:', JSON.stringify(data, null, 2));
+    
     return data;
   } catch (error) {
     console.error('Jooto API search error:', error);
@@ -59,11 +63,15 @@ export async function searchWorkNumberInfo(workNumber: string): Promise<WorkNumb
     const results: WorkNumberSearchResult[] = [];
 
     // 検索結果からタスク情報を抽出
-    for (const task of searchResults.tasks) {
-      const result = extractWorkInfoFromTask(task, workNumber);
-      if (result) {
-        results.push(result);
+    if (searchResults.tasks && Array.isArray(searchResults.tasks)) {
+      for (const task of searchResults.tasks) {
+        const result = extractWorkInfoFromTask(task, workNumber);
+        if (result) {
+          results.push(result);
+        }
       }
+    } else {
+      console.log('No tasks found in search results:', searchResults);
     }
 
     return results;
@@ -79,20 +87,28 @@ export async function searchWorkNumberInfo(workNumber: string): Promise<WorkNumb
  * @param workNumber 検索した工番
  * @returns 抽出された情報
  */
-function extractWorkInfoFromTask(task: JootoTask, workNumber: string): WorkNumberSearchResult | null {
+function extractWorkInfoFromTask(task: any, workNumber: string): WorkNumberSearchResult | null {
   try {
-    // タスクタイトルから客先名と作業名称を抽出
-    // 例: "TMT 6028-14105 プローブホルダー 長さ160"
-    // または: "客先名 工番 作業名称"
-    const title = task.title.trim();
+    // デバッグ用: タスクオブジェクトの構造を確認
+    console.log('Task object:', JSON.stringify(task, null, 2));
+    
+    // タスクタイトルを取得（複数のプロパティ名を試す）
+    const title = task.title || task.name || task.subject || '';
+    
+    if (!title || typeof title !== 'string') {
+      console.log('No valid title found in task:', task);
+      return null;
+    }
+    
+    const trimmedTitle = title.trim();
     
     // 工番が含まれているかチェック
-    if (!title.includes(workNumber)) {
+    if (!trimmedTitle.includes(workNumber)) {
       return null;
     }
 
     // タスクタイトルを空白で分割
-    const parts = title.split(/\s+/);
+    const parts = trimmedTitle.split(/\s+/);
     
     if (parts.length < 3) {
       return null;
