@@ -60,6 +60,8 @@ export interface JootoSearchResponse {
 // 工番検索結果
 export interface WorkNumberSearchResult {
   workNumber: string;
+  workNumberFront: string;
+  workNumberBack: string;
   customerName: string;
   workName: string;
   taskId: number;

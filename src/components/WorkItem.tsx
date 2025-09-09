@@ -141,7 +141,6 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
             className={getFieldClassName('workNumberBack', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
             placeholder="工番検索セクションで自動入力できます"
           />
-          <p className="text-xs text-gray-500 mt-1">上の「工番検索」セクションを使用すると自動入力されます。工番のない作業は「なし」とご記入ください。</p>
           {getErrorMessage('workNumberBack') && (
             <p className="text-xs text-red-600 mt-1">{getErrorMessage('workNumberBack')}</p>
           )}

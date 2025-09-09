@@ -93,26 +93,11 @@ export default function WorkNumberSearchModal({
 
   // 検索結果選択時の処理
   const handleResultSelect = (result: WorkNumberSearchResult) => {
-    // 工番から前番・後番を分離
-    const workNumberParts = result.workNumber.split('-');
-    const workNumberFront = workNumberParts[0] || '';
-    const workNumberBack = workNumberParts.slice(1).join('-') || result.workNumber;
-
-    // 工番前番のマッピング
-    let mappedWorkNumberFront = '';
-    if (workNumberFront.includes('5927')) {
-      mappedWorkNumberFront = '5927';
-    } else if (workNumberFront.includes('6028')) {
-      mappedWorkNumberFront = '6028';
-    } else if (workNumberFront.includes('6129')) {
-      mappedWorkNumberFront = '6129';
-    }
-
-    // 親コンポーネントに新しい作業項目追加を通知
+    // APIから取得した正確な情報を使用
     onWorkItemAdd({
       customerName: result.customerName,
-      workNumberFront: mappedWorkNumberFront,
-      workNumberBack: workNumberBack,
+      workNumberFront: result.workNumberFront,
+      workNumberBack: result.workNumberBack,
       workName: result.workName
     });
 

@@ -113,27 +113,50 @@ function extractWorkInfoFromTask(task: JootoTask, workNumber: string): WorkNumbe
       return null;
     }
 
-    // タスク名をパース（例: "TMT　6028-14105" -> 客先名: "TMT", 工番: "6028-14105"）
-    const nameParts = taskName.trim().split(/\s+/);
-    
+    // タスク名をパース（例: "たつみ　6028-14051" -> 客先名: "たつみ", 前番: "6028", 後番: "14051"）
     let customerName = '';
+    let workNumberFront = '';
+    let workNumberBack = '';
     const workName = taskDescription.trim(); // descriptionを作業名称として使用
-    let workNumberIndex = -1;
 
-    // 工番の位置を特定
-    for (let i = 0; i < nameParts.length; i++) {
-      if (nameParts[i].includes(workNumber)) {
-        workNumberIndex = i;
-        break;
+    // 工番パターンを検索（例: 6028-14051）
+    const workNumberPattern = /(\d{4})-?(\d+)/;
+    const match = taskName.match(workNumberPattern);
+
+    if (match) {
+      workNumberFront = match[1]; // 前番（例: 6028）
+      workNumberBack = match[2];  // 後番（例: 14051）
+      
+      // 工番より前の部分を客先名として抽出
+      const beforeWorkNumber = taskName.substring(0, taskName.indexOf(match[0])).trim();
+      customerName = beforeWorkNumber.replace(/[　\s]+$/, ''); // 末尾の空白・全角空白を削除
+    } else {
+      // 工番パターンが見つからない場合、従来の方法でフォールバック
+      const nameParts = taskName.trim().split(/\s+/);
+      let workNumberIndex = -1;
+
+      // 工番の位置を特定
+      for (let i = 0; i < nameParts.length; i++) {
+        if (nameParts[i].includes(workNumber)) {
+          workNumberIndex = i;
+          break;
+        }
       }
-    }
 
-    // 客先名を抽出（工番より前の部分）
-    if (workNumberIndex > 0) {
-      customerName = nameParts.slice(0, workNumberIndex).join(' ');
-    } else if (workNumberIndex === -1 && nameParts.length > 0) {
-      // 工番がdescriptionにある場合、name全体を客先名として扱う
-      customerName = taskName.trim();
+      if (workNumberIndex > 0) {
+        customerName = nameParts.slice(0, workNumberIndex).join(' ');
+        // 工番を前番・後番に分離
+        const fullWorkNumber = nameParts[workNumberIndex];
+        const parts = fullWorkNumber.split('-');
+        workNumberFront = parts[0] || '';
+        workNumberBack = parts.slice(1).join('-') || fullWorkNumber;
+      } else {
+        customerName = taskName.trim();
+        // 検索クエリから工番を推測
+        const queryParts = workNumber.split('-');
+        workNumberFront = queryParts[0] || '';
+        workNumberBack = queryParts.slice(1).join('-') || workNumber;
+      }
     }
 
     // カテゴリ情報も活用（機械種類として）
@@ -143,8 +166,9 @@ function extractWorkInfoFromTask(task: JootoTask, workNumber: string): WorkNumbe
     if (process.env.NODE_ENV === 'development') {
       console.log('Extracted info:', {
         customerName,
+        workNumberFront,
+        workNumberBack,
         workName,
-        workNumber,
         machineTypes,
         originalName: taskName,
         originalDescription: taskDescription
@@ -152,7 +176,9 @@ function extractWorkInfoFromTask(task: JootoTask, workNumber: string): WorkNumbe
     }
 
     return {
-      workNumber: workNumber,
+      workNumber: `${workNumberFront}-${workNumberBack}`,
+      workNumberFront: workNumberFront || '',
+      workNumberBack: workNumberBack || '',
       customerName: customerName || '',
       workName: workName || '',
       taskId: task.id
