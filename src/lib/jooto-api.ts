@@ -6,8 +6,8 @@ import { JootoSearchResponse, JootoTask, WorkNumberSearchResult } from '@/types/
 
 // Jooto API設定
 const JOOTO_CONFIG = {
-  apiKey: process.env.JOOTO_API_KEY || '506ccea5e3fbf13c9bde60ea61d00935',
-  boardId: process.env.JOOTO_BOARD_ID || '1207054',
+  apiKey: process.env.JOOTO_API_KEY,
+  boardId: process.env.JOOTO_BOARD_ID,
   baseUrl: 'https://api.jooto.com'
 };
 
@@ -18,6 +18,14 @@ const JOOTO_CONFIG = {
  */
 export async function searchJootoTasks(searchQuery: string): Promise<JootoSearchResponse> {
   try {
+    // 環境変数の確認
+    if (!JOOTO_CONFIG.apiKey) {
+      throw new Error('JOOTO_API_KEY environment variable is not set');
+    }
+    if (!JOOTO_CONFIG.boardId) {
+      throw new Error('JOOTO_BOARD_ID environment variable is not set');
+    }
+
     const url = `${JOOTO_CONFIG.baseUrl}/v1/boards/${JOOTO_CONFIG.boardId}/search`;
     const params = new URLSearchParams({
       search_query: searchQuery
@@ -160,6 +168,11 @@ function extractWorkInfoFromTask(task: JootoTask, workNumber: string): WorkNumbe
  */
 export async function getJootoOrganization() {
   try {
+    // 環境変数の確認
+    if (!JOOTO_CONFIG.apiKey) {
+      throw new Error('JOOTO_API_KEY environment variable is not set');
+    }
+
     const response = await fetch(`${JOOTO_CONFIG.baseUrl}/v1/organization`, {
       method: 'GET',
       headers: {
