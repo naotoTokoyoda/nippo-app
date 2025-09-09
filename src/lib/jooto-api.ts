@@ -109,7 +109,7 @@ function extractWorkInfoFromTask(task: JootoTask, workNumber: string): WorkNumbe
     const nameParts = taskName.trim().split(/\s+/);
     
     let customerName = '';
-    let workName = taskDescription.trim(); // descriptionを作業名称として使用
+    const workName = taskDescription.trim(); // descriptionを作業名称として使用
     let workNumberIndex = -1;
 
     // 工番の位置を特定
