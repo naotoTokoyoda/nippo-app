@@ -180,29 +180,38 @@ export default function WorkNumberInput({
               key={`${suggestion.taskId}-${index}`}
               type="button"
               onClick={() => handleSuggestionSelect(suggestion)}
-              className="w-full px-3 py-2 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none border-b border-gray-100 last:border-b-0"
+              className="w-full px-4 py-3 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none border-b border-gray-200 last:border-b-0 transition-colors duration-150"
             >
-              <div className="flex flex-col">
-                <div className="flex items-center mb-1">
-                  <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-100 text-blue-800 text-xs font-medium mr-2">
-                    工番
+              <div className="flex flex-col space-y-2">
+                {/* 工番 */}
+                <div className="flex items-center">
+                  <span className="text-xs font-medium text-gray-500 mr-3 min-w-[40px]">
+                    工番:
                   </span>
                   <span className="font-semibold text-gray-900">
                     {suggestion.workNumber}
                   </span>
                 </div>
-                {suggestion.customerName && (
-                  <div className="text-sm text-blue-600 mb-1">
-                    <span className="inline-block w-8 text-gray-500">客先:</span>
-                    <span className="font-medium">{suggestion.customerName}</span>
-                  </div>
-                )}
-                {suggestion.workName && (
-                  <div className="text-sm text-gray-600">
-                    <span className="inline-block w-8 text-gray-500">作業:</span>
-                    <span>{suggestion.workName}</span>
-                  </div>
-                )}
+                
+                {/* 客先名 */}
+                <div className="flex items-center">
+                  <span className="text-xs font-medium text-gray-500 mr-3 min-w-[40px]">
+                    客先:
+                  </span>
+                  <span className="text-sm text-gray-700 font-medium">
+                    {suggestion.customerName || '未設定'}
+                  </span>
+                </div>
+                
+                {/* 作業名称 */}
+                <div className="flex items-center">
+                  <span className="text-xs font-medium text-gray-500 mr-3 min-w-[40px]">
+                    作業:
+                  </span>
+                  <span className="text-sm text-gray-600">
+                    {suggestion.workName || '未設定'}
+                  </span>
+                </div>
               </div>
             </button>
           ))}
