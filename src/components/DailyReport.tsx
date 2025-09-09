@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import WorkItem from '@/components/WorkItem';
 import WorkerHistory from '@/components/WorkerHistory';
+import WorkNumberSearchSection from '@/components/WorkNumberSearchSection';
 import { useRouter } from 'next/navigation';
 // import { calculateWorkTime } from '@/utils/timeCalculation'; // 現在は使用されていない
 import { validateDailyReport, validateBasicInfo } from '@/utils/validation';
@@ -62,6 +63,40 @@ export default function DailyReport() {
       ...prev,
       workItems: prev.workItems.filter(item => item.id !== id)
     }));
+  };
+
+  // 工番検索結果から日報フィールドに自動入力
+  const handleWorkInfoSelect = (workInfo: {
+    customerName: string;
+    workNumberFront: string;
+    workNumberBack: string;
+    workName: string;
+  }) => {
+    // 最初の作業項目に自動入力（空の場合のみ上書き）
+    setReportData(prev => {
+      const firstWorkItem = prev.workItems[0];
+      if (firstWorkItem) {
+        const updatedWorkItem = {
+          ...firstWorkItem,
+          customerName: workInfo.customerName || firstWorkItem.customerName,
+          workNumberFront: workInfo.workNumberFront || firstWorkItem.workNumberFront,
+          workNumberBack: workInfo.workNumberBack || firstWorkItem.workNumberBack,
+          name: workInfo.workName || firstWorkItem.name
+        };
+
+        return {
+          ...prev,
+          workItems: [updatedWorkItem, ...prev.workItems.slice(1)]
+        };
+      }
+      return prev;
+    });
+
+    // 成功メッセージを表示（オプション）
+    if (typeof window !== 'undefined') {
+      // Toast通知などを後で実装可能
+      console.log('工番情報が自動入力されました:', workInfo);
+    }
   };
 
   // 既存日報をチェックする関数
@@ -281,6 +316,9 @@ export default function DailyReport() {
           />
         </div>
       )}
+
+      {/* 工番検索セクション */}
+      <WorkNumberSearchSection onWorkInfoSelect={handleWorkInfoSelect} />
 
       {/* 作業項目 */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
