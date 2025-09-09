@@ -44,12 +44,6 @@ export async function searchJootoTasks(searchQuery: string): Promise<JootoSearch
     }
 
     const data = await response.json();
-    
-    // デバッグ用: 開発環境でのみレスポンス構造をログ出力
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Jooto API Response:', JSON.stringify(data, null, 2));
-    }
-    
     return data;
   } catch (error) {
     console.error('Jooto API search error:', error);
@@ -80,8 +74,6 @@ export async function searchWorkNumberInfo(workNumber: string): Promise<WorkNumb
           results.push(result);
         }
       }
-    } else {
-      console.log('No tasks found in search results:', searchResults);
     }
 
     return results;
@@ -104,7 +96,6 @@ function extractWorkInfoFromTask(task: JootoTask, workNumber: string): WorkNumbe
     const taskDescription = task.description || '';
     
     if (!taskName || typeof taskName !== 'string') {
-      console.log('No valid name found in task:', task);
       return null;
     }
     
@@ -157,22 +148,6 @@ function extractWorkInfoFromTask(task: JootoTask, workNumber: string): WorkNumbe
         workNumberFront = queryParts[0] || '';
         workNumberBack = queryParts.slice(1).join('-') || workNumber;
       }
-    }
-
-    // カテゴリ情報も活用（機械種類として）
-    const machineTypes = task.categories?.map(cat => cat.name).join(', ') || '';
-
-    // デバッグ用: 開発環境でのみ抽出情報をログ出力
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Extracted info:', {
-        customerName,
-        workNumberFront,
-        workNumberBack,
-        workName,
-        machineTypes,
-        originalName: taskName,
-        originalDescription: taskDescription
-      });
     }
 
     return {

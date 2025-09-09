@@ -93,10 +93,6 @@ export default function DailyReport() {
       return prev;
     });
 
-    // 成功メッセージを表示（オプション）
-    if (typeof window !== 'undefined') {
-      console.log('工番情報が自動入力されました:', workInfo);
-    }
   };
 
   // 既存日報をチェックする関数
