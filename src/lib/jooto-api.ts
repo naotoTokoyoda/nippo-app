@@ -37,8 +37,10 @@ export async function searchJootoTasks(searchQuery: string): Promise<JootoSearch
 
     const data = await response.json();
     
-    // デバッグ用: 実際のレスポンス構造をログ出力
-    console.log('Jooto API Response:', JSON.stringify(data, null, 2));
+    // デバッグ用: 開発環境でのみレスポンス構造をログ出力
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Jooto API Response:', JSON.stringify(data, null, 2));
+    }
     
     return data;
   } catch (error) {
@@ -87,71 +89,66 @@ export async function searchWorkNumberInfo(workNumber: string): Promise<WorkNumb
  * @param workNumber 検索した工番
  * @returns 抽出された情報
  */
-function extractWorkInfoFromTask(task: any, workNumber: string): WorkNumberSearchResult | null {
+function extractWorkInfoFromTask(task: JootoTask, workNumber: string): WorkNumberSearchResult | null {
   try {
-    // デバッグ用: タスクオブジェクトの構造を確認
-    console.log('Task object:', JSON.stringify(task, null, 2));
+    // タスク名（例: "TMT　6028-14105"）とdescription（例: "プローブホルダー　長さ160"）を取得
+    const taskName = task.name || '';
+    const taskDescription = task.description || '';
     
-    // タスクタイトルを取得（複数のプロパティ名を試す）
-    const title = task.title || task.name || task.subject || '';
-    
-    if (!title || typeof title !== 'string') {
-      console.log('No valid title found in task:', task);
+    if (!taskName || typeof taskName !== 'string') {
+      console.log('No valid name found in task:', task);
       return null;
     }
     
-    const trimmedTitle = title.trim();
-    
-    // 工番が含まれているかチェック
-    if (!trimmedTitle.includes(workNumber)) {
+    // 工番が含まれているかチェック（nameまたはdescriptionに含まれている場合）
+    if (!taskName.includes(workNumber) && !taskDescription.includes(workNumber)) {
       return null;
     }
 
-    // タスクタイトルを空白で分割
-    const parts = trimmedTitle.split(/\s+/);
+    // タスク名をパース（例: "TMT　6028-14105" -> 客先名: "TMT", 工番: "6028-14105"）
+    const nameParts = taskName.trim().split(/\s+/);
     
-    if (parts.length < 3) {
-      return null;
-    }
-
-    // 基本的なパターン: [客先名] [工番] [作業名称...]
     let customerName = '';
-    let workName = '';
+    let workName = taskDescription.trim(); // descriptionを作業名称として使用
     let workNumberIndex = -1;
 
     // 工番の位置を特定
-    for (let i = 0; i < parts.length; i++) {
-      if (parts[i].includes(workNumber)) {
+    for (let i = 0; i < nameParts.length; i++) {
+      if (nameParts[i].includes(workNumber)) {
         workNumberIndex = i;
         break;
       }
     }
 
-    if (workNumberIndex === -1) {
-      return null;
-    }
-
-    // 客先名（工番より前の部分）
+    // 客先名を抽出（工番より前の部分）
     if (workNumberIndex > 0) {
-      customerName = parts.slice(0, workNumberIndex).join(' ');
+      customerName = nameParts.slice(0, workNumberIndex).join(' ');
+    } else if (workNumberIndex === -1 && nameParts.length > 0) {
+      // 工番がdescriptionにある場合、name全体を客先名として扱う
+      customerName = taskName.trim();
     }
 
-    // 作業名称（工番より後の部分）
-    if (workNumberIndex < parts.length - 1) {
-      workName = parts.slice(workNumberIndex + 1).join(' ');
+    // カテゴリ情報も活用（機械種類として）
+    const machineTypes = task.categories?.map(cat => cat.name).join(', ') || '';
+
+    // デバッグ用: 開発環境でのみ抽出情報をログ出力
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Extracted info:', {
+        customerName,
+        workName,
+        workNumber,
+        machineTypes,
+        originalName: taskName,
+        originalDescription: taskDescription
+      });
     }
 
-    // 最低限の情報が揃っている場合のみ返す
-    if (customerName || workName) {
-      return {
-        workNumber: workNumber,
-        customerName: customerName || '',
-        workName: workName || '',
-        taskId: task.id
-      };
-    }
-
-    return null;
+    return {
+      workNumber: workNumber,
+      customerName: customerName || '',
+      workName: workName || '',
+      taskId: task.id
+    };
   } catch (error) {
     console.error('Task parsing error:', error);
     return null;
