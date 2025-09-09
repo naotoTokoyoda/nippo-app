@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import WorkItem from '@/components/WorkItem';
 import WorkerHistory from '@/components/WorkerHistory';
+import WorkNumberSearchModal from '@/components/WorkNumberSearchModal';
 import { useRouter } from 'next/navigation';
 // import { calculateWorkTime } from '@/utils/timeCalculation'; // 現在は使用されていない
 import { validateDailyReport, validateBasicInfo } from '@/utils/validation';
@@ -17,6 +18,7 @@ export default function DailyReport() {
   const [showValidation, setShowValidation] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [basicInfoErrors, setBasicInfoErrors] = useState<ValidationError[]>([]);
+  const [isWorkNumberModalOpen, setIsWorkNumberModalOpen] = useState(false);
   // 既存日報の状態管理
   const [, setExistingReport] = useState<{
     exists: boolean;
@@ -62,6 +64,35 @@ export default function DailyReport() {
       ...prev,
       workItems: prev.workItems.filter(item => item.id !== id)
     }));
+  };
+
+  // 工番検索結果から最初の作業項目に自動入力
+  const handleWorkItemAdd = (workInfo: {
+    customerName: string;
+    workNumberFront: string;
+    workNumberBack: string;
+    workName: string;
+  }) => {
+    // 最初の作業項目に自動入力
+    setReportData(prev => {
+      const firstWorkItem = prev.workItems[0];
+      if (firstWorkItem) {
+        const updatedWorkItem = {
+          ...firstWorkItem,
+          customerName: workInfo.customerName || firstWorkItem.customerName,
+          workNumberFront: workInfo.workNumberFront || firstWorkItem.workNumberFront,
+          workNumberBack: workInfo.workNumberBack || firstWorkItem.workNumberBack,
+          name: workInfo.workName || firstWorkItem.name
+        };
+
+        return {
+          ...prev,
+          workItems: [updatedWorkItem, ...prev.workItems.slice(1)]
+        };
+      }
+      return prev;
+    });
+
   };
 
   // 既存日報をチェックする関数
@@ -284,12 +315,26 @@ export default function DailyReport() {
 
       {/* 作業項目 */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-          <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-          作業項目
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-800 flex items-center">
+            <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            作業項目
+          </h2>
+          
+          {/* 工番検索ボタン */}
+          <button
+            type="button"
+            onClick={() => setIsWorkNumberModalOpen(true)}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            工番情報検索
+          </button>
+        </div>
         
         <div className="space-y-6">
           {reportData.workItems.map((item, index) => (
@@ -349,6 +394,13 @@ export default function DailyReport() {
 
         </div>
       </div>
+
+      {/* 工番検索モーダル */}
+      <WorkNumberSearchModal
+        isOpen={isWorkNumberModalOpen}
+        onClose={() => setIsWorkNumberModalOpen(false)}
+        onWorkItemAdd={handleWorkItemAdd}
+      />
     </div>
   );
 } 

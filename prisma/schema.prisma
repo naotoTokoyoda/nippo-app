@@ -8,11 +8,12 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String   @db.VarChar(100)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  reports   Report[]
+  id          String       @id @default(cuid())
+  name        String       @db.VarChar(100)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  reports     Report[]
+  adjustments Adjustment[]
 
   @@index([name])
   @@map("users")
@@ -49,14 +50,23 @@ model WorkOrder {
   backNumber  String       @map("back_number") @db.VarChar(10)
   description String?
   customerId  String       @map("customer_id")
+  // 集計機能用の追加項目
+  term        String?      @db.VarChar(50) // 期区分（59期/59期-JFE等）
+  status      String       @default("aggregating") @db.VarChar(20) // aggregating/aggregated
+  projectName String?      @map("project_name") @db.VarChar(200) // 作業名称（案件名）
+  handling    String?      @db.VarChar(100) // 扱い
+  quantity    Int? // 数量
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
   reportItems ReportItem[]
+  adjustments Adjustment[]
   customer    Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@unique([frontNumber, backNumber])
   @@index([frontNumber])
   @@index([backNumber])
+  @@index([status])
+  @@index([term])
   @@map("work_orders")
 }
 
@@ -84,9 +94,11 @@ model ReportItem {
   machineId       String    @map("machine_id")
   startTime       DateTime  @map("start_time")
   endTime         DateTime  @map("end_time")
-  workStatus      String?   @map("work_status") @db.VarChar(20) @default("normal") // 勤務状況: normal, lunch_overtime, early_leave, late_arrival, overtime, early_start
+  workStatus      String?   @default("normal") @map("work_status") @db.VarChar(20) // 勤務状況: normal, lunch_overtime, early_leave, late_arrival, overtime, early_start
   workDescription String?   @map("work_description") @db.VarChar(200) // 作業内容の説明
   remarks         String?
+  // 集計機能用の追加項目
+  activity        String?   @db.VarChar(20) // 自動判定されたActivity: NORMAL/TRAINEE1/INSPECTION/M_1052/M_SHOMEN/M_12SHAKU
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
   customer        Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
@@ -98,5 +110,39 @@ model ReportItem {
   @@index([customerId])
   @@index([workOrderId])
   @@index([machineId])
+  @@index([activity])
   @@map("report_items")
+}
+
+model Rate {
+  id            String    @id @default(cuid())
+  activity      String    @db.VarChar(20) // Activity種別: NORMAL/TRAINEE1/INSPECTION/M_1052/M_SHOMEN/M_12SHAKU
+  effectiveFrom DateTime  @map("effective_from") @db.Date // 適用開始日
+  effectiveTo   DateTime? @map("effective_to") @db.Date // 適用終了日（NULLは現在有効）
+  costRate      Int       @map("cost_rate") // 原価単価
+  billRate      Int       @map("bill_rate") // 請求単価
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([activity, effectiveFrom])
+  @@index([effectiveFrom])
+  @@map("rates")
+}
+
+model Adjustment {
+  id          String    @id @default(cuid())
+  workOrderId String    @map("work_order_id") // 対象工番
+  type        String    @db.VarChar(50) // 調整種別: price_adjustment/time_adjustment等
+  amount      Int // 調整金額（プラス・マイナス可能）
+  reason      String    @db.VarChar(200) // 調整理由
+  memo        String?   @db.VarChar(500) // 詳細メモ
+  createdBy   String    @map("created_by") // 作業者ID
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([workOrderId])
+  @@index([createdBy])
+  @@map("adjustments")
 }

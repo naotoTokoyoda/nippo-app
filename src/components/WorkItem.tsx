@@ -102,7 +102,7 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
             placeholder="客先名を入力"
             className={getFieldClassName('customerName', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
           />
-          <p className="text-xs text-gray-500 mt-1">客先名のない作業は「クオール市原」とご記入ください。</p>
+          <p className="text-xs text-gray-500 mt-1">工番検索セクションで自動入力できます。客先名のない作業は「クオール市原」とご記入ください。</p>
           {getErrorMessage('customerName') && (
             <p className="text-xs text-red-600 mt-1">{getErrorMessage('customerName')}</p>
           )}
@@ -113,17 +113,14 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
           <label className="block text-sm font-medium text-gray-700 mb-2">
             工番（前番）
           </label>
-          <select
+          <input
+            type="text"
             value={item.workNumberFront}
             onChange={(e) => onUpdate({ workNumberFront: e.target.value })}
             className={getFieldClassName('workNumberFront', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
-          >
-            <option value=""></option>
-            <option value="5927">5927（前期）</option>
-            <option value="6028">6028（当期）</option>
-            <option value="6129">6129（次期）</option>
-          </select>
-          <p className="text-xs text-gray-500 mt-1">どちらかを選択してください。</p>
+            placeholder="工番検索セクションで自動入力できます"
+          />
+          <p className="text-xs text-gray-500 mt-1">工番情報検索を使用すると自動入力されます。</p>
           {getErrorMessage('workNumberFront') && (
             <p className="text-xs text-red-600 mt-1">{getErrorMessage('workNumberFront')}</p>
           )}
@@ -139,8 +136,8 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
             value={item.workNumberBack}
             onChange={(e) => onUpdate({ workNumberBack: e.target.value })}
             className={getFieldClassName('workNumberBack', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
+            placeholder="工番検索セクションで自動入力できます"
           />
-          <p className="text-xs text-gray-500 mt-1">工番のない作業は「なし」とご記入ください。</p>
           {getErrorMessage('workNumberBack') && (
             <p className="text-xs text-red-600 mt-1">{getErrorMessage('workNumberBack')}</p>
           )}
@@ -157,7 +154,7 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
             onChange={(e) => onUpdate({ name: e.target.value })}
             className={getFieldClassName('name', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
           />
-          <p className="text-xs text-gray-500 mt-1">工番表と同じ名称をご記入ください。</p>
+          <p className="text-xs text-gray-500 mt-1">工番検索セクションで自動入力できます。工番表と同じ名称をご記入ください。</p>
           {getErrorMessage('name') && (
             <p className="text-xs text-red-600 mt-1">{getErrorMessage('name')}</p>
           )}
