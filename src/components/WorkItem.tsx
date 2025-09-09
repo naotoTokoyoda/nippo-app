@@ -113,17 +113,14 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
           <label className="block text-sm font-medium text-gray-700 mb-2">
             工番（前番）
           </label>
-          <select
+          <input
+            type="text"
             value={item.workNumberFront}
             onChange={(e) => onUpdate({ workNumberFront: e.target.value })}
             className={getFieldClassName('workNumberFront', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
-          >
-            <option value=""></option>
-            <option value="5927">5927（前期）</option>
-            <option value="6028">6028（当期）</option>
-            <option value="6129">6129（次期）</option>
-          </select>
-          <p className="text-xs text-gray-500 mt-1">どちらかを選択してください。</p>
+            placeholder="工番検索セクションで自動入力できます"
+          />
+          <p className="text-xs text-gray-500 mt-1">工番情報検索を使用すると自動入力されます。</p>
           {getErrorMessage('workNumberFront') && (
             <p className="text-xs text-red-600 mt-1">{getErrorMessage('workNumberFront')}</p>
           )}
