@@ -48,6 +48,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
   const { showToast } = useToast();
   const [workOrder, setWorkOrder] = useState<WorkOrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedRates, setEditedRates] = useState<Record<string, { billRate: string; memo: string }>>({});
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
@@ -72,9 +73,34 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
     }
   }, [workOrderId]);
 
+  // 認証状態をチェック
+  const checkAuthentication = useCallback(async () => {
+    try {
+      const response = await fetch('/api/auth/aggregation');
+      const data = await response.json();
+      
+      if (!data.authenticated) {
+        // 認証されていない場合はホームに戻る
+        router.replace('/');
+        return;
+      }
+      
+      setIsAuthenticated(true);
+    } catch (error) {
+      console.error('認証チェックエラー:', error);
+      router.replace('/');
+    }
+  }, [router]);
+
   useEffect(() => {
-    fetchWorkOrderDetail();
-  }, [fetchWorkOrderDetail]);
+    checkAuthentication();
+  }, [checkAuthentication]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchWorkOrderDetail();
+    }
+  }, [fetchWorkOrderDetail, isAuthenticated]);
 
   const calculateTotals = () => {
     if (!workOrder) return { costTotal: 0, billTotal: 0, adjustmentTotal: 0, finalAmount: 0 };
@@ -258,11 +284,13 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
     return `${hours.toFixed(1)}h`;
   };
 
-  if (loading) {
+  // 認証チェック中または未認証の場合
+  if (!isAuthenticated || loading) {
     return (
       <PageLayout title="集計詳細">
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-3 text-gray-600">認証を確認しています...</span>
         </div>
       </PageLayout>
     );

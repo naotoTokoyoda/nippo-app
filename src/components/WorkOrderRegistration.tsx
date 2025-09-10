@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import PageLayout from '@/components/PageLayout';
 
@@ -16,6 +16,7 @@ interface WorkOrderFormData {
 
 export default function WorkOrderRegistration() {
   const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [formData, setFormData] = useState<WorkOrderFormData>({
     frontNumber: '',
     backNumber: '',
@@ -30,26 +31,51 @@ export default function WorkOrderRegistration() {
   const [customers, setCustomers] = useState<Array<{ id: string; name: string; code: string }>>([]);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
 
-  // 顧客データをAPIから取得
-  useEffect(() => {
-    const fetchCustomers = async () => {
-      try {
-        const response = await fetch('/api/customers');
-        if (!response.ok) {
-          throw new Error('顧客データの取得に失敗しました');
-        }
-        const data = await response.json();
-        setCustomers(data);
-      } catch (error) {
-        console.error('顧客取得エラー:', error);
-        alert('顧客データの取得に失敗しました');
-      } finally {
-        setLoadingCustomers(false);
+  // 認証状態をチェック
+  const checkAuthentication = useCallback(async () => {
+    try {
+      const response = await fetch('/api/auth/aggregation');
+      const data = await response.json();
+      
+      if (!data.authenticated) {
+        // 認証されていない場合はホームに戻る
+        router.replace('/');
+        return;
       }
-    };
+      
+      setIsAuthenticated(true);
+    } catch (error) {
+      console.error('認証チェックエラー:', error);
+      router.replace('/');
+    }
+  }, [router]);
 
-    fetchCustomers();
+  // 顧客データをAPIから取得
+  const fetchCustomers = useCallback(async () => {
+    try {
+      const response = await fetch('/api/customers');
+      if (!response.ok) {
+        throw new Error('顧客データの取得に失敗しました');
+      }
+      const data = await response.json();
+      setCustomers(data);
+    } catch (error) {
+      console.error('顧客取得エラー:', error);
+      alert('顧客データの取得に失敗しました');
+    } finally {
+      setLoadingCustomers(false);
+    }
   }, []);
+
+  useEffect(() => {
+    checkAuthentication();
+  }, [checkAuthentication]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchCustomers();
+    }
+  }, [fetchCustomers, isAuthenticated]);
 
   const handleInputChange = (field: keyof WorkOrderFormData, value: string | number | null) => {
     setFormData(prev => ({
@@ -144,6 +170,18 @@ export default function WorkOrderRegistration() {
   const handleCancel = () => {
     router.push('/aggregation');
   };
+
+  // 認証チェック中または未認証の場合
+  if (!isAuthenticated) {
+    return (
+      <PageLayout title="工番登録">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-3 text-gray-600">認証を確認しています...</span>
+        </div>
+      </PageLayout>
+    );
+  }
 
   return (
     <PageLayout title="工番登録">

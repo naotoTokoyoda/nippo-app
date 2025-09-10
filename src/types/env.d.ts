@@ -10,6 +10,9 @@ declare global {
       LOG_LEVEL?: string;
       JOOTO_API_KEY?: string;
       JOOTO_BOARD_ID?: string;
+      BASIC_AUTH_USER?: string;
+      BASIC_AUTH_PASSWORD?: string;
+      AGGREGATION_PASSWORD?: string;
     }
   }
 }

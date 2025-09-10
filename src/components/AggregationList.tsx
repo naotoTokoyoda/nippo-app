@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import PageLayout from '@/components/PageLayout';
 
 // 集計一覧の型定義
@@ -19,9 +20,11 @@ interface AggregationItem {
 export default function AggregationList() {
   const [items, setItems] = useState<AggregationItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [filterTerm, setFilterTerm] = useState<string>('');
   const [filterCustomer, setFilterCustomer] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const router = useRouter();
 
   // APIからデータを取得
   const fetchAggregationItems = useCallback(async () => {
@@ -48,9 +51,34 @@ export default function AggregationList() {
     }
   }, [filterTerm, filterCustomer, searchQuery]);
 
+  // 認証状態をチェック
+  const checkAuthentication = useCallback(async () => {
+    try {
+      const response = await fetch('/api/auth/aggregation');
+      const data = await response.json();
+      
+      if (!data.authenticated) {
+        // 認証されていない場合はホームに戻る
+        router.replace('/');
+        return;
+      }
+      
+      setIsAuthenticated(true);
+    } catch (error) {
+      console.error('認証チェックエラー:', error);
+      router.replace('/');
+    }
+  }, [router]);
+
   useEffect(() => {
-    fetchAggregationItems();
-  }, [fetchAggregationItems]);
+    checkAuthentication();
+  }, [checkAuthentication]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchAggregationItems();
+    }
+  }, [fetchAggregationItems, isAuthenticated]);
 
   // 期区分の選択肢を取得（APIから別途取得することも可能）
   const termOptions = ['59期', '59期-JFE', '60期'];
@@ -76,11 +104,13 @@ export default function AggregationList() {
     return status === 'aggregating' ? '集計中' : '集計済み';
   };
 
-  if (loading) {
+  // 認証チェック中または未認証の場合
+  if (!isAuthenticated || loading) {
     return (
       <PageLayout title="集計一覧">
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-3 text-gray-600">認証を確認しています...</span>
         </div>
       </PageLayout>
     );
