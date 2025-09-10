@@ -35,15 +35,25 @@ export default function WorkNumberSearchModal({
     }
   }, [isOpen]);
 
-  // ESCキーでモーダルを閉じる
+  // ESCキーでモーダルを閉じる & 背景スクロール無効化
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && isOpen) {
         onClose();
       }
     };
-    document.addEventListener('keydown', handleEsc);
-    return () => document.removeEventListener('keydown', handleEsc);
+    
+    if (isOpen) {
+      // モーダル表示時は背景のスクロールを無効化
+      document.body.style.overflow = 'hidden';
+      document.addEventListener('keydown', handleEsc);
+    }
+    
+    return () => {
+      // クリーンアップ時にスクロールを復元
+      document.body.style.overflow = 'unset';
+      document.removeEventListener('keydown', handleEsc);
+    };
   }, [isOpen, onClose]);
 
   // 工番検索の実行
@@ -110,7 +120,7 @@ export default function WorkNumberSearchModal({
 
   return (
     <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
         {/* ヘッダー */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-800 flex items-center">
@@ -159,7 +169,7 @@ export default function WorkNumberSearchModal({
         </div>
 
         {/* 検索結果エリア */}
-        <div className="p-6">
+        <div className="p-6 flex-1 overflow-hidden">
           {/* 検索中メッセージ */}
           {isLoading && searchQuery.trim() && (
             <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
@@ -181,7 +191,7 @@ export default function WorkNumberSearchModal({
                   <h3 className="text-sm font-medium text-gray-700 mb-4">
                     検索結果（{searchResults.length}件）
                   </h3>
-                  <div className="space-y-5 max-h-96 overflow-y-auto">
+                  <div className="space-y-5 max-h-80 overflow-y-auto pr-2">
                     {searchResults.map((result, index) => (
                       <button
                         key={`${result.taskId}-${index}`}
