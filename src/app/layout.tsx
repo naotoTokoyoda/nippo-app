@@ -4,6 +4,7 @@ import "./globals.css";
 import EnvironmentBadge from "@/components/EnvironmentBadge";
 import FeedbackButton from "@/components/FeedbackButton";
 import { ToastProvider } from "@/components/ToastProvider";
+import AuthGuard from "@/components/AuthGuard";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,9 +32,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ToastProvider>
-          <EnvironmentBadge />
-          {children}
-          <FeedbackButton />
+          <AuthGuard>
+            <EnvironmentBadge />
+            {children}
+            <FeedbackButton />
+          </AuthGuard>
         </ToastProvider>
       </body>
     </html>
