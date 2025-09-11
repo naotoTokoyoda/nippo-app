@@ -23,12 +23,16 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
       }
 
       try {
-        const response = await fetch(`/api/reports?workerName=${encodeURIComponent(workerName)}`);
+        // 選択された日付の月を取得 (YYYY-MM形式) + 最大100件
+        const selectedMonth = currentDate.slice(0, 7);
+        const response = await fetch(`/api/reports?workerName=${encodeURIComponent(workerName)}&month=${selectedMonth}&limit=100`);
         const result = await response.json();
 
         // デバッグ用ログ（本番環境での問題調査用）
         console.log('=== WorkerHistory Debug ===');
         console.log('Worker Name:', workerName);
+        console.log('Selected Month:', selectedMonth);
+        console.log('Current Date:', currentDate);
         console.log('API Response:', result);
         console.log('Filtered Items Count:', result.filteredItems?.length || 0);
 

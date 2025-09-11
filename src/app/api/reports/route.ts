@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
     
     // クエリパラメータを取得
     const month = searchParams.get('month');
+    const date = searchParams.get('date'); // 特定の日付フィルター (YYYY-MM-DD)
     const workerName = searchParams.get('workerName');
     const customerName = searchParams.get('customerName');
     const workNumberFront = searchParams.get('workNumberFront');
@@ -52,24 +53,27 @@ export async function GET(request: NextRequest) {
     // レポートフィルターの設定
     let reportFilter: {
       report?: {
-        date?: { gte: Date; lte: Date };
+        date?: { gte: Date; lte: Date } | Date;
         worker?: { name: string };
       };
     } = {};
-    if (month || workerName) {
+    if (month || date || workerName) {
       reportFilter = {
         report: {}
       };
       
       // 日付フィルターの設定
-      if (month) {
+      if (date) {
+        // 特定の日付でフィルタリング (YYYY-MM-DD)
+        const targetDate = new Date(date + 'T12:00:00.000Z');
+        reportFilter.report!.date = targetDate;
+      } else if (month) {
+        // 月でフィルタリング (YYYY-MM)
         const [year, monthNum] = month.split('-');
         
         // 指定された月の最初の日と最後の日を計算（UTCの正午基準）
         const startDate = new Date(parseInt(year), parseInt(monthNum) - 1, 1, 12, 0, 0, 0);
         const endDate = new Date(parseInt(year), parseInt(monthNum), 0, 12, 0, 0, 0);
-        
-
         
         reportFilter.report!.date = {
           gte: startDate,
@@ -187,7 +191,7 @@ export async function GET(request: NextRequest) {
       },
       orderBy: {
         report: {
-          date: 'asc', // 昇順に変更（1日から月末まで）
+          date: 'desc', // 降順に変更（最新日付が上に表示）
         },
       },
       skip,
