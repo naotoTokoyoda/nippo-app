@@ -3,14 +3,13 @@
  * GET /api/jooto/delivered-tasks
  */
 
-import { NextRequest } from 'next/server';
 import { getDeliveredTasks } from '@/lib/jooto-api';
 import { prisma } from '@/lib/prisma';
 
 /**
  * 納品済みタスク一覧を取得し、日報データと紐付けて集計情報を返す
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
 
     // Jooto APIから納品済みタスクを取得
