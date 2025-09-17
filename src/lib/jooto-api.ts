@@ -165,6 +165,91 @@ function extractWorkInfoFromTask(task: JootoTask, workNumber: string): WorkNumbe
 }
 
 /**
+ * 特定のリストのタスク一覧を取得する
+ * @param listId リストID
+ * @returns タスク一覧
+ */
+export async function getJootoTasksByListId(listId: string): Promise<JootoTask[]> {
+  try {
+    // 環境変数の確認
+    if (!JOOTO_CONFIG.apiKey) {
+      throw new Error('JOOTO_API_KEY environment variable is not set');
+    }
+    if (!JOOTO_CONFIG.boardId) {
+      throw new Error('JOOTO_BOARD_ID environment variable is not set');
+    }
+
+    // 全タスクを取得（list_idパラメータは存在しないため）
+    const url = `${JOOTO_CONFIG.baseUrl}/v1/boards/${JOOTO_CONFIG.boardId}/tasks`;
+    const params = new URLSearchParams({
+      per_page: '100',
+      archived: 'false' // アーカイブされていないタスクのみ取得
+    });
+
+    const response = await fetch(`${url}?${params}`, {
+      method: 'GET',
+      headers: {
+        'X-Jooto-Api-Key': JOOTO_CONFIG.apiKey,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Jooto API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data: JootoSearchResponse = await response.json();
+    const allTasks = data.tasks || [];
+
+    // クライアント側で指定されたlist_idのタスクのみフィルタリング
+    const filteredTasks = allTasks.filter(task => 
+      task.list_id && task.list_id.toString() === listId
+    );
+
+    return filteredTasks;
+  } catch (error) {
+    console.error('Jooto tasks by list ID error:', error);
+    throw error;
+  }
+}
+
+/**
+ * 納品済みリストのタスクを取得し、工番情報を抽出する
+ * @returns 工番情報の配列
+ */
+export async function getDeliveredTasks(): Promise<WorkNumberSearchResult[]> {
+  try {
+    const deliveredListId = process.env.JOOTO_DELIVERED_LIST_ID;
+    if (!deliveredListId) {
+      throw new Error('JOOTO_DELIVERED_LIST_ID environment variable is not set');
+    }
+
+    const tasks = await getJootoTasksByListId(deliveredListId);
+    const results: WorkNumberSearchResult[] = [];
+
+    // 各タスクから工番情報を抽出
+    for (const task of tasks) {
+      // タスク名から工番を抽出
+      const workNumberMatch = task.name.match(/(\d{4})-?([^\s]+)/);
+      if (workNumberMatch) {
+        const [, frontNumber, backNumber] = workNumberMatch;
+        const workNumber = `${frontNumber}-${backNumber}`;
+        
+        const result = extractWorkInfoFromTask(task, workNumber);
+        if (result) {
+          results.push(result);
+        }
+      }
+    }
+
+    return results;
+  } catch (error) {
+    console.error('Get delivered tasks error:', error);
+    return [];
+  }
+}
+
+/**
  * 組織情報を取得する（デバッグ用）
  */
 export async function getJootoOrganization() {
