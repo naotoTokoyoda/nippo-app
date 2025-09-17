@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { getDeliveredTasks } from '@/lib/jooto-api';
 
 // 型定義
 interface ReportItem {
@@ -84,34 +85,175 @@ export async function GET(
   try {
     const { id } = await params;
 
-    // 工番詳細を取得
-    const workOrder = await prisma.workOrder.findUnique({
-      where: { id },
-      include: {
-        customer: true,
-        reportItems: {
+    let workOrder;
+
+    // JootoタスクIDの場合の処理
+    if (id.startsWith('jooto-')) {
+      const taskId = id.replace('jooto-', '');
+      
+      // Jooto APIからタスク情報を取得
+      const deliveredTasks = await getDeliveredTasks();
+      const jootoTask = deliveredTasks.find(task => task.taskId.toString() === taskId);
+      
+      if (!jootoTask) {
+        return Response.json(
+          { error: 'Jootoタスクが見つかりません' },
+          { status: 404 }
+        );
+      }
+
+      // 既存の工番データを確認
+      workOrder = await prisma.workOrder.findUnique({
+        where: {
+          frontNumber_backNumber: {
+            frontNumber: jootoTask.workNumberFront,
+            backNumber: jootoTask.workNumberBack,
+          },
+        },
+        include: {
+          customer: true,
+          reportItems: {
+            include: {
+              report: {
+                include: {
+                  worker: true,
+                },
+              },
+              machine: true,
+            },
+          },
+          adjustments: {
+            include: {
+              user: true,
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
+          materials: {
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
+        },
+      });
+
+      // 工番データが存在しない場合は作成
+      if (!workOrder) {
+        // 顧客を検索または作成
+        let customer = await prisma.customer.findFirst({
+          where: { name: jootoTask.customerName },
+        });
+
+        if (!customer) {
+          customer = await prisma.customer.create({
+            data: { name: jootoTask.customerName },
+          });
+        }
+
+        // 工番データを作成
+        workOrder = await prisma.workOrder.create({
+          data: {
+            frontNumber: jootoTask.workNumberFront,
+            backNumber: jootoTask.workNumberBack,
+            customerId: customer.id,
+            projectName: jootoTask.workName,
+            status: 'aggregating', // 詳細画面を開いた時点で集計中に設定
+          },
           include: {
-            report: {
+            customer: true,
+            reportItems: {
               include: {
-                worker: true,
+                report: {
+                  include: {
+                    worker: true,
+                  },
+                },
+                machine: true,
               },
             },
-            machine: true,
+            adjustments: {
+              include: {
+                user: true,
+              },
+              orderBy: {
+                createdAt: 'desc',
+              },
+            },
+            materials: {
+              orderBy: {
+                createdAt: 'asc',
+              },
+            },
           },
-        },
-        adjustments: {
+        });
+      } else if (workOrder.status !== 'aggregating') {
+        // ステータスを集計中に更新
+        workOrder = await prisma.workOrder.update({
+          where: { id: workOrder.id },
+          data: { status: 'aggregating' },
           include: {
-            user: true,
+            customer: true,
+            reportItems: {
+              include: {
+                report: {
+                  include: {
+                    worker: true,
+                  },
+                },
+                machine: true,
+              },
+            },
+            adjustments: {
+              include: {
+                user: true,
+              },
+              orderBy: {
+                createdAt: 'desc',
+              },
+            },
+            materials: {
+              orderBy: {
+                createdAt: 'asc',
+              },
+            },
           },
-          orderBy: {
-            createdAt: 'desc',
+        });
+      }
+    } else {
+      // 通常の工番IDの場合
+      workOrder = await prisma.workOrder.findUnique({
+        where: { id },
+        include: {
+          customer: true,
+          reportItems: {
+            include: {
+              report: {
+                include: {
+                  worker: true,
+                },
+              },
+              machine: true,
+            },
           },
-        },
-      },
-    });
+          adjustments: {
+            include: {
+              user: true,
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
+          materials: {
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
+        });
+      }
 
     if (!workOrder) {
-      return NextResponse.json(
+      return Response.json(
         { error: '工番が見つかりません' },
         { status: 404 }
       );
@@ -205,6 +347,15 @@ export async function GET(
       createdAt: adj.createdAt.toISOString(),
     }));
 
+    // 材料費を整形
+    const materials = workOrder.materials.map(material => ({
+      id: material.id,
+      name: material.name,
+      unitPrice: material.unitPrice,
+      quantity: material.quantity,
+      totalAmount: material.totalAmount,
+    }));
+
     // 総時間を計算
     const totalHours = activities.reduce((sum, activity) => sum + activity.hours, 0);
 
@@ -218,6 +369,7 @@ export async function GET(
       totalHours: Math.round(totalHours * 10) / 10,
       activities,
       adjustments,
+      materials,
     };
 
     return NextResponse.json(result);
