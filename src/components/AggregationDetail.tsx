@@ -19,6 +19,14 @@ interface ActivitySummary {
   adjustment: number;
 }
 
+interface Material {
+  id: string;
+  name: string;
+  unitPrice: number;
+  quantity: number;
+  totalAmount: number;
+}
+
 interface WorkOrderDetail {
   id: string;
   workNumber: string;
@@ -28,6 +36,7 @@ interface WorkOrderDetail {
   status: 'aggregating' | 'aggregated';
   totalHours: number;
   activities: ActivitySummary[];
+  materials: Material[];
   adjustments: Array<{
     id: string;
     type: string;

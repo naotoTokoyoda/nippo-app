@@ -126,15 +126,8 @@ export async function GET(
             include: {
               user: true,
             },
-            orderBy: {
-              createdAt: 'desc',
-            },
           },
-          materials: {
-            orderBy: {
-              createdAt: 'asc',
-            },
-          },
+          materials: true,
         },
       });
 
@@ -146,8 +139,14 @@ export async function GET(
         });
 
         if (!customer) {
+          // 顧客コードを生成（顧客名の最初の3文字 + ランダム数字）
+          const customerCode = jootoTask.customerName.slice(0, 3) + Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+          
           customer = await prisma.customer.create({
-            data: { name: jootoTask.customerName },
+            data: { 
+              name: jootoTask.customerName,
+              code: customerCode,
+            },
           });
         }
 
@@ -158,7 +157,7 @@ export async function GET(
             backNumber: jootoTask.workNumberBack,
             customerId: customer.id,
             projectName: jootoTask.workName,
-            status: 'aggregating', // 詳細画面を開いた時点で集計中に設定
+            status: 'aggregating',
           },
           include: {
             customer: true,
@@ -176,15 +175,8 @@ export async function GET(
               include: {
                 user: true,
               },
-              orderBy: {
-                createdAt: 'desc',
-              },
             },
-            materials: {
-              orderBy: {
-                createdAt: 'asc',
-              },
-            },
+            materials: true,
           },
         });
       } else if (workOrder.status !== 'aggregating') {
@@ -208,15 +200,8 @@ export async function GET(
               include: {
                 user: true,
               },
-              orderBy: {
-                createdAt: 'desc',
-              },
             },
-            materials: {
-              orderBy: {
-                createdAt: 'asc',
-              },
-            },
+            materials: true,
           },
         });
       }
@@ -240,17 +225,11 @@ export async function GET(
             include: {
               user: true,
             },
-            orderBy: {
-              createdAt: 'desc',
-            },
           },
-          materials: {
-            orderBy: {
-              createdAt: 'asc',
-            },
-          },
-        });
-      }
+          materials: true,
+        },
+      });
+    }
 
     if (!workOrder) {
       return Response.json(
