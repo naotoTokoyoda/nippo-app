@@ -75,7 +75,6 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
       }
 
       const data = await response.json();
-      console.log('fetchWorkOrderDetail - 取得したデータ:', data.materials);
       setWorkOrder(data);
     } catch (error) {
       console.error('集計詳細取得エラー:', error);
@@ -174,17 +173,11 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
       quantity: 1,
       totalAmount: 0,
     };
-    console.log('addMaterial - 新しい材料を追加:', newMaterial);
-    setEditedMaterials(prev => {
-      const updated = [...prev, newMaterial];
-      console.log('addMaterial - 更新後の材料配列:', updated);
-      return updated;
-    });
+    setEditedMaterials(prev => [...prev, newMaterial]);
     setShowMaterialForm(true);
   };
 
   const updateMaterial = (index: number, field: keyof Material, value: string | number) => {
-    console.log('updateMaterial - 更新:', { index, field, value });
     setEditedMaterials(prev => {
       const updated = [...prev];
       
@@ -203,28 +196,12 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
         updated[index].totalAmount = unitPrice * quantity;
       }
       
-      console.log('updateMaterial - 更新後の材料:', updated[index]);
-      console.log('updateMaterial - 全材料配列:', updated);
-      
       return updated;
     });
   };
 
   const removeMaterial = (index: number) => {
-    console.log('removeMaterial 呼び出し - index:', index);
-    console.log('removeMaterial 呼び出し前の材料配列:', editedMaterials);
-    
-    setEditedMaterials(prev => {
-      console.log('removeMaterial setEditedMaterials 内 - prev:', prev);
-      console.log('removeMaterial setEditedMaterials 内 - 削除対象index:', index);
-      
-      const updated = prev.filter((_, i) => i !== index);
-      console.log('removeMaterial setEditedMaterials 内 - 削除後配列:', updated);
-      
-      return updated;
-    });
-    
-    console.log('removeMaterial 完了');
+    setEditedMaterials(prev => prev.filter((_, i) => i !== index));
   };
 
   // 変更内容を計算する関数
@@ -265,42 +242,25 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
       // 編集中の材料（空の名前を除外）
       const validEditedMaterials = editedMaterials.filter(m => m.name.trim() !== '');
       
-      console.log('calculateChanges - hasMaterialChanges - 有効な編集中材料:', validEditedMaterials);
-      console.log('calculateChanges - hasMaterialChanges - 既存材料数:', workOrder.materials.length);
-      console.log('calculateChanges - hasMaterialChanges - 編集中材料数:', validEditedMaterials.length);
-      
       // 既存の材料と編集中の材料の数が違う場合は変更あり（削除された場合を含む）
       if (validEditedMaterials.length !== workOrder.materials.length) {
-        console.log('calculateChanges - hasMaterialChanges - 材料数が違うため変更あり');
         return true;
       }
       
       // 材料の内容が変更されているかチェック
       const hasContentChanges = validEditedMaterials.some((editedMaterial, index) => {
         const originalMaterial = workOrder.materials[index];
-        const changed = !originalMaterial || 
+        return !originalMaterial || 
                editedMaterial.name !== originalMaterial.name ||
                editedMaterial.unitPrice !== originalMaterial.unitPrice ||
                editedMaterial.quantity !== originalMaterial.quantity ||
                editedMaterial.totalAmount !== originalMaterial.totalAmount;
-        
-        if (changed) {
-          console.log('calculateChanges - hasMaterialChanges - 内容変更あり:', { editedMaterial, originalMaterial });
-        }
-        
-        return changed;
       });
       
-      console.log('calculateChanges - hasMaterialChanges - 最終結果:', hasContentChanges);
       return hasContentChanges;
     };
 
     const materialChangesExist = hasMaterialChanges();
-
-    console.log('calculateChanges - 最終判定:');
-    console.log('  - 単価変更数:', rateChanges.length);
-    console.log('  - 材料変更あり:', materialChangesExist);
-    console.log('  - 総変更あり:', rateChanges.length > 0 || materialChangesExist);
 
     // 単価変更または材料費変更があれば変更ありとする
     // 材料変更のみの場合でも、空でない配列を返す（ダミーの変更項目を追加）
@@ -327,16 +287,6 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
     // changes配列が空でない = 単価変更または材料変更がある
     const hasAnyChanges = changes.length > 0;
     
-    // 材料変更の詳細チェック（デバッグ用）
-    const validEditedMaterials = editedMaterials.filter(m => m.name.trim() !== '');
-    console.log('handleSaveClick - デバッグ情報:');
-    console.log('  - 単価変更数:', changes.filter(c => c.adjustment !== 0).length);
-    console.log('  - 既存材料数:', workOrder?.materials.length || 0);
-    console.log('  - 編集中材料数:', validEditedMaterials.length);
-    console.log('  - 既存材料:', workOrder?.materials);
-    console.log('  - 編集中材料:', validEditedMaterials);
-    console.log('  - 変更あり:', hasAnyChanges);
-    
     if (!hasAnyChanges) {
       alert('変更がありません。');
       return;
@@ -358,7 +308,6 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
         };
       });
 
-      console.log('保存時の材料データ:', editedMaterials);
       
       const response = await fetch(`/api/aggregation/${workOrderId}`, {
         method: 'PATCH',
@@ -389,7 +338,6 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
       await fetchWorkOrderDetail();
       
       // 保存後のデータを確認
-      console.log('保存後のworkOrder.materials:', workOrder?.materials);
       
       // 成功トーストを表示
       showToast('単価の更新が保存されました', 'success');
@@ -591,7 +539,6 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div className="bg-blue-50 px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-medium text-blue-900">実際請求</h3>
-              <p className="text-sm text-blue-600">編集可能な請求単価で計算</p>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -710,11 +657,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
                           </div>
                           <div className="col-span-1">
                             <button
-                              onClick={() => {
-                                console.log('削除ボタンクリック - index:', index);
-                                console.log('削除ボタンクリック - 削除対象材料:', material);
-                                removeMaterial(index);
-                              }}
+                              onClick={() => removeMaterial(index)}
                               className="text-red-600 hover:text-red-800 text-sm"
                             >
                               削除
@@ -770,7 +713,6 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-medium text-gray-900">原価合計</h3>
-              <p className="text-sm text-gray-600">固定の原価単価で計算</p>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
