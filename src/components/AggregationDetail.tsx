@@ -208,7 +208,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
   const calculateChanges = () => {
     if (!workOrder) return [];
     
-    return Object.entries(editedRates).map(([activity, data]) => {
+    const rateChanges = Object.entries(editedRates).map(([activity, data]) => {
       const activityData = workOrder.activities.find(a => a.activity === activity);
       if (!activityData) return null;
       
@@ -234,12 +234,22 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
       hours: number;
       adjustment: number;
     }>;
+
+    // 材料費の変更もチェック
+    const hasMaterialChanges = editedMaterials.length > 0 && 
+      editedMaterials.some(material => material.name.trim() !== '');
+
+    // 単価変更または材料費変更があれば変更ありとする
+    return rateChanges.length > 0 || hasMaterialChanges ? rateChanges : [];
   };
 
   // 保存ボタンクリック時（確認モーダルを表示）
   const handleSaveClick = () => {
     const changes = calculateChanges();
-    if (changes.length === 0) {
+    const hasMaterialChanges = editedMaterials.length > 0 && 
+      editedMaterials.some(material => material.name.trim() !== '');
+    
+    if (changes.length === 0 && !hasMaterialChanges) {
       alert('変更がありません。');
       return;
     }
