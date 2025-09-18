@@ -201,7 +201,11 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
   };
 
   const removeMaterial = (index: number) => {
-    setEditedMaterials(prev => prev.filter((_, i) => i !== index));
+    setEditedMaterials(prev => {
+      const updated = prev.filter((_, i) => i !== index);
+      console.log('材料削除後:', updated);
+      return updated;
+    });
   };
 
   // 変更内容を計算する関数
@@ -270,6 +274,8 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
         };
       });
 
+      console.log('保存時の材料データ:', editedMaterials);
+      
       const response = await fetch(`/api/aggregation/${workOrderId}`, {
         method: 'PATCH',
         headers: {
