@@ -381,16 +381,51 @@ export async function PATCH(
 
     const validatedData = updateSchema.parse(body);
 
-    // 工番の存在確認
-    const workOrder = await prisma.workOrder.findUnique({
-      where: { id },
-    });
+    let workOrder;
 
-    if (!workOrder) {
-      return NextResponse.json(
-        { error: '工番が見つかりません' },
-        { status: 404 }
-      );
+    // JootoタスクIDの場合の処理
+    if (id.startsWith('jooto-')) {
+      const taskId = id.replace('jooto-', '');
+      
+      // Jooto APIからタスク情報を取得
+      const deliveredTasks = await getDeliveredTasks();
+      const jootoTask = deliveredTasks.find(task => task.taskId.toString() === taskId);
+      
+      if (!jootoTask) {
+        return Response.json(
+          { error: 'Jootoタスクが見つかりません' },
+          { status: 404 }
+        );
+      }
+
+      // 既存の工番データを確認
+      workOrder = await prisma.workOrder.findUnique({
+        where: {
+          frontNumber_backNumber: {
+            frontNumber: jootoTask.workNumberFront,
+            backNumber: jootoTask.workNumberBack,
+          },
+        },
+      });
+
+      if (!workOrder) {
+        return Response.json(
+          { error: '工番が見つかりません' },
+          { status: 404 }
+        );
+      }
+    } else {
+      // 通常の工番IDの場合
+      workOrder = await prisma.workOrder.findUnique({
+        where: { id },
+      });
+
+      if (!workOrder) {
+        return NextResponse.json(
+          { error: '工番が見つかりません' },
+          { status: 404 }
+        );
+      }
     }
 
     // 集計済みの場合は編集を禁止
@@ -450,7 +485,7 @@ export async function PATCH(
                 // この工番のこのactivityの総時間を取得
                 const reportItems = await tx.reportItem.findMany({
                   where: {
-                    workOrderId: id,
+                    workOrderId: workOrder.id,
                   },
                   include: {
                     report: {
@@ -472,7 +507,7 @@ export async function PATCH(
 
                 await tx.adjustment.create({
                   data: {
-                    workOrderId: id,
+                    workOrderId: workOrder.id,
                     type: 'rate_adjustment',
                     amount: totalAdjustment,
                     reason: `${activity}単価調整 (${formatCurrency(oldBillRate)} → ${formatCurrency(newBillRate)})`,
@@ -489,7 +524,7 @@ export async function PATCH(
       // ステータス更新
       if (validatedData.status) {
         await tx.workOrder.update({
-          where: { id },
+          where: { id: workOrder.id },
           data: { status: validatedData.status },
         });
       }
