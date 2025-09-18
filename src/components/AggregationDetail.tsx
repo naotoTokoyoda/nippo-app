@@ -249,7 +249,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
   };
 
   const handleFinalize = async () => {
-    if (confirm('単価を確定しますか？確定後は編集できなくなります。')) {
+    if (confirm('集計を完了しますか？完了後は編集できなくなります。')) {
       try {
         const response = await fetch(`/api/aggregation/${workOrderId}`, {
           method: 'PATCH',
@@ -263,14 +263,14 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || '確定処理に失敗しました');
+          throw new Error(errorData.error || '完了処理に失敗しました');
         }
 
-        alert('単価が確定されました');
+        showToast('集計が完了されました', 'success');
         router.push('/aggregation');
       } catch (error) {
-        console.error('確定エラー:', error);
-        alert(error instanceof Error ? error.message : '確定処理中にエラーが発生しました');
+        console.error('完了エラー:', error);
+        showToast(error instanceof Error ? error.message : '完了処理中にエラーが発生しました', 'error');
       }
     }
   };
@@ -325,7 +325,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
       <div className="space-y-6">
         {/* ヘッダー情報 */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-500">工番</label>
               <div className="text-lg font-semibold">{workOrder.workNumber}</div>
@@ -342,6 +342,18 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
             <div>
               <label className="block text-sm font-medium text-gray-500">総時間</label>
               <div className="text-lg font-semibold">{formatHours(workOrder.totalHours)}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-500">ステータス</label>
+              <div className="flex items-center">
+                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                  workOrder.status === 'aggregating' 
+                    ? 'bg-yellow-100 text-yellow-800' 
+                    : 'bg-green-100 text-green-800'
+                }`}>
+                  {workOrder.status === 'aggregating' ? '集計中' : '完了'}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -416,129 +428,247 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
                   onClick={handleFinalize}
                   className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
                 >
-                  単価確定
+                  完了
                 </button>
               </>
             )}
           </div>
         </div>
 
-        {/* 区分別集計表 */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    区分
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    時間
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    原価単価
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    原価
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    請求単価
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    請求小計
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    調整
-                  </th>
-                  {isEditing && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      備考
+        {/* 左右並べ表示（実際請求 | 原価合計） */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* 左側: 実際請求 */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-blue-50 px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-medium text-blue-900">実際請求</h3>
+              <p className="text-sm text-blue-600">編集可能な請求単価で計算</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      区分
                     </th>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {workOrder.activities.map((activity) => (
-                  <tr key={activity.activity}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {activity.activityName}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {formatHours(activity.hours)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {formatCurrency(activity.costRate)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {formatCurrency(activity.costAmount)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {isEditing ? (
-                        <input
-                          type="number"
-                          value={editedRates[activity.activity]?.billRate ?? activity.billRate.toString()}
-                          onChange={(e) => handleRateEdit(activity.activity, 'billRate', e.target.value)}
-                          className="w-24 px-2 py-1 border border-gray-300 rounded text-right"
-                          min="0"
-                          step="1000"
-                        />
-                      ) : (
-                        formatCurrency(activity.billRate)
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {(() => {
-                        const editedRate = editedRates[activity.activity];
-                        const currentBillRate = editedRate ? parseInt(editedRate.billRate) || activity.billRate : activity.billRate;
-                        const currentBillAmount = activity.hours * currentBillRate;
-                        return formatCurrency(currentBillAmount);
-                      })()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                      {(() => {
-                        const editedRate = editedRates[activity.activity];
-                        
-                        // 編集中の場合は差額を計算
-                        if (editedRate) {
-                          const currentBillRate = parseInt(editedRate.billRate) || 0;
-                          const originalBillRate = activity.billRate;
-                          const originalAmount = activity.hours * originalBillRate;
-                          const newAmount = activity.hours * currentBillRate;
-                          const adjustment = newAmount - originalAmount;
-                          
-                          return (
-                            <span className={adjustment === 0 ? 'text-gray-900' : adjustment > 0 ? 'text-green-600' : 'text-red-600'}>
-                              {formatCurrency(adjustment)}
-                            </span>
-                          );
-                        }
-                        
-                        // 編集されていない場合はAPIから返された調整額を使用
-                        const adjustment = activity.adjustment;
-                        return (
-                          <span className={adjustment === 0 ? 'text-gray-900' : adjustment > 0 ? 'text-green-600' : 'text-red-600'}>
-                            {formatCurrency(adjustment)}
-                          </span>
-                        );
-                      })()}
-                    </td>
-                    {isEditing && (
-                      <td className="px-6 py-4 text-sm">
-                        <input
-                          type="text"
-                          value={editedRates[activity.activity]?.memo || ''}
-                          onChange={(e) => handleRateEdit(activity.activity, 'memo', e.target.value)}
-                          placeholder="調整理由"
-                          className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                        />
-                      </td>
-                    )}
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      時間
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      単価
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      小計
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {workOrder.activities.map((activity) => (
+                    <tr key={activity.activity}>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {activity.activityName}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                        {formatHours(activity.hours)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            value={editedRates[activity.activity]?.billRate ?? activity.billRate.toString()}
+                            onChange={(e) => handleRateEdit(activity.activity, 'billRate', e.target.value)}
+                            className="w-20 px-2 py-1 border border-gray-300 rounded text-right text-sm"
+                            min="0"
+                            step="1000"
+                          />
+                        ) : (
+                          formatCurrency(activity.billRate)
+                        )}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-semibold">
+                        {(() => {
+                          const editedRate = editedRates[activity.activity];
+                          const currentBillRate = editedRate ? parseInt(editedRate.billRate) || activity.billRate : activity.billRate;
+                          const currentBillAmount = activity.hours * currentBillRate;
+                          return formatCurrency(currentBillAmount);
+                        })()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {/* 材料費セクション */}
+            <div className="border-t border-gray-200 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-medium text-gray-700">材料費</h4>
+                {isEditing && (
+                  <button className="text-blue-600 hover:text-blue-800 text-sm">
+                    + 追加
+                  </button>
+                )}
+              </div>
+              {workOrder.materials.length > 0 ? (
+                <div className="space-y-2">
+                  {workOrder.materials.map((material) => (
+                    <div key={material.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded">
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-gray-900">{material.name}</div>
+                        <div className="text-xs text-gray-500">
+                          {formatCurrency(material.unitPrice)} × {material.quantity}個
+                        </div>
+                      </div>
+                      <div className="text-sm font-semibold text-gray-900">
+                        {formatCurrency(material.totalAmount)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-gray-500 text-sm">
+                  材料費はありません
+                </div>
+              )}
+            </div>
+            {/* 請求側合計 */}
+            <div className="border-t border-gray-200 bg-blue-50 p-4">
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">労務費小計</span>
+                  <span className="text-sm font-medium">{formatCurrency(totals.billTotal)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">材料費小計</span>
+                  <span className="text-sm font-medium">
+                    {formatCurrency(workOrder.materials.reduce((sum, m) => sum + m.totalAmount, 0))}
+                  </span>
+                </div>
+                <div className="border-t border-blue-200 pt-2 flex justify-between items-center">
+                  <span className="font-semibold text-blue-900">請求合計</span>
+                  <span className="text-lg font-bold text-blue-900">
+                    {formatCurrency(totals.billTotal + workOrder.materials.reduce((sum, m) => sum + m.totalAmount, 0))}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 右側: 原価合計 */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900">原価合計</h3>
+              <p className="text-sm text-gray-600">固定の原価単価で計算</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      区分
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      時間
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      単価
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      小計
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {workOrder.activities.map((activity) => (
+                    <tr key={activity.activity}>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {activity.activityName}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                        {formatHours(activity.hours)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                        {formatCurrency(activity.costRate)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-semibold">
+                        {formatCurrency(activity.costAmount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {/* 材料費セクション（原価側） */}
+            <div className="border-t border-gray-200 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-medium text-gray-700">材料費</h4>
+              </div>
+              {workOrder.materials.length > 0 ? (
+                <div className="space-y-2">
+                  {workOrder.materials.map((material) => (
+                    <div key={material.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded">
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-gray-900">{material.name}</div>
+                        <div className="text-xs text-gray-500">
+                          {formatCurrency(material.unitPrice)} × {material.quantity}個
+                        </div>
+                      </div>
+                      <div className="text-sm font-semibold text-gray-900">
+                        {formatCurrency(material.totalAmount)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-gray-500 text-sm">
+                  材料費はありません
+                </div>
+              )}
+            </div>
+            {/* 原価側合計 */}
+            <div className="border-t border-gray-200 bg-gray-50 p-4">
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">労務費小計</span>
+                  <span className="text-sm font-medium">{formatCurrency(totals.costTotal)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">材料費小計</span>
+                  <span className="text-sm font-medium">
+                    {formatCurrency(workOrder.materials.reduce((sum, m) => sum + m.totalAmount, 0))}
+                  </span>
+                </div>
+                <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
+                  <span className="font-semibold text-gray-900">原価合計</span>
+                  <span className="text-lg font-bold text-gray-900">
+                    {formatCurrency(totals.costTotal + workOrder.materials.reduce((sum, m) => sum + m.totalAmount, 0))}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* 編集中の備考入力 */}
+        {isEditing && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">調整理由</h3>
+            <div className="space-y-4">
+              {workOrder.activities.map((activity) => (
+                <div key={activity.activity} className="flex items-center space-x-4">
+                  <div className="w-24 text-sm font-medium text-gray-700">
+                    {activity.activityName}
+                  </div>
+                  <input
+                    type="text"
+                    value={editedRates[activity.activity]?.memo || ''}
+                    onChange={(e) => handleRateEdit(activity.activity, 'memo', e.target.value)}
+                    placeholder="調整理由を入力..."
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* 集計サマリー */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
