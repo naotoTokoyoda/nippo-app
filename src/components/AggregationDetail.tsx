@@ -62,6 +62,8 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
   const [editedRates, setEditedRates] = useState<Record<string, { billRate: string; memo: string }>>({});
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [editedMaterials, setEditedMaterials] = useState<Material[]>([]);
+  const [showMaterialForm, setShowMaterialForm] = useState(false);
 
   // APIからデータを取得
   const fetchWorkOrderDetail = useCallback(async () => {
@@ -156,6 +158,43 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
     }));
   };
 
+  // 材料費管理
+  const initializeMaterials = () => {
+    if (workOrder) {
+      setEditedMaterials([...workOrder.materials]);
+    }
+  };
+
+  const addMaterial = () => {
+    const newMaterial: Material = {
+      id: `temp-${Date.now()}`,
+      name: '',
+      unitPrice: 0,
+      quantity: 1,
+      totalAmount: 0,
+    };
+    setEditedMaterials(prev => [...prev, newMaterial]);
+    setShowMaterialForm(true);
+  };
+
+  const updateMaterial = (index: number, field: keyof Material, value: string | number) => {
+    setEditedMaterials(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      
+      // 単価または数量が変更された場合は合計金額を再計算
+      if (field === 'unitPrice' || field === 'quantity') {
+        updated[index].totalAmount = updated[index].unitPrice * updated[index].quantity;
+      }
+      
+      return updated;
+    });
+  };
+
+  const removeMaterial = (index: number) => {
+    setEditedMaterials(prev => prev.filter((_, i) => i !== index));
+  };
+
   // 変更内容を計算する関数
   const calculateChanges = () => {
     if (!workOrder) return [];
@@ -233,6 +272,8 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
       // 編集状態をリセット
       setIsEditing(false);
       setEditedRates({});
+      setEditedMaterials([]);
+      setShowMaterialForm(false);
       
       // データを再取得して最新状態を表示
       await fetchWorkOrderDetail();
@@ -392,6 +433,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
                         };
                       });
                       setEditedRates(initialRates);
+                      initializeMaterials();
                       setIsEditing(true);
                     }}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
@@ -404,6 +446,8 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
                       onClick={() => {
                         setIsEditing(false);
                         setEditedRates({});
+                        setEditedMaterials([]);
+                        setShowMaterialForm(false);
                       }}
                       className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
                     >
@@ -502,24 +546,76 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-sm font-medium text-gray-700">材料費</h4>
                 {isEditing && (
-                  <button className="text-blue-600 hover:text-blue-800 text-sm">
+                  <button 
+                    onClick={addMaterial}
+                    className="text-blue-600 hover:text-blue-800 text-sm"
+                  >
                     + 追加
                   </button>
                 )}
               </div>
-              {workOrder.materials.length > 0 ? (
+              {(isEditing ? editedMaterials : workOrder.materials).length > 0 ? (
                 <div className="space-y-2">
-                  {workOrder.materials.map((material) => (
-                    <div key={material.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded">
-                      <div className="flex-1">
-                        <div className="text-sm font-medium text-gray-900">{material.name}</div>
-                        <div className="text-xs text-gray-500">
-                          {formatCurrency(material.unitPrice)} × {material.quantity}個
+                  {(isEditing ? editedMaterials : workOrder.materials).map((material, index) => (
+                    <div key={material.id} className="py-2 px-3 bg-gray-50 rounded">
+                      {isEditing ? (
+                        <div className="grid grid-cols-12 gap-2 items-center">
+                          <div className="col-span-4">
+                            <input
+                              type="text"
+                              value={material.name}
+                              onChange={(e) => updateMaterial(index, 'name', e.target.value)}
+                              placeholder="材料名"
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <input
+                              type="number"
+                              value={material.unitPrice}
+                              onChange={(e) => updateMaterial(index, 'unitPrice', parseInt(e.target.value) || 0)}
+                              placeholder="単価"
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm text-right"
+                              min="0"
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <input
+                              type="number"
+                              value={material.quantity}
+                              onChange={(e) => updateMaterial(index, 'quantity', parseInt(e.target.value) || 1)}
+                              placeholder="数量"
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm text-right"
+                              min="1"
+                            />
+                          </div>
+                          <div className="col-span-3 text-right">
+                            <span className="text-sm font-semibold text-gray-900">
+                              {formatCurrency(material.totalAmount)}
+                            </span>
+                          </div>
+                          <div className="col-span-1">
+                            <button
+                              onClick={() => removeMaterial(index)}
+                              className="text-red-600 hover:text-red-800 text-sm"
+                            >
+                              削除
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-sm font-semibold text-gray-900">
-                        {formatCurrency(material.totalAmount)}
-                      </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-gray-900">{material.name}</div>
+                            <div className="text-xs text-gray-500">
+                              {formatCurrency(material.unitPrice)} × {material.quantity}個
+                            </div>
+                          </div>
+                          <div className="text-sm font-semibold text-gray-900">
+                            {formatCurrency(material.totalAmount)}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -539,13 +635,13 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">材料費小計</span>
                   <span className="text-sm font-medium">
-                    {formatCurrency(workOrder.materials.reduce((sum, m) => sum + m.totalAmount, 0))}
+                    {formatCurrency((isEditing ? editedMaterials : workOrder.materials).reduce((sum, m) => sum + m.totalAmount, 0))}
                   </span>
                 </div>
                 <div className="border-t border-blue-200 pt-2 flex justify-between items-center">
                   <span className="font-semibold text-blue-900">請求合計</span>
                   <span className="text-lg font-bold text-blue-900">
-                    {formatCurrency(totals.billTotal + workOrder.materials.reduce((sum, m) => sum + m.totalAmount, 0))}
+                    {formatCurrency(totals.billTotal + (isEditing ? editedMaterials : workOrder.materials).reduce((sum, m) => sum + m.totalAmount, 0))}
                   </span>
                 </div>
               </div>
@@ -601,9 +697,9 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-sm font-medium text-gray-700">材料費</h4>
               </div>
-              {workOrder.materials.length > 0 ? (
+              {(isEditing ? editedMaterials : workOrder.materials).length > 0 ? (
                 <div className="space-y-2">
-                  {workOrder.materials.map((material) => (
+                  {(isEditing ? editedMaterials : workOrder.materials).map((material) => (
                     <div key={material.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded">
                       <div className="flex-1">
                         <div className="text-sm font-medium text-gray-900">{material.name}</div>
@@ -633,13 +729,13 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">材料費小計</span>
                   <span className="text-sm font-medium">
-                    {formatCurrency(workOrder.materials.reduce((sum, m) => sum + m.totalAmount, 0))}
+                    {formatCurrency((isEditing ? editedMaterials : workOrder.materials).reduce((sum, m) => sum + m.totalAmount, 0))}
                   </span>
                 </div>
                 <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
                   <span className="font-semibold text-gray-900">原価合計</span>
                   <span className="text-lg font-bold text-gray-900">
-                    {formatCurrency(totals.costTotal + workOrder.materials.reduce((sum, m) => sum + m.totalAmount, 0))}
+                    {formatCurrency(totals.costTotal + (isEditing ? editedMaterials : workOrder.materials).reduce((sum, m) => sum + m.totalAmount, 0))}
                   </span>
                 </div>
               </div>
