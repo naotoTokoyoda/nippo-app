@@ -75,6 +75,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
       }
 
       const data = await response.json();
+      console.log('fetchWorkOrderDetail - 取得したデータ:', data.materials);
       setWorkOrder(data);
     } catch (error) {
       console.error('集計詳細取得エラー:', error);
@@ -303,6 +304,9 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
       
       // データを再取得して最新状態を表示
       await fetchWorkOrderDetail();
+      
+      // 保存後のデータを確認
+      console.log('保存後のworkOrder.materials:', workOrder?.materials);
       
       // 成功トーストを表示
       showToast('単価の更新が保存されました', 'success');
