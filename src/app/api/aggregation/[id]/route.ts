@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import { getDeliveredTasks } from '@/lib/jooto-api';
+import { getDeliveredTasks, moveJootoTask } from '@/lib/jooto-api';
 
 // 型定義
 interface ReportItem {
@@ -529,6 +529,24 @@ export async function PATCH(
         });
       }
     });
+
+    // Jootoタスクの移動（トランザクション外で実行）
+    if (validatedData.status === 'aggregated' && id.startsWith('jooto-')) {
+      try {
+        const taskId = id.replace('jooto-', '');
+        const aggregatingListId = process.env.JOOTO_AGGREGATING_LIST_ID;
+        
+        if (aggregatingListId) {
+          await moveJootoTask(taskId, aggregatingListId);
+          console.log(`Moved Jooto task ${taskId} from 納品済み to 集計中`);
+        } else {
+          console.warn('JOOTO_AGGREGATING_LIST_ID environment variable is not set');
+        }
+      } catch (jootoError) {
+        // Jootoの移動が失敗してもデータベースの更新は成功として扱う
+        console.error('Jooto task move failed, but database update succeeded:', jootoError);
+      }
+    }
 
     return NextResponse.json({ success: true });
 

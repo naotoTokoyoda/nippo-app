@@ -277,3 +277,42 @@ export async function getJootoOrganization() {
     throw error;
   }
 }
+
+/**
+ * Jootoタスクを別のリストに移動する
+ */
+export async function moveJootoTask(taskId: string, listId: string): Promise<void> {
+  try {
+    if (!JOOTO_CONFIG.apiKey) {
+      throw new Error('JOOTO_API_KEY environment variable is not set');
+    }
+    if (!JOOTO_CONFIG.boardId) {
+      throw new Error('JOOTO_BOARD_ID environment variable is not set');
+    }
+
+    const url = `https://api.jooto.com/v1/tasks/${taskId}/move`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'X-Jooto-Api-Key': JOOTO_CONFIG.apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        board_id: parseInt(JOOTO_CONFIG.boardId),
+        list_id: parseInt(listId),
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Jooto task move error: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+
+    console.log(`Successfully moved Jooto task ${taskId} to list ${listId}`);
+  } catch (error) {
+    console.error('Jooto task move error:', error);
+    throw error;
+  }
+}
