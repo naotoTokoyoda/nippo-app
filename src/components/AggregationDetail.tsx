@@ -883,6 +883,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
         onClose={() => setShowSaveConfirm(false)}
         onConfirm={handleSaveConfirm}
         changes={calculateChanges()}
+        materials={editedMaterials.filter(material => material.name.trim() !== '')}
       />
 
 

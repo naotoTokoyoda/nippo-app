@@ -15,13 +15,21 @@ interface SaveConfirmModalProps {
     hours: number;
     adjustment: number;
   }>;
+  materials?: Array<{
+    id: string;
+    name: string;
+    unitPrice: number;
+    quantity: number;
+    totalAmount: number;
+  }>;
 }
 
 export default function SaveConfirmModal({ 
   isOpen, 
   onClose, 
   onConfirm, 
-  changes 
+  changes,
+  materials = []
 }: SaveConfirmModalProps) {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -57,10 +65,11 @@ export default function SaveConfirmModal({
 
         {/* 変更内容 */}
         <div className="px-6 py-4 max-h-96 overflow-y-auto">
-          {changes.length === 0 ? (
+          {changes.length === 0 && materials.length === 0 ? (
             <p className="text-gray-500">変更はありません。</p>
           ) : (
             <div className="space-y-4">
+              {/* 単価変更 */}
               {changes.map((change, index) => (
                 <div key={index} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex items-start justify-between mb-2">
@@ -92,6 +101,36 @@ export default function SaveConfirmModal({
                   )}
                 </div>
               ))}
+              
+              {/* 材料費変更 */}
+              {materials.length > 0 && (
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <h3 className="font-medium text-gray-900 mb-3">材料費の更新</h3>
+                  <div className="space-y-2">
+                    {materials.map((material, index) => (
+                      <div key={material.id || index} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded">
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-gray-900">{material.name}</div>
+                          <div className="text-xs text-gray-500">
+                            {formatCurrency(material.unitPrice)} × {material.quantity}個
+                          </div>
+                        </div>
+                        <div className="text-sm font-semibold text-gray-900">
+                          {formatCurrency(material.totalAmount)}
+                        </div>
+                      </div>
+                    ))}
+                    <div className="border-t border-gray-200 pt-2 mt-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium text-gray-700">材料費合計</span>
+                        <span className="text-sm font-bold text-gray-900">
+                          {formatCurrency(materials.reduce((sum, m) => sum + m.totalAmount, 0))}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -107,7 +146,7 @@ export default function SaveConfirmModal({
           </button>
           <button
             onClick={handleConfirm}
-            disabled={isLoading || changes.length === 0}
+            disabled={isLoading || (changes.length === 0 && materials.length === 0)}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 flex items-center"
           >
             {isLoading && (
