@@ -180,11 +180,20 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
   const updateMaterial = (index: number, field: keyof Material, value: string | number) => {
     setEditedMaterials(prev => {
       const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
+      
+      // 数値フィールドの場合は適切に変換
+      if (field === 'unitPrice' || field === 'quantity') {
+        const numValue = typeof value === 'string' ? parseInt(value) || 0 : value;
+        updated[index] = { ...updated[index], [field]: numValue };
+      } else {
+        updated[index] = { ...updated[index], [field]: value };
+      }
       
       // 単価または数量が変更された場合は合計金額を再計算
       if (field === 'unitPrice' || field === 'quantity') {
-        updated[index].totalAmount = updated[index].unitPrice * updated[index].quantity;
+        const unitPrice = field === 'unitPrice' ? (typeof value === 'string' ? parseInt(value) || 0 : value) : updated[index].unitPrice;
+        const quantity = field === 'quantity' ? (typeof value === 'string' ? parseInt(value) || 1 : value) : updated[index].quantity;
+        updated[index].totalAmount = unitPrice * quantity;
       }
       
       return updated;
@@ -258,6 +267,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
         },
         body: JSON.stringify({
           billRateAdjustments: adjustmentsForAPI,
+          materials: editedMaterials,
         }),
       });
 
@@ -572,21 +582,29 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
                           <div className="col-span-2">
                             <input
                               type="number"
-                              value={material.unitPrice}
-                              onChange={(e) => updateMaterial(index, 'unitPrice', parseInt(e.target.value) || 0)}
+                              value={material.unitPrice === 0 ? '' : material.unitPrice}
+                              onChange={(e) => {
+                                const value = e.target.value === '' ? 0 : parseInt(e.target.value);
+                                updateMaterial(index, 'unitPrice', value);
+                              }}
                               placeholder="単価"
                               className="w-full px-2 py-1 border border-gray-300 rounded text-sm text-right"
                               min="0"
+                              step="1"
                             />
                           </div>
                           <div className="col-span-2">
                             <input
                               type="number"
-                              value={material.quantity}
-                              onChange={(e) => updateMaterial(index, 'quantity', parseInt(e.target.value) || 1)}
+                              value={material.quantity === 0 ? '' : material.quantity}
+                              onChange={(e) => {
+                                const value = e.target.value === '' ? 1 : parseInt(e.target.value);
+                                updateMaterial(index, 'quantity', value);
+                              }}
                               placeholder="数量"
                               className="w-full px-2 py-1 border border-gray-300 rounded text-sm text-right"
                               min="1"
+                              step="1"
                             />
                           </div>
                           <div className="col-span-3 text-right">

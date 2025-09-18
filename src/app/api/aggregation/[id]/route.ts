@@ -368,6 +368,13 @@ const updateSchema = z.object({
     billRate: z.number(),
     memo: z.string().optional(),
   })).optional(),
+  materials: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    unitPrice: z.number(),
+    quantity: z.number(),
+    totalAmount: z.number(),
+  })).optional(),
   status: z.enum(['aggregating', 'aggregated']).optional(),
 });
 
@@ -517,6 +524,30 @@ export async function PATCH(
                 });
               }
             }
+          }
+        }
+      }
+
+      // 材料費更新がある場合
+      if (validatedData.materials) {
+        // 既存の材料費をすべて削除
+        await tx.material.deleteMany({
+          where: { workOrderId: workOrder.id },
+        });
+
+        // 新しい材料費を作成
+        for (const material of validatedData.materials) {
+          // 名前が入力されている材料のみ作成
+          if (material.name.trim() !== '') {
+            await tx.material.create({
+              data: {
+                workOrderId: workOrder.id,
+                name: material.name,
+                unitPrice: material.unitPrice,
+                quantity: material.quantity,
+                totalAmount: material.totalAmount,
+              },
+            });
           }
         }
       }
