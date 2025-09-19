@@ -63,7 +63,6 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editedMaterials, setEditedMaterials] = useState<Material[]>([]);
-  const [showMaterialForm, setShowMaterialForm] = useState(false);
 
   // APIからデータを取得
   const fetchWorkOrderDetail = useCallback(async () => {
@@ -174,7 +173,6 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
       totalAmount: 0,
     };
     setEditedMaterials(prev => [...prev, newMaterial]);
-    setShowMaterialForm(true);
   };
 
   const updateMaterial = (index: number, field: keyof Material, value: string | number) => {
@@ -332,7 +330,6 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
       setIsEditing(false);
       setEditedRates({});
       setEditedMaterials([]);
-      setShowMaterialForm(false);
       
       // データを再取得して最新状態を表示
       await fetchWorkOrderDetail();
@@ -490,7 +487,6 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
                         setIsEditing(false);
                         setEditedRates({});
                         setEditedMaterials([]);
-                        setShowMaterialForm(false);
                       }}
                       className="px-6 py-2.5 bg-gradient-to-r from-gray-400 to-gray-500 text-white rounded-lg hover:from-gray-500 hover:to-gray-600 transition-all duration-200 shadow-md hover:shadow-lg text-sm font-medium flex items-center"
                     >

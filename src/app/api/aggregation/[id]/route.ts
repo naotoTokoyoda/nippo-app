@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { getDeliveredTasks, moveJootoTask } from '@/lib/jooto-api';
+import { Prisma } from '@prisma/client';
 
 // 型定義
 interface ReportItem {
@@ -75,6 +76,109 @@ function getActivityName(activity: string): string {
     'M_12SHAKU': '12尺',
   };
   return names[activity] || activity;
+}
+
+// WorkOrderのActivity別集計を計算する関数
+async function calculateActivitiesForWorkOrder(workOrderId: string, tx: Prisma.TransactionClient) {
+  // WorkOrderとreportItemsを取得
+  const workOrder = await tx.workOrder.findUnique({
+    where: { id: workOrderId },
+    include: {
+      reportItems: {
+        include: {
+          report: {
+            include: {
+              worker: true,
+            },
+          },
+          machine: true,
+        },
+      },
+    },
+  });
+
+  if (!workOrder) {
+    throw new Error('WorkOrder not found');
+  }
+
+  // Activity別に集計
+  const activityMap = new Map<string, ActivityGroup>();
+
+  // 各レポートアイテムのActivityを判定し、時間を集計
+  workOrder.reportItems.forEach((item) => {
+    const activity = determineActivity(item);
+    const startTime = new Date(item.startTime);
+    const endTime = new Date(item.endTime);
+    const hours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+
+    if (!activityMap.has(activity)) {
+      activityMap.set(activity, {
+        activity,
+        hours: 0,
+        items: [],
+      });
+    }
+
+    const activityData = activityMap.get(activity)!;
+    activityData.hours += hours;
+    activityData.items.push(item);
+  });
+
+  // 各Activity別の単価・金額を計算
+  const activities = await Promise.all(
+    Array.from(activityMap.values()).map(async (activityData) => {
+      // 現在有効な単価を取得
+      const rate = await tx.rate.findFirst({
+        where: {
+          activity: activityData.activity,
+          effectiveFrom: {
+            lte: new Date(),
+          },
+          OR: [
+            { effectiveTo: null },
+            { effectiveTo: { gte: new Date() } },
+          ],
+        },
+        orderBy: {
+          effectiveFrom: 'desc',
+        },
+      });
+
+      // 最初（デフォルト）の単価を取得
+      const originalRate = await tx.rate.findFirst({
+        where: {
+          activity: activityData.activity,
+        },
+        orderBy: {
+          effectiveFrom: 'asc',
+        },
+      });
+
+      const costRate = rate?.costRate || 11000; // デフォルト単価
+      const billRate = rate?.billRate || 11000;
+      const originalBillRate = originalRate?.billRate || 11000;
+      const hours = Math.round(activityData.hours * 10) / 10;
+      const costAmount = Math.round(hours * costRate);
+      const billAmount = Math.round(hours * billRate);
+      
+      // 調整額 = 現在の請求額 - 元の請求額
+      const originalBillAmount = Math.round(hours * originalBillRate);
+      const adjustment = billAmount - originalBillAmount;
+
+      return {
+        activity: activityData.activity,
+        activityName: getActivityName(activityData.activity),
+        hours,
+        costRate,
+        billRate,
+        costAmount,
+        billAmount,
+        adjustment,
+      };
+    })
+  );
+
+  return activities;
 }
 
 // 集計詳細を取得
@@ -413,6 +517,9 @@ export async function PATCH(
             backNumber: jootoTask.workNumberBack,
           },
         },
+        include: {
+          customer: true,
+        },
       });
 
       if (!workOrder) {
@@ -425,6 +532,9 @@ export async function PATCH(
       // 通常の工番IDの場合
       workOrder = await prisma.workOrder.findUnique({
         where: { id },
+        include: {
+          customer: true,
+        },
       });
 
       if (!workOrder) {
@@ -550,6 +660,82 @@ export async function PATCH(
             });
           }
         }
+      }
+
+      // 集計完了時にAggregationSummaryを作成
+      if (validatedData.status === 'aggregated') {
+        // 現在の集計結果を計算
+        const currentActivities = await calculateActivitiesForWorkOrder(workOrder.id, tx);
+        const currentMaterials = await tx.material.findMany({
+          where: { workOrderId: workOrder.id },
+        });
+
+        // 合計値を計算
+        const totalHours = currentActivities.reduce((sum, activity) => sum + activity.hours, 0);
+        const costTotal = currentActivities.reduce((sum, activity) => sum + activity.costAmount, 0);
+        const billTotal = currentActivities.reduce((sum, activity) => sum + activity.billAmount, 0);
+        const materialTotal = currentMaterials.reduce((sum, material) => sum + material.totalAmount, 0);
+        const adjustmentTotal = currentActivities.reduce((sum, activity) => sum + activity.adjustment, 0);
+        const finalAmount = billTotal + materialTotal;
+
+        // Activity別詳細をJSON形式で準備
+        const activityBreakdown = currentActivities.map(activity => ({
+          activity: activity.activity,
+          activityName: activity.activityName,
+          hours: activity.hours,
+          costRate: activity.costRate,
+          billRate: activity.billRate,
+          costAmount: activity.costAmount,
+          billAmount: activity.billAmount,
+          adjustment: activity.adjustment,
+        }));
+
+        // 材料費詳細をJSON形式で準備
+        const materialBreakdown = currentMaterials.map(material => ({
+          name: material.name,
+          unitPrice: material.unitPrice,
+          quantity: material.quantity,
+          totalAmount: material.totalAmount,
+        }));
+
+        // AggregationSummaryレコードを作成
+        // 実際のユーザーIDを取得（存在しない場合はシステムユーザーを作成）
+        let systemUserId: string;
+        const existingUser = await tx.user.findFirst({
+          where: { name: 'システム' }
+        });
+        
+        if (existingUser) {
+          systemUserId = existingUser.id;
+        } else {
+          // システムユーザーを作成
+          const systemUser = await tx.user.create({
+            data: {
+              name: 'システム',
+            },
+          });
+          systemUserId = systemUser.id;
+        }
+
+        await tx.aggregationSummary.create({
+          data: {
+            workOrderId: workOrder.id,
+            workNumber: `${workOrder.frontNumber}-${workOrder.backNumber}`,
+            customerName: workOrder.customer.name,
+            projectName: workOrder.projectName || workOrder.description || '未設定',
+            totalHours: totalHours,
+            costTotal: costTotal,
+            billTotal: billTotal,
+            materialTotal: materialTotal,
+            adjustmentTotal: adjustmentTotal,
+            finalAmount: finalAmount,
+            activityBreakdown: activityBreakdown,
+            materialBreakdown: materialBreakdown,
+            aggregatedAt: new Date(),
+            aggregatedBy: systemUserId,
+            memo: '集計完了',
+          },
+        });
       }
 
       // ステータス更新

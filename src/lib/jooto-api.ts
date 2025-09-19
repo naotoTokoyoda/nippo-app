@@ -20,10 +20,12 @@ export async function searchJootoTasks(searchQuery: string): Promise<JootoSearch
   try {
     // 環境変数の確認
     if (!JOOTO_CONFIG.apiKey) {
-      throw new Error('JOOTO_API_KEY environment variable is not set');
+      console.warn('JOOTO_API_KEY environment variable is not set - returning empty result');
+      return { tasks: [], total: 0, page: 1, per_page: 20, total_pages: 0 };
     }
     if (!JOOTO_CONFIG.boardId) {
-      throw new Error('JOOTO_BOARD_ID environment variable is not set');
+      console.warn('JOOTO_BOARD_ID environment variable is not set - returning empty result');
+      return { tasks: [], total: 0, page: 1, per_page: 20, total_pages: 0 };
     }
 
     const url = `${JOOTO_CONFIG.baseUrl}/v1/boards/${JOOTO_CONFIG.boardId}/search`;
@@ -173,10 +175,12 @@ export async function getJootoTasksByListId(listId: string): Promise<JootoTask[]
   try {
     // 環境変数の確認
     if (!JOOTO_CONFIG.apiKey) {
-      throw new Error('JOOTO_API_KEY environment variable is not set');
+      console.warn('JOOTO_API_KEY environment variable is not set - returning empty array');
+      return [];
     }
     if (!JOOTO_CONFIG.boardId) {
-      throw new Error('JOOTO_BOARD_ID environment variable is not set');
+      console.warn('JOOTO_BOARD_ID environment variable is not set - returning empty array');
+      return [];
     }
 
     // 全タスクを取得（list_idパラメータは存在しないため）
@@ -221,7 +225,8 @@ export async function getDeliveredTasks(): Promise<WorkNumberSearchResult[]> {
   try {
     const deliveredListId = process.env.JOOTO_DELIVERED_LIST_ID;
     if (!deliveredListId) {
-      throw new Error('JOOTO_DELIVERED_LIST_ID environment variable is not set');
+      console.warn('JOOTO_DELIVERED_LIST_ID environment variable is not set - returning empty array');
+      return [];
     }
 
     const tasks = await getJootoTasksByListId(deliveredListId);
@@ -284,10 +289,12 @@ export async function getJootoOrganization() {
 export async function moveJootoTask(taskId: string, listId: string): Promise<void> {
   try {
     if (!JOOTO_CONFIG.apiKey) {
-      throw new Error('JOOTO_API_KEY environment variable is not set');
+      console.warn('JOOTO_API_KEY environment variable is not set - skipping task move');
+      return;
     }
     if (!JOOTO_CONFIG.boardId) {
-      throw new Error('JOOTO_BOARD_ID environment variable is not set');
+      console.warn('JOOTO_BOARD_ID environment variable is not set - skipping task move');
+      return;
     }
 
     const url = `https://api.jooto.com/v1/tasks/${taskId}/move`;
