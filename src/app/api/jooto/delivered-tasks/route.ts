@@ -11,42 +11,9 @@ import { prisma } from '@/lib/prisma';
  */
 export async function GET() {
   try {
-    let deliveredTasks = [];
 
-    // Jooto APIから納品済みタスクを取得（フォールバック機能付き）
-    try {
-      deliveredTasks = await getDeliveredTasks();
-    } catch (jootoError) {
-      console.warn('Jooto API取得エラー（データベースから集計対象を取得）:', jootoError);
-      
-      // Jooto APIが利用できない場合は、データベースから集計対象工番を取得
-      const workOrders = await prisma.workOrder.findMany({
-        where: {
-          status: 'aggregating'
-        },
-        include: {
-          customer: true,
-          reportItems: {
-            include: {
-              report: true,
-            },
-          },
-        },
-        orderBy: {
-          updatedAt: 'desc',
-        },
-      });
-
-      // データベースの工番をJootoタスク形式に変換
-      deliveredTasks = workOrders.map(workOrder => ({
-        taskId: workOrder.id,
-        workNumber: `${workOrder.frontNumber}-${workOrder.backNumber}`,
-        workNumberFront: workOrder.frontNumber,
-        workNumberBack: workOrder.backNumber,
-        customerName: workOrder.customer.name,
-        workName: workOrder.projectName || workOrder.description || '未設定',
-      }));
-    }
+    // Jooto APIから納品済みタスクを取得
+    const deliveredTasks = await getDeliveredTasks();
 
     // 各タスクの累計時間を計算
     const aggregationItems = await Promise.all(
