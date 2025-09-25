@@ -1,28 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { getDeliveredTasks, moveJootoTask } from '@/lib/jooto-api';
+import { Prisma } from '@prisma/client';
 
 // 型定義
-interface ReportItem {
-  id: string;
-  startTime: Date;
-  endTime: Date;
-  workDescription: string | null;
-  machine: {
-    name: string;
-  };
-  report: {
-    worker: {
-      name: string;
+type ReportItem = Prisma.ReportItemGetPayload<{
+  include: {
+    machine: true;
+    report: {
+      include: {
+        worker: true;
+      };
     };
   };
-}
+}>;
 
 interface ActivityGroup {
   activity: string;
   hours: number;
   items: ReportItem[];
 }
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type WorkOrderWithIncludes = Prisma.WorkOrderGetPayload<{
+  include: {
+    customer: true;
+    reportItems: {
+      include: {
+        report: {
+          include: {
+            worker: true;
+          };
+        };
+        machine: true;
+      };
+    };
+    adjustments: {
+      include: {
+        user: true;
+      };
+    };
+    materials: true;
+  };
+}>;
 
 // 通貨フォーマット関数
 function formatCurrency(amount: number): string {
@@ -76,6 +97,118 @@ function getActivityName(activity: string): string {
   return names[activity] || activity;
 }
 
+// WorkOrderのActivity別集計を計算する関数
+async function calculateActivitiesForWorkOrder(workOrderId: string, tx: Prisma.TransactionClient): Promise<Array<{
+  activity: string;
+  activityName: string;
+  hours: number;
+  costRate: number;
+  billRate: number;
+  costAmount: number;
+  billAmount: number;
+  adjustment: number;
+}>> {
+  // WorkOrderとreportItemsを取得
+  const workOrder = await tx.workOrder.findUnique({
+    where: { id: workOrderId },
+    include: {
+      reportItems: {
+        include: {
+          report: {
+            include: {
+              worker: true,
+            },
+          },
+          machine: true,
+        },
+      },
+    },
+  });
+
+  if (!workOrder) {
+    throw new Error('WorkOrder not found');
+  }
+
+  // Activity別に集計
+  const activityMap = new Map<string, ActivityGroup>();
+
+  // 各レポートアイテムのActivityを判定し、時間を集計
+  workOrder.reportItems.forEach((item) => {
+    const activity = determineActivity(item);
+    const startTime = new Date(item.startTime);
+    const endTime = new Date(item.endTime);
+    const hours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+
+    if (!activityMap.has(activity)) {
+      activityMap.set(activity, {
+        activity,
+        hours: 0,
+        items: [],
+      });
+    }
+
+    const activityData = activityMap.get(activity)!;
+    activityData.hours += hours;
+    activityData.items.push(item);
+  });
+
+  // 各Activity別の単価・金額を計算
+  const activities = await Promise.all(
+    Array.from(activityMap.values()).map(async (activityData) => {
+      // 現在有効な単価を取得
+      const rate = await tx.rate.findFirst({
+        where: {
+          activity: activityData.activity,
+          effectiveFrom: {
+            lte: new Date(),
+          },
+          OR: [
+            { effectiveTo: null },
+            { effectiveTo: { gte: new Date() } },
+          ],
+        },
+        orderBy: {
+          effectiveFrom: 'desc',
+        },
+      });
+
+      // 最初（デフォルト）の単価を取得
+      const originalRate = await tx.rate.findFirst({
+        where: {
+          activity: activityData.activity,
+        },
+        orderBy: {
+          effectiveFrom: 'asc',
+        },
+      });
+
+      const costRate = rate?.costRate || 11000; // デフォルト単価
+      const billRate = rate?.billRate || 11000;
+      const originalBillRate = originalRate?.billRate || 11000;
+      const hours = Math.round(activityData.hours * 10) / 10;
+      const costAmount = Math.round(hours * costRate);
+      const billAmount = Math.round(hours * billRate);
+      
+      // 調整額 = 現在の請求額 - 元の請求額
+      const originalBillAmount = Math.round(hours * originalBillRate);
+      const adjustment = billAmount - originalBillAmount;
+
+      return {
+        activity: activityData.activity,
+        activityName: getActivityName(activityData.activity),
+        hours,
+        costRate,
+        billRate,
+        costAmount,
+        billAmount,
+        adjustment,
+      };
+    })
+  );
+
+  return activities;
+}
+
 // 集計詳細を取得
 export async function GET(
   request: NextRequest,
@@ -84,34 +217,155 @@ export async function GET(
   try {
     const { id } = await params;
 
-    // 工番詳細を取得
-    const workOrder = await prisma.workOrder.findUnique({
-      where: { id },
-      include: {
-        customer: true,
-        reportItems: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let workOrder: any;
+
+    // JootoタスクIDの場合の処理
+    if (id.startsWith('jooto-')) {
+      const taskId = id.replace('jooto-', '');
+      
+      // Jooto APIからタスク情報を取得
+      const deliveredTasks = await getDeliveredTasks();
+      const jootoTask = deliveredTasks.find(task => task.taskId.toString() === taskId);
+      
+      if (!jootoTask) {
+        return Response.json(
+          { error: 'Jootoタスクが見つかりません' },
+          { status: 404 }
+        );
+      }
+
+      // 既存の工番データを確認
+      workOrder = await prisma.workOrder.findUnique({
+        where: {
+          frontNumber_backNumber: {
+            frontNumber: jootoTask.workNumberFront,
+            backNumber: jootoTask.workNumberBack,
+          },
+        },
+        include: {
+          customer: true,
+          reportItems: {
+            include: {
+              report: {
+                include: {
+                  worker: true,
+                },
+              },
+              machine: true,
+            },
+          },
+          adjustments: {
+            include: {
+              user: true,
+            },
+          },
+          materials: true,
+        },
+      });
+
+      // 工番データが存在しない場合は作成
+      if (!workOrder) {
+        // 顧客を検索または作成
+        let customer = await prisma.customer.findFirst({
+          where: { name: jootoTask.customerName },
+        });
+
+        if (!customer) {
+          // 顧客コードを生成（顧客名の最初の3文字 + ランダム数字）
+          const customerCode = jootoTask.customerName.slice(0, 3) + Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+          
+          customer = await prisma.customer.create({
+            data: { 
+              name: jootoTask.customerName,
+              code: customerCode,
+            },
+          });
+        }
+
+        // 工番データを作成
+        workOrder = await prisma.workOrder.create({
+          data: {
+            frontNumber: jootoTask.workNumberFront,
+            backNumber: jootoTask.workNumberBack,
+            customerId: customer.id,
+            projectName: jootoTask.workName,
+            status: 'aggregating',
+          },
           include: {
-            report: {
+            customer: true,
+            reportItems: {
               include: {
-                worker: true,
+                report: {
+                  include: {
+                    worker: true,
+                  },
+                },
+                machine: true,
               },
             },
-            machine: true,
+            adjustments: {
+              include: {
+                user: true,
+              },
+            },
+            materials: true,
           },
-        },
-        adjustments: {
+        });
+      } else if (workOrder.status !== 'aggregating') {
+        // ステータスを集計中に更新
+        workOrder = await prisma.workOrder.update({
+          where: { id: workOrder.id },
+          data: { status: 'aggregating' },
           include: {
-            user: true,
+            customer: true,
+            reportItems: {
+              include: {
+                report: {
+                  include: {
+                    worker: true,
+                  },
+                },
+                machine: true,
+              },
+            },
+            adjustments: {
+              include: {
+                user: true,
+              },
+            },
+            materials: true,
           },
-          orderBy: {
-            createdAt: 'desc',
+        });
+      }
+    } else {
+      // 通常の工番IDの場合
+      workOrder = await prisma.workOrder.findUnique({
+        where: { id },
+        include: {
+          customer: true,
+          reportItems: {
+            include: {
+              report: {
+                include: {
+                  worker: true,
+                },
+              },
+              machine: true,
+            },
           },
+          adjustments: {
+            include: {
+              user: true,
+            },
+          },
+          materials: true,
         },
-      },
-    });
+      });
+    }
 
     if (!workOrder) {
-      return NextResponse.json(
+      return Response.json(
         { error: '工番が見つかりません' },
         { status: 404 }
       );
@@ -121,7 +375,7 @@ export async function GET(
     const activityMap = new Map<string, ActivityGroup>();
 
     // 各レポートアイテムのActivityを判定し、時間を集計
-    workOrder.reportItems.forEach(item => {
+    workOrder.reportItems.forEach((item: ReportItem) => {
       const activity = determineActivity(item);
       const startTime = new Date(item.startTime);
       const endTime = new Date(item.endTime);
@@ -195,7 +449,8 @@ export async function GET(
     );
 
     // 調整履歴を整形
-    const adjustments = workOrder.adjustments.map(adj => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const adjustments = workOrder.adjustments.map((adj: any) => ({
       id: adj.id,
       type: adj.type,
       amount: adj.amount,
@@ -203,6 +458,16 @@ export async function GET(
       memo: adj.memo,
       createdBy: adj.user.name,
       createdAt: adj.createdAt.toISOString(),
+    }));
+
+    // 材料費を整形
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const materials = workOrder.materials.map((material: any) => ({
+      id: material.id,
+      name: material.name,
+      unitPrice: material.unitPrice,
+      quantity: material.quantity,
+      totalAmount: material.totalAmount,
     }));
 
     // 総時間を計算
@@ -218,6 +483,7 @@ export async function GET(
       totalHours: Math.round(totalHours * 10) / 10,
       activities,
       adjustments,
+      materials,
     };
 
     return NextResponse.json(result);
@@ -237,6 +503,13 @@ const updateSchema = z.object({
     billRate: z.number(),
     memo: z.string().optional(),
   })).optional(),
+  materials: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    unitPrice: z.number(),
+    quantity: z.number(),
+    totalAmount: z.number(),
+  })).optional(),
   status: z.enum(['aggregating', 'aggregated']).optional(),
 });
 
@@ -250,16 +523,58 @@ export async function PATCH(
 
     const validatedData = updateSchema.parse(body);
 
-    // 工番の存在確認
-    const workOrder = await prisma.workOrder.findUnique({
-      where: { id },
-    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let workOrder: any;
 
-    if (!workOrder) {
-      return NextResponse.json(
-        { error: '工番が見つかりません' },
-        { status: 404 }
-      );
+    // JootoタスクIDの場合の処理
+    if (id.startsWith('jooto-')) {
+      const taskId = id.replace('jooto-', '');
+      
+      // Jooto APIからタスク情報を取得
+      const deliveredTasks = await getDeliveredTasks();
+      const jootoTask = deliveredTasks.find(task => task.taskId.toString() === taskId);
+      
+      if (!jootoTask) {
+        return Response.json(
+          { error: 'Jootoタスクが見つかりません' },
+          { status: 404 }
+        );
+      }
+
+      // 既存の工番データを確認
+      workOrder = await prisma.workOrder.findUnique({
+        where: {
+          frontNumber_backNumber: {
+            frontNumber: jootoTask.workNumberFront,
+            backNumber: jootoTask.workNumberBack,
+          },
+        },
+        include: {
+          customer: true,
+        },
+      });
+
+      if (!workOrder) {
+        return Response.json(
+          { error: '工番が見つかりません' },
+          { status: 404 }
+        );
+      }
+    } else {
+      // 通常の工番IDの場合
+      workOrder = await prisma.workOrder.findUnique({
+        where: { id },
+        include: {
+          customer: true,
+        },
+      });
+
+      if (!workOrder) {
+        return NextResponse.json(
+          { error: '工番が見つかりません' },
+          { status: 404 }
+        );
+      }
     }
 
     // 集計済みの場合は編集を禁止
@@ -319,7 +634,7 @@ export async function PATCH(
                 // この工番のこのactivityの総時間を取得
                 const reportItems = await tx.reportItem.findMany({
                   where: {
-                    workOrderId: id,
+                    workOrderId: workOrder.id,
                   },
                   include: {
                     report: {
@@ -341,7 +656,7 @@ export async function PATCH(
 
                 await tx.adjustment.create({
                   data: {
-                    workOrderId: id,
+                    workOrderId: workOrder.id,
                     type: 'rate_adjustment',
                     amount: totalAdjustment,
                     reason: `${activity}単価調整 (${formatCurrency(oldBillRate)} → ${formatCurrency(newBillRate)})`,
@@ -355,14 +670,132 @@ export async function PATCH(
         }
       }
 
+      // 材料費更新がある場合
+      if (validatedData.materials) {
+        // 既存の材料費をすべて削除
+        await tx.material.deleteMany({
+          where: { workOrderId: workOrder.id },
+        });
+
+        // 新しい材料費を作成
+        for (const material of validatedData.materials) {
+          // 名前が入力されている材料のみ作成
+          if (material.name.trim() !== '') {
+            await tx.material.create({
+              data: {
+                workOrderId: workOrder.id,
+                name: material.name,
+                unitPrice: material.unitPrice,
+                quantity: material.quantity,
+                totalAmount: material.totalAmount,
+              },
+            });
+          }
+        }
+      }
+
+      // 集計完了時にAggregationSummaryを作成
+      if (validatedData.status === 'aggregated') {
+        // 現在の集計結果を計算
+        const currentActivities = await calculateActivitiesForWorkOrder(workOrder.id, tx);
+        const currentMaterials = await tx.material.findMany({
+          where: { workOrderId: workOrder.id },
+        });
+
+        // 合計値を計算
+        const totalHours = currentActivities.reduce((sum, activity) => sum + activity.hours, 0);
+        const costTotal = currentActivities.reduce((sum, activity) => sum + activity.costAmount, 0);
+        const billTotal = currentActivities.reduce((sum, activity) => sum + activity.billAmount, 0);
+        const materialTotal = currentMaterials.reduce((sum, material) => sum + material.totalAmount, 0);
+        const adjustmentTotal = currentActivities.reduce((sum, activity) => sum + activity.adjustment, 0);
+        const finalAmount = billTotal + materialTotal;
+
+        // Activity別詳細をJSON形式で準備
+        const activityBreakdown = currentActivities.map(activity => ({
+          activity: activity.activity,
+          activityName: activity.activityName,
+          hours: activity.hours,
+          costRate: activity.costRate,
+          billRate: activity.billRate,
+          costAmount: activity.costAmount,
+          billAmount: activity.billAmount,
+          adjustment: activity.adjustment,
+        }));
+
+        // 材料費詳細をJSON形式で準備
+        const materialBreakdown = currentMaterials.map(material => ({
+          name: material.name,
+          unitPrice: material.unitPrice,
+          quantity: material.quantity,
+          totalAmount: material.totalAmount,
+        }));
+
+        // AggregationSummaryレコードを作成
+        // 実際のユーザーIDを取得（存在しない場合はシステムユーザーを作成）
+        let systemUserId: string;
+        const existingUser = await tx.user.findFirst({
+          where: { name: 'システム' }
+        });
+        
+        if (existingUser) {
+          systemUserId = existingUser.id;
+        } else {
+          // システムユーザーを作成
+          const systemUser = await tx.user.create({
+            data: {
+              name: 'システム',
+            },
+          });
+          systemUserId = systemUser.id;
+        }
+
+        await tx.aggregationSummary.create({
+          data: {
+            workOrderId: workOrder.id,
+            workNumber: `${workOrder.frontNumber}-${workOrder.backNumber}`,
+            customerName: workOrder.customer.name,
+            projectName: workOrder.projectName || workOrder.description || '未設定',
+            totalHours: totalHours,
+            costTotal: costTotal,
+            billTotal: billTotal,
+            materialTotal: materialTotal,
+            adjustmentTotal: adjustmentTotal,
+            finalAmount: finalAmount,
+            activityBreakdown: activityBreakdown,
+            materialBreakdown: materialBreakdown,
+            aggregatedAt: new Date(),
+            aggregatedBy: systemUserId,
+            memo: '集計完了',
+          },
+        });
+      }
+
       // ステータス更新
       if (validatedData.status) {
         await tx.workOrder.update({
-          where: { id },
+          where: { id: workOrder.id },
           data: { status: validatedData.status },
         });
       }
     });
+
+    // Jootoタスクの移動（トランザクション外で実行）
+    if (validatedData.status === 'aggregated' && id.startsWith('jooto-')) {
+      try {
+        const taskId = id.replace('jooto-', '');
+        const aggregatingListId = process.env.JOOTO_AGGREGATING_LIST_ID;
+        
+        if (aggregatingListId) {
+          await moveJootoTask(taskId, aggregatingListId);
+          console.log(`Moved Jooto task ${taskId} from 納品済み to 集計中`);
+        } else {
+          console.warn('JOOTO_AGGREGATING_LIST_ID environment variable is not set');
+        }
+      } catch (jootoError) {
+        // Jootoの移動が失敗してもデータベースの更新は成功として扱う
+        console.error('Jooto task move failed, but database update succeeded:', jootoError);
+      }
+    }
 
     return NextResponse.json({ success: true });
 

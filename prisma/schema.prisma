@@ -8,12 +8,13 @@ datasource db {
 }
 
 model User {
-  id          String       @id @default(cuid())
-  name        String       @db.VarChar(100)
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
-  reports     Report[]
-  adjustments Adjustment[]
+  id                    String               @id @default(cuid())
+  name                  String               @db.VarChar(100)
+  createdAt             DateTime             @default(now()) @map("created_at")
+  updatedAt             DateTime             @updatedAt @map("updated_at")
+  reports               Report[]
+  adjustments           Adjustment[]
+  aggregationSummaries  AggregationSummary[]
 
   @@index([name])
   @@map("users")
@@ -45,22 +46,24 @@ model Machine {
 }
 
 model WorkOrder {
-  id          String       @id @default(cuid())
-  frontNumber String       @map("front_number") @db.VarChar(10)
-  backNumber  String       @map("back_number") @db.VarChar(10)
-  description String?
-  customerId  String       @map("customer_id")
+  id                    String               @id @default(cuid())
+  frontNumber           String               @map("front_number") @db.VarChar(10)
+  backNumber            String               @map("back_number") @db.VarChar(10)
+  description           String?
+  customerId            String               @map("customer_id")
   // 集計機能用の追加項目
-  term        String?      @db.VarChar(50) // 期区分（59期/59期-JFE等）
-  status      String       @default("aggregating") @db.VarChar(20) // aggregating/aggregated
-  projectName String?      @map("project_name") @db.VarChar(200) // 作業名称（案件名）
-  handling    String?      @db.VarChar(100) // 扱い
-  quantity    Int? // 数量
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
-  reportItems ReportItem[]
-  adjustments Adjustment[]
-  customer    Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  term                  String?              @db.VarChar(50) // 期区分（59期/59期-JFE等）
+  status                String               @default("aggregating") @db.VarChar(20) // aggregating/aggregated
+  projectName           String?              @map("project_name") @db.VarChar(200) // 作業名称（案件名）
+  handling              String?              @db.VarChar(100) // 扱い
+  quantity              Int? // 数量
+  createdAt             DateTime             @default(now()) @map("created_at")
+  updatedAt             DateTime             @updatedAt @map("updated_at")
+  reportItems           ReportItem[]
+  adjustments           Adjustment[]
+  materials             Material[]
+  aggregationSummaries  AggregationSummary[]
+  customer              Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@unique([frontNumber, backNumber])
   @@index([frontNumber])
@@ -145,4 +148,59 @@ model Adjustment {
   @@index([workOrderId])
   @@index([createdBy])
   @@map("adjustments")
+}
+
+model Material {
+  id          String    @id @default(cuid())
+  workOrderId String    @map("work_order_id")
+  name        String    @db.VarChar(200)
+  unitPrice   Int       @map("unit_price")
+  quantity    Int
+  totalAmount Int       @map("total_amount")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  @@index([workOrderId])
+  @@map("materials")
+}
+
+model AggregationSummary {
+  id                String    @id @default(cuid())
+  workOrderId       String    @map("work_order_id")
+  workNumber        String    @map("work_number") @db.VarChar(50)
+  customerName      String    @map("customer_name") @db.VarChar(200)
+  projectName       String    @map("project_name") @db.VarChar(200)
+  
+  // 集計結果
+  totalHours        Decimal   @map("total_hours") @db.Decimal(10,2)
+  costTotal         Int       @map("cost_total")
+  billTotal         Int       @map("bill_total")
+  materialTotal     Int       @map("material_total")
+  adjustmentTotal   Int       @map("adjustment_total")
+  finalAmount       Int       @map("final_amount")
+  
+  // Activity別詳細（JSON形式で保存）
+  activityBreakdown Json      @map("activity_breakdown")
+  materialBreakdown Json      @map("material_breakdown")
+  
+  // メタデータ
+  aggregatedAt      DateTime  @map("aggregated_at")
+  aggregatedBy      String    @map("aggregated_by")
+  version           Int       @default(1)
+  memo              String?   @db.VarChar(500)
+  
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  
+  // リレーション
+  workOrder         WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  aggregatedUser    User      @relation(fields: [aggregatedBy], references: [id], onDelete: Cascade)
+
+  @@index([workOrderId])
+  @@index([workNumber])
+  @@index([customerName])
+  @@index([aggregatedAt])
+  @@index([aggregatedBy])
+  @@map("aggregation_summaries")
 }

@@ -15,13 +15,21 @@ interface SaveConfirmModalProps {
     hours: number;
     adjustment: number;
   }>;
+  materials?: Array<{
+    id: string;
+    name: string;
+    unitPrice: number;
+    quantity: number;
+    totalAmount: number;
+  }>;
 }
 
 export default function SaveConfirmModal({ 
   isOpen, 
   onClose, 
   onConfirm, 
-  changes 
+  changes,
+  materials = []
 }: SaveConfirmModalProps) {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -57,43 +65,105 @@ export default function SaveConfirmModal({
 
         {/* 変更内容 */}
         <div className="px-6 py-4 max-h-96 overflow-y-auto">
-          {changes.length === 0 ? (
-            <p className="text-gray-500">変更はありません。</p>
-          ) : (
-            <div className="space-y-4">
-              {changes.map((change, index) => (
-                <div key={index} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <h3 className="font-medium text-gray-900">{change.activityName}</h3>
-                      <p className="text-sm text-gray-600">
-                        {change.hours}時間 × 単価変更
-                      </p>
+        {changes.length === 0 && materials.length === 0 ? (
+          <p className="text-gray-500">変更はありません。</p>
+        ) : (
+          <div className="space-y-6">
+            {/* 労務費の変更セクション */}
+            {changes.filter(change => change.activity !== 'materials').length > 0 && (
+              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                <div className="flex items-center mb-3">
+                  <div className="w-4 h-4 bg-blue-500 rounded-full mr-2"></div>
+                  <h3 className="font-semibold text-blue-900">労務費の変更</h3>
+                </div>
+                <div className="space-y-3">
+                  {changes.filter(change => change.activity !== 'materials').map((change, index) => (
+                    <div key={index} className="bg-white rounded-lg p-3 border border-blue-100">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h4 className="font-medium text-gray-900">{change.activityName}</h4>
+                          <p className="text-sm text-gray-600">
+                            {change.hours}時間 × 単価変更
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm text-gray-600">
+                            {formatCurrency(change.oldRate)} → {formatCurrency(change.newRate)}
+                          </div>
+                          <div className={`text-sm font-medium ${
+                            change.adjustment > 0 ? 'text-green-600' : 
+                            change.adjustment < 0 ? 'text-red-600' : 'text-gray-600'
+                          }`}>
+                            調整額: {change.adjustment > 0 ? '+' : ''}{formatCurrency(change.adjustment)}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {change.memo && (
+                        <div className="mt-2 p-2 bg-yellow-50 rounded border-l-4 border-yellow-400">
+                          <p className="text-sm text-gray-700">
+                            <span className="font-medium">備考:</span> {change.memo}
+                          </p>
+                        </div>
+                      )}
                     </div>
-                    <div className="text-right">
-                      <div className="text-sm text-gray-600">
-                        {formatCurrency(change.oldRate)} → {formatCurrency(change.newRate)}
-                      </div>
-                      <div className={`text-sm font-medium ${
-                        change.adjustment > 0 ? 'text-green-600' : 
-                        change.adjustment < 0 ? 'text-red-600' : 'text-gray-600'
+                  ))}
+                  
+                  {/* 労務費調整額合計 */}
+                  <div className="bg-blue-100 rounded-lg p-3 border-t border-blue-200">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-blue-900">労務費調整額合計</span>
+                      <span className={`text-sm font-bold ${
+                        changes.filter(c => c.activity !== 'materials').reduce((sum, c) => sum + c.adjustment, 0) > 0 
+                          ? 'text-green-700' : 'text-red-700'
                       }`}>
-                        調整額: {change.adjustment > 0 ? '+' : ''}{formatCurrency(change.adjustment)}
-                      </div>
+                        {changes.filter(c => c.activity !== 'materials').reduce((sum, c) => sum + c.adjustment, 0) > 0 ? '+' : ''}
+                        {formatCurrency(changes.filter(c => c.activity !== 'materials').reduce((sum, c) => sum + c.adjustment, 0))}
+                      </span>
                     </div>
                   </div>
-                  
-                  {change.memo && (
-                    <div className="mt-2 p-2 bg-yellow-50 rounded border-l-4 border-yellow-400">
-                      <p className="text-sm text-gray-700">
-                        <span className="font-medium">備考:</span> {change.memo}
-                      </p>
-                    </div>
-                  )}
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            )}
+
+            {/* 材料費の変更セクション */}
+            {materials.length > 0 && (
+              <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                <div className="flex items-center mb-3">
+                  <div className="w-4 h-4 bg-green-500 rounded-full mr-2"></div>
+                  <h3 className="font-semibold text-green-900">材料費の変更</h3>
+                </div>
+                <div className="space-y-2">
+                  {materials.map((material, index) => (
+                    <div key={material.id || index} className="bg-white rounded-lg p-3 border border-green-100">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-gray-900">{material.name}</div>
+                          <div className="text-xs text-gray-500">
+                            単価: {formatCurrency(material.unitPrice)} × 数量: {material.quantity}個
+                          </div>
+                        </div>
+                        <div className="text-sm font-semibold text-gray-900">
+                          {formatCurrency(material.totalAmount)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {/* 材料費合計 */}
+                  <div className="bg-green-100 rounded-lg p-3 border-t border-green-200">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-green-900">材料費合計</span>
+                      <span className="text-sm font-bold text-green-900">
+                        {formatCurrency(materials.reduce((sum, m) => sum + m.totalAmount, 0))}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         </div>
 
         {/* フッター */}
@@ -107,7 +177,7 @@ export default function SaveConfirmModal({
           </button>
           <button
             onClick={handleConfirm}
-            disabled={isLoading || changes.length === 0}
+            disabled={isLoading || (changes.length === 0 && materials.length === 0)}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 flex items-center"
           >
             {isLoading && (
