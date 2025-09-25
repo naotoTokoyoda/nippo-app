@@ -224,9 +224,20 @@ export async function GET(
     if (id.startsWith('jooto-')) {
       const taskId = id.replace('jooto-', '');
       
-      // Jooto APIからタスク情報を取得
-      const deliveredTasks = await getDeliveredTasks();
-      const jootoTask = deliveredTasks.find(task => task.taskId.toString() === taskId);
+      // Jooto APIからタスク情報を取得（エラーハンドリング追加）
+      let deliveredTasks;
+      let jootoTask;
+      
+      try {
+        deliveredTasks = await getDeliveredTasks();
+        jootoTask = deliveredTasks.find(task => task.taskId.toString() === taskId);
+      } catch (jootoError) {
+        console.error('Jooto API取得エラー:', jootoError);
+        return Response.json(
+          { error: 'Jooto APIの取得に失敗しました。システム管理者にお問い合わせください。' },
+          { status: 503 }
+        );
+      }
       
       if (!jootoTask) {
         return Response.json(
@@ -530,9 +541,20 @@ export async function PATCH(
     if (id.startsWith('jooto-')) {
       const taskId = id.replace('jooto-', '');
       
-      // Jooto APIからタスク情報を取得
-      const deliveredTasks = await getDeliveredTasks();
-      const jootoTask = deliveredTasks.find(task => task.taskId.toString() === taskId);
+      // Jooto APIからタスク情報を取得（エラーハンドリング追加）
+      let deliveredTasks;
+      let jootoTask;
+      
+      try {
+        deliveredTasks = await getDeliveredTasks();
+        jootoTask = deliveredTasks.find(task => task.taskId.toString() === taskId);
+      } catch (jootoError) {
+        console.error('Jooto API取得エラー:', jootoError);
+        return Response.json(
+          { error: 'Jooto APIの取得に失敗しました。システム管理者にお問い合わせください。' },
+          { status: 503 }
+        );
+      }
       
       if (!jootoTask) {
         return Response.json(
