@@ -438,7 +438,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
   }
 
   return (
-    <PageLayout title={`集計詳細 - ${workOrder.workNumber}`}>
+    <PageLayout title={"集計詳細"}>
       <div className="space-y-6">
         <AggregationHeader workOrder={workOrder} formatHours={formatHours} />
         <AggregationActions

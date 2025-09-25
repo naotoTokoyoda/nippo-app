@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
@@ -6,26 +5,45 @@ import { getDeliveredTasks, moveJootoTask } from '@/lib/jooto-api';
 import { Prisma } from '@prisma/client';
 
 // 型定義
-interface ReportItem {
-  id: string;
-  startTime: Date;
-  endTime: Date;
-  workDescription: string | null;
-  machine: {
-    name: string;
-  };
-  report: {
-    worker: {
-      name: string;
+type ReportItem = Prisma.ReportItemGetPayload<{
+  include: {
+    machine: true;
+    report: {
+      include: {
+        worker: true;
+      };
     };
   };
-}
+}>;
 
 interface ActivityGroup {
   activity: string;
   hours: number;
   items: ReportItem[];
 }
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type WorkOrderWithIncludes = Prisma.WorkOrderGetPayload<{
+  include: {
+    customer: true;
+    reportItems: {
+      include: {
+        report: {
+          include: {
+            worker: true;
+          };
+        };
+        machine: true;
+      };
+    };
+    adjustments: {
+      include: {
+        user: true;
+      };
+    };
+    materials: true;
+  };
+}>;
 
 // 通貨フォーマット関数
 function formatCurrency(amount: number): string {
@@ -80,7 +98,16 @@ function getActivityName(activity: string): string {
 }
 
 // WorkOrderのActivity別集計を計算する関数
-async function calculateActivitiesForWorkOrder(workOrderId: string, tx: Prisma.TransactionClient) {
+async function calculateActivitiesForWorkOrder(workOrderId: string, tx: Prisma.TransactionClient): Promise<Array<{
+  activity: string;
+  activityName: string;
+  hours: number;
+  costRate: number;
+  billRate: number;
+  costAmount: number;
+  billAmount: number;
+  adjustment: number;
+}>> {
   // WorkOrderとreportItemsを取得
   const workOrder = await tx.workOrder.findUnique({
     where: { id: workOrderId },
@@ -190,7 +217,8 @@ export async function GET(
   try {
     const { id } = await params;
 
-    let workOrder;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let workOrder: any;
 
     // JootoタスクIDの場合の処理
     if (id.startsWith('jooto-')) {
@@ -347,7 +375,7 @@ export async function GET(
     const activityMap = new Map<string, ActivityGroup>();
 
     // 各レポートアイテムのActivityを判定し、時間を集計
-    workOrder.reportItems.forEach(item => {
+    workOrder.reportItems.forEach((item: ReportItem) => {
       const activity = determineActivity(item);
       const startTime = new Date(item.startTime);
       const endTime = new Date(item.endTime);
@@ -421,7 +449,8 @@ export async function GET(
     );
 
     // 調整履歴を整形
-    const adjustments = workOrder.adjustments.map(adj => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const adjustments = workOrder.adjustments.map((adj: any) => ({
       id: adj.id,
       type: adj.type,
       amount: adj.amount,
@@ -432,7 +461,8 @@ export async function GET(
     }));
 
     // 材料費を整形
-    const materials = workOrder.materials.map(material => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const materials = workOrder.materials.map((material: any) => ({
       id: material.id,
       name: material.name,
       unitPrice: material.unitPrice,
@@ -493,7 +523,8 @@ export async function PATCH(
 
     const validatedData = updateSchema.parse(body);
 
-    let workOrder;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let workOrder: any;
 
     // JootoタスクIDの場合の処理
     if (id.startsWith('jooto-')) {

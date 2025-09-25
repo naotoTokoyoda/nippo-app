@@ -28,16 +28,16 @@ export default function AggregationCostPanel({
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                 区分
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">
                 時間
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">
                 単価
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">
                 小計
               </th>
             </tr>
@@ -72,7 +72,7 @@ export default function AggregationCostPanel({
               <div key={material.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded">
                 <div className="flex-1">
                   <div className="text-sm font-medium text-gray-900">{material.name}</div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-gray-700">
                     {formatCurrency(material.unitPrice)} × {material.quantity}個
                   </div>
                 </div>
@@ -83,17 +83,17 @@ export default function AggregationCostPanel({
             ))}
           </div>
         ) : (
-          <div className="text-center py-4 text-gray-500 text-sm">材料費はありません</div>
+          <div className="text-center py-4 text-gray-700 text-sm">材料費はありません</div>
         )}
       </div>
       <div className="border-t border-gray-200 bg-gray-50 p-4">
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">労務費小計</span>
+            <span className="text-sm text-gray-800">労務費小計</span>
             <span className="text-sm font-medium">{formatCurrency(costLaborSubtotal)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">材料費小計</span>
+            <span className="text-sm text-gray-800">材料費小計</span>
             <span className="text-sm font-medium">{formatCurrency(materialSubtotal)}</span>
           </div>
           <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
