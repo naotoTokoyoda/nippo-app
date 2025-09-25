@@ -157,7 +157,11 @@ export default function AggregationList() {
                       {item.projectName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatHours(item.totalHours)}
+                      {item.totalHours === 0 ? (
+                        <span className="text-red-500 font-medium">{formatHours(item.totalHours)}</span>
+                      ) : (
+                        formatHours(item.totalHours)
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={getStatusBadge(item.status)}>
@@ -165,11 +169,20 @@ export default function AggregationList() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <Link href={`/aggregation/${item.id}`}>
-                        <button className="text-blue-600 hover:text-blue-800 font-medium cursor-pointer hover:cursor-pointer hover:bg-transparent focus:bg-transparent">
+                      {item.totalHours === 0 ? (
+                        <button 
+                          disabled 
+                          className="text-gray-400 font-medium cursor-not-allowed opacity-50"
+                        >
                           詳細
                         </button>
-                      </Link>
+                      ) : (
+                        <Link href={`/aggregation/${item.id}`}>
+                          <button className="text-blue-600 hover:text-blue-800 font-medium cursor-pointer hover:cursor-pointer hover:bg-transparent focus:bg-transparent">
+                            詳細
+                          </button>
+                        </Link>
+                      )}
                     </td>
                   </tr>
                 ))}
