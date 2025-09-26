@@ -2,45 +2,57 @@ import {
   ActivityBillAmountMap,
   ActivitySummary,
   EditedRates,
-  Material,
+  ExpenseCategory,
+  ExpenseItem,
 } from '@/types/aggregation';
 
 interface AggregationBillingPanelProps {
   activities: ActivitySummary[];
-  materials: Material[];
-  editedMaterials: Material[];
+  expenses: ExpenseItem[];
   isEditing: boolean;
+  categoryOptions: Array<{ value: ExpenseCategory; label: string }>;
   editedRates: EditedRates;
   activityBillAmounts: ActivityBillAmountMap;
   billLaborSubtotal: number;
-  materialSubtotal: number;
+  expenseSubtotal: number;
   billTotal: number;
   onRateEdit: (activity: string, field: 'billRate' | 'memo', value: string) => void;
-  onMaterialAdd: () => void;
-  onMaterialUpdate: (index: number, field: keyof Material, value: string | number) => void;
-  onMaterialRemove: (index: number) => void;
+  onExpenseBillingChange: (index: number, field: 'billUnitPrice' | 'billQuantity' | 'billTotal', value: string | number) => void;
+  onExpenseBillingReset: (index: number) => void;
+  onFileEstimateChange: (index: number, value: string | number) => void;
   formatCurrency: (amount: number) => string;
   formatHours: (hours: number) => string;
 }
 
 export default function AggregationBillingPanel({
   activities,
-  materials,
-  editedMaterials,
+  expenses,
   isEditing,
+  categoryOptions,
   editedRates,
   activityBillAmounts,
   billLaborSubtotal,
-  materialSubtotal,
+  expenseSubtotal,
   billTotal,
   onRateEdit,
-  onMaterialAdd,
-  onMaterialUpdate,
-  onMaterialRemove,
+  onExpenseBillingChange,
+  onExpenseBillingReset,
+  onFileEstimateChange,
   formatCurrency,
   formatHours,
 }: AggregationBillingPanelProps) {
-  const materialsToDisplay = isEditing ? editedMaterials : materials;
+  const categorySummaries = expenses.reduce<Record<string, { billTotal: number; fileEstimateTotal: number }>>((acc, expense) => {
+    const summary = acc[expense.category] ?? { billTotal: 0, fileEstimateTotal: 0 };
+    summary.billTotal += expense.billTotal;
+    summary.fileEstimateTotal += expense.fileEstimate ?? 0;
+    acc[expense.category] = summary;
+    return acc;
+  }, {});
+
+  const categoryLabelMap = categoryOptions.reduce<Record<string, string>>((acc, option) => {
+    acc[option.value] = option.label;
+    return acc;
+  }, {});
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -51,18 +63,10 @@ export default function AggregationBillingPanel({
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                区分
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                時間
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                単価
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                小計
-              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">区分</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">時間</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">単価</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">小計</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -81,7 +85,7 @@ export default function AggregationBillingPanel({
                       <input
                         type="number"
                         value={editedRates[activity.activity]?.billRate ?? activity.billRate.toString()}
-                        onChange={(e) => onRateEdit(activity.activity, 'billRate', e.target.value)}
+                        onChange={(event) => onRateEdit(activity.activity, 'billRate', event.target.value)}
                         className="w-20 px-2 py-1 border border-gray-300 rounded text-right text-sm"
                         min="0"
                         step="1000"
@@ -99,82 +103,124 @@ export default function AggregationBillingPanel({
           </tbody>
         </table>
       </div>
-      <div className="border-t border-gray-200 p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h4 className="text-sm font-medium text-gray-700">材料費</h4>
-          {isEditing && (
-            <button onClick={onMaterialAdd} className="text-blue-600 hover:text-blue-800 text-sm">
-              + 追加
-            </button>
-          )}
-        </div>
-        {materialsToDisplay.length > 0 ? (
-          <div className="space-y-2">
-            {materialsToDisplay.map((material, index) => (
-              <div key={material.id} className="py-2 px-3 bg-gray-50 rounded">
-                {isEditing ? (
-                  <div className="grid grid-cols-12 gap-2 items-center">
-                    <div className="col-span-4">
-                      <input
-                        type="text"
-                        value={material.name}
-                        onChange={(e) => onMaterialUpdate(index, 'name', e.target.value)}
-                        placeholder="材料名"
-                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <input
-                        type="number"
-                        value={material.unitPrice === 0 ? '' : material.unitPrice}
-                        onChange={(e) => onMaterialUpdate(index, 'unitPrice', e.target.value === '' ? 0 : parseInt(e.target.value, 10))}
-                        placeholder="単価"
-                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm text-right"
-                        min="0"
-                        step="1"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <input
-                        type="number"
-                        value={material.quantity === 0 ? '' : material.quantity}
-                        onChange={(e) => onMaterialUpdate(index, 'quantity', e.target.value === '' ? 1 : parseInt(e.target.value, 10))}
-                        placeholder="数量"
-                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm text-right"
-                        min="1"
-                        step="1"
-                      />
-                    </div>
-                    <div className="col-span-3 text-right">
-                      <span className="text-sm font-semibold text-gray-900">
-                        {formatCurrency(material.totalAmount)}
-                      </span>
-                    </div>
-                    <div className="col-span-1">
-                      <button onClick={() => onMaterialRemove(index)} className="text-red-600 hover:text-red-800 text-sm">
-                        削除
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-gray-900">{material.name}</div>
-                      <div className="text-xs text-gray-500">
-                        {formatCurrency(material.unitPrice)} × {material.quantity}個
-                      </div>
-                    </div>
-                    <div className="text-sm font-semibold text-gray-900">
-                      {formatCurrency(material.totalAmount)}
-                    </div>
-                  </div>
-                )}
+      <div className="border-t border-gray-200 p-4 space-y-4">
+        <h4 className="text-sm font-medium text-gray-700">経費明細（請求側）</h4>
+        {expenses.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">カテゴリ</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">請求単価</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">数量</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">請求小計</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">ファイル見積</th>
+                  {isEditing && <th className="px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">操作</th>}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {expenses.map((expense, index) => {
+                  const expectedTotal = Math.ceil(expense.costTotal * 1.2);
+                  const isAutoSuggested = expense.billTotal === expectedTotal;
+
+                  return (
+                    <tr key={expense.id || index}>
+                      <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                        {categoryLabelMap[expense.category] ?? expense.category}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-right">
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            value={expense.billUnitPrice === 0 ? '' : expense.billUnitPrice}
+                            onChange={(event) => onExpenseBillingChange(index, 'billUnitPrice', event.target.value)}
+                            className="w-24 px-2 py-1 border border-gray-300 rounded text-sm text-right"
+                            min={0}
+                            step={100}
+                          />
+                        ) : (
+                          formatCurrency(expense.billUnitPrice)
+                        )}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-right">
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            value={expense.billQuantity === 0 ? '' : expense.billQuantity}
+                            onChange={(event) => onExpenseBillingChange(index, 'billQuantity', event.target.value)}
+                            className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-right"
+                            min={1}
+                            step={1}
+                          />
+                        ) : (
+                          expense.billQuantity.toLocaleString()
+                        )}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            value={expense.billTotal === 0 ? '' : expense.billTotal}
+                            onChange={(event) => onExpenseBillingChange(index, 'billTotal', event.target.value)}
+                            className="w-28 px-2 py-1 border border-gray-300 rounded text-sm text-right"
+                            min={0}
+                            step={100}
+                          />
+                        ) : (
+                          formatCurrency(expense.billTotal)
+                        )}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-right">
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            value={expense.fileEstimate ?? ''}
+                            onChange={(event) => onFileEstimateChange(index, event.target.value)}
+                            className="w-28 px-2 py-1 border border-gray-300 rounded text-sm text-right"
+                            min={0}
+                            step={100}
+                          />
+                        ) : (
+                          expense.fileEstimate != null ? formatCurrency(expense.fileEstimate) : '—'
+                        )}
+                      </td>
+                      {isEditing && (
+                        <td className="px-3 py-2 text-right space-x-2">
+                          <button
+                            onClick={() => onExpenseBillingReset(index)}
+                            className={`text-xs ${isAutoSuggested ? 'text-gray-400 cursor-not-allowed' : 'text-blue-600 hover:text-blue-800'}`}
+                            disabled={isAutoSuggested}
+                          >
+                            自動計算
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-center py-6 text-gray-500 text-sm border border-dashed border-gray-300 rounded">
+            経費の請求データはありません
+          </div>
+        )}
+        <div className="bg-blue-50 border border-blue-100 rounded p-3">
+          <h5 className="text-xs font-semibold text-blue-900 uppercase tracking-wide mb-2">カテゴリ別請求小計</h5>
+          <div className="space-y-1">
+            {Object.entries(categorySummaries).map(([category, summary]) => (
+              <div key={category} className="flex justify-between text-xs text-blue-900">
+                <span className="font-medium">{categoryLabelMap[category] ?? category}</span>
+                <span>
+                  請求 {formatCurrency(summary.billTotal)}
+                  <span className="mx-1 text-blue-300">|</span>
+                  ファイル見積 {summary.fileEstimateTotal > 0 ? formatCurrency(summary.fileEstimateTotal) : '—'}
+                </span>
               </div>
             ))}
           </div>
-        ) : (
-          <div className="text-center py-4 text-gray-500 text-sm">材料費はありません</div>
-        )}
+        </div>
       </div>
       <div className="border-t border-gray-200 bg-blue-50 p-4">
         <div className="space-y-2">
@@ -183,8 +229,8 @@ export default function AggregationBillingPanel({
             <span className="text-sm font-medium">{formatCurrency(billLaborSubtotal)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">材料費小計</span>
-            <span className="text-sm font-medium">{formatCurrency(materialSubtotal)}</span>
+            <span className="text-sm text-gray-600">経費小計</span>
+            <span className="text-sm font-medium">{formatCurrency(expenseSubtotal)}</span>
           </div>
           <div className="border-t border-blue-200 pt-2 flex justify-between items-center">
             <span className="font-semibold text-blue-900">請求合計</span>

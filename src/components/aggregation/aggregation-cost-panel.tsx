@@ -1,10 +1,17 @@
-import { ActivitySummary, Material } from '@/types/aggregation';
+import { ActivitySummary, ExpenseCategory, ExpenseItem } from '@/types/aggregation';
 
 interface AggregationCostPanelProps {
   activities: ActivitySummary[];
-  materials: Material[];
+  expenses: ExpenseItem[];
+  isEditing: boolean;
+  categoryOptions: Array<{ value: ExpenseCategory; label: string }>;
+  onExpenseAdd: () => void;
+  onExpenseCategoryChange: (index: number, category: ExpenseCategory) => void;
+  onExpenseCostChange: (index: number, field: 'costUnitPrice' | 'costQuantity', value: string | number) => void;
+  onExpenseRemove: (index: number) => void;
+  onFileEstimateChange: (index: number, value: string | number) => void;
   costLaborSubtotal: number;
-  materialSubtotal: number;
+  expenseSubtotal: number;
   costTotal: number;
   formatCurrency: (amount: number) => string;
   formatHours: (hours: number) => string;
@@ -12,13 +19,38 @@ interface AggregationCostPanelProps {
 
 export default function AggregationCostPanel({
   activities,
-  materials,
+  expenses,
+  isEditing,
+  categoryOptions,
+  onExpenseAdd,
+  onExpenseCategoryChange,
+  onExpenseCostChange,
+  onExpenseRemove,
+  onFileEstimateChange,
   costLaborSubtotal,
-  materialSubtotal,
+  expenseSubtotal,
   costTotal,
   formatCurrency,
   formatHours,
 }: AggregationCostPanelProps) {
+  const categoryLabelMap = categoryOptions.reduce<Record<string, string>>((acc, option) => {
+    acc[option.value] = option.label;
+    return acc;
+  }, {});
+
+  const categorySummaries = expenses.reduce<Record<string, { costTotal: number; fileEstimateTotal: number }>>((acc, expense) => {
+    const summary = acc[expense.category] ?? { costTotal: 0, fileEstimateTotal: 0 };
+    summary.costTotal += expense.costTotal;
+    summary.fileEstimateTotal += expense.fileEstimate ?? 0;
+    acc[expense.category] = summary;
+    return acc;
+  }, {});
+
+  const orderedCategories = [
+    ...categoryOptions.map(option => option.value),
+    ...Object.keys(categorySummaries).filter(key => !categoryOptions.some(option => option.value === key)),
+  ];
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
       <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
@@ -28,18 +60,10 @@ export default function AggregationCostPanel({
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                区分
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">
-                時間
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">
-                単価
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">
-                小計
-              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">区分</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">時間</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">単価</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">小計</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -62,29 +86,132 @@ export default function AggregationCostPanel({
           </tbody>
         </table>
       </div>
-      <div className="border-t border-gray-200 p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h4 className="text-sm font-medium text-gray-700">材料費</h4>
+      <div className="border-t border-gray-200 p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h4 className="text-sm font-medium text-gray-700">経費明細（原価側）</h4>
+          {isEditing && (
+            <button onClick={onExpenseAdd} className="text-blue-600 hover:text-blue-800 text-sm">
+              + 行を追加
+            </button>
+          )}
         </div>
-        {materials.length > 0 ? (
-          <div className="space-y-2">
-            {materials.map((material) => (
-              <div key={material.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded">
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-gray-900">{material.name}</div>
-                  <div className="text-xs text-gray-700">
-                    {formatCurrency(material.unitPrice)} × {material.quantity}個
-                  </div>
-                </div>
-                <div className="text-sm font-semibold text-gray-900">
-                  {formatCurrency(material.totalAmount)}
-                </div>
-              </div>
-            ))}
+        {expenses.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">カテゴリ</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">原価単価</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">数量</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">原価小計</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">ファイル見積</th>
+                  {isEditing && <th className="px-3 py-2" />}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {expenses.map((expense, index) => (
+                  <tr key={expense.id || index}>
+                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                      {isEditing ? (
+                        <select
+                          value={expense.category}
+                          onChange={(event) => onExpenseCategoryChange(index, event.target.value as ExpenseCategory)}
+                          className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                        >
+                          {categoryOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        categoryOptions.find((option) => option.value === expense.category)?.label ?? expense.category
+                      )}
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-right">
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          value={expense.costUnitPrice === 0 ? '' : expense.costUnitPrice}
+                          onChange={(event) => onExpenseCostChange(index, 'costUnitPrice', event.target.value)}
+                          className="w-24 px-2 py-1 border border-gray-300 rounded text-sm text-right"
+                          min={0}
+                          step={100}
+                        />
+                      ) : (
+                        formatCurrency(expense.costUnitPrice)
+                      )}
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-right">
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          value={expense.costQuantity === 0 ? '' : expense.costQuantity}
+                          onChange={(event) => onExpenseCostChange(index, 'costQuantity', event.target.value)}
+                          className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-right"
+                          min={1}
+                          step={1}
+                        />
+                      ) : (
+                        expense.costQuantity.toLocaleString()
+                      )}
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
+                      {formatCurrency(expense.costTotal)}
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-right">
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          value={expense.fileEstimate ?? ''}
+                          onChange={(event) => onFileEstimateChange(index, event.target.value)}
+                          className="w-28 px-2 py-1 border border-gray-300 rounded text-sm text-right"
+                          min={0}
+                          step={100}
+                        />
+                      ) : (
+                        expense.fileEstimate != null ? formatCurrency(expense.fileEstimate) : '—'
+                      )}
+                    </td>
+                    {isEditing && (
+                      <td className="px-3 py-2 text-right">
+                        <button
+                          onClick={() => onExpenseRemove(index)}
+                          className="text-red-600 hover:text-red-800 text-sm"
+                        >
+                          削除
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : (
-          <div className="text-center py-4 text-gray-700 text-sm">材料費はありません</div>
+          <div className="text-center py-6 text-gray-600 text-sm border border-dashed border-gray-300 rounded">
+            経費データはありません
+          </div>
         )}
+        <div className="bg-gray-50 border border-gray-200 rounded p-3">
+          <h5 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">カテゴリ別小計</h5>
+          <div className="space-y-1">
+            {orderedCategories.map(category => {
+              const summary = categorySummaries[category] ?? { costTotal: 0, fileEstimateTotal: 0 };
+              const hasData = summary.costTotal > 0 || summary.fileEstimateTotal > 0;
+              return (
+                <div key={category} className="flex justify-between text-xs text-gray-700">
+                  <span className="font-medium">{categoryLabelMap[category] ?? category}</span>
+                  <span>
+                    原価 {formatCurrency(summary.costTotal)}
+                    <span className="mx-1 text-gray-400">|</span>
+                    ファイル見積 {hasData ? formatCurrency(summary.fileEstimateTotal) : '—'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
       <div className="border-t border-gray-200 bg-gray-50 p-4">
         <div className="space-y-2">
@@ -93,8 +220,8 @@ export default function AggregationCostPanel({
             <span className="text-sm font-medium">{formatCurrency(costLaborSubtotal)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-800">材料費小計</span>
-            <span className="text-sm font-medium">{formatCurrency(materialSubtotal)}</span>
+            <span className="text-sm text-gray-800">経費小計</span>
+            <span className="text-sm font-medium">{formatCurrency(expenseSubtotal)}</span>
           </div>
           <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
             <span className="font-semibold text-gray-900">原価合計</span>
