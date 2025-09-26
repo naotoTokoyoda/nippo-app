@@ -504,12 +504,16 @@ export async function GET(
 
     // 材料費を整形
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const materials = workOrder.materials.map((material: any) => ({
+    const expenses = workOrder.materials.map((material: any) => ({
       id: material.id,
-      name: material.name,
-      unitPrice: material.unitPrice,
-      quantity: material.quantity,
-      totalAmount: material.totalAmount,
+      category: material.category,
+      costUnitPrice: material.costUnitPrice,
+      costQuantity: material.costQuantity,
+      costTotal: material.costTotal,
+      billUnitPrice: material.billUnitPrice,
+      billQuantity: material.billQuantity,
+      billTotal: material.billTotal,
+      fileEstimate: material.fileEstimate,
     }));
 
     // 総時間を計算
@@ -525,7 +529,7 @@ export async function GET(
       totalHours: Math.round(totalHours * 10) / 10,
       activities,
       adjustments,
-      materials,
+      expenses,
     };
 
     return NextResponse.json(result);
@@ -545,12 +549,16 @@ const updateSchema = z.object({
     billRate: z.number(),
     memo: z.string().optional(),
   })).optional(),
-  materials: z.array(z.object({
-    id: z.string(),
-    name: z.string(),
-    unitPrice: z.number(),
-    quantity: z.number(),
-    totalAmount: z.number(),
+  expenses: z.array(z.object({
+    id: z.string().optional(),
+    category: z.string(),
+    costUnitPrice: z.number(),
+    costQuantity: z.number(),
+    costTotal: z.number(),
+    billUnitPrice: z.number().optional(),
+    billQuantity: z.number().optional(),
+    billTotal: z.number().optional(),
+    fileEstimate: z.number().nullable().optional(),
   })).optional(),
   status: z.enum(['aggregating', 'aggregated']).optional(),
 });
@@ -735,27 +743,60 @@ export async function PATCH(
         }
       }
 
-      // 材料費更新がある場合
-      if (validatedData.materials) {
-        // 既存の材料費をすべて削除
+      // 経費更新がある場合
+      if (validatedData.expenses) {
+        // 既存の経費をすべて削除
         await tx.material.deleteMany({
           where: { workOrderId: workOrder.id },
         });
 
-        // 新しい材料費を作成
-        for (const material of validatedData.materials) {
-          // 名前が入力されている材料のみ作成
-          if (material.name.trim() !== '') {
-            await tx.material.create({
-              data: {
-                workOrderId: workOrder.id,
-                name: material.name,
-                unitPrice: material.unitPrice,
-                quantity: material.quantity,
-                totalAmount: material.totalAmount,
-              },
-            });
+        // 新しい経費を作成
+        for (const expense of validatedData.expenses) {
+          const category = expense.category.trim();
+          if (!category) {
+            continue;
           }
+
+          const safeCostUnitPrice = Number.isFinite(expense.costUnitPrice) ? Math.max(0, expense.costUnitPrice) : 0;
+          const safeCostQuantity = Number.isFinite(expense.costQuantity) ? Math.max(1, expense.costQuantity) : 1;
+          const computedCostTotal = safeCostUnitPrice * safeCostQuantity;
+          const costTotal = Number.isFinite(expense.costTotal) && expense.costTotal > 0 ? expense.costTotal : computedCostTotal;
+
+          const shouldAutoMarkup = ['materials', 'outsourcing', 'shipping'].includes(category);
+
+          let billQuantity = Number.isFinite(expense.billQuantity) && (expense.billQuantity ?? 0) > 0
+            ? Number(expense.billQuantity)
+            : safeCostQuantity;
+
+          if (billQuantity <= 0) {
+            billQuantity = safeCostQuantity;
+          }
+
+          let billTotal: number;
+          if (typeof expense.billTotal === 'number' && expense.billTotal >= 0) {
+            billTotal = expense.billTotal;
+          } else if (shouldAutoMarkup) {
+            billTotal = Math.ceil(costTotal * 1.2);
+          } else {
+            const fallbackUnitPrice = Number.isFinite(expense.billUnitPrice) ? Math.max(0, expense.billUnitPrice) : 0;
+            billTotal = fallbackUnitPrice * billQuantity;
+          }
+
+          const billUnitPrice = billQuantity > 0 ? Math.ceil(billTotal / billQuantity) : billTotal;
+
+          await tx.material.create({
+            data: {
+              workOrderId: workOrder.id,
+              category,
+              costUnitPrice: safeCostUnitPrice,
+              costQuantity: safeCostQuantity,
+              costTotal,
+              billUnitPrice,
+              billQuantity,
+              billTotal,
+              fileEstimate: typeof expense.fileEstimate === 'number' ? expense.fileEstimate : null,
+            },
+          });
         }
       }
 
@@ -763,7 +804,7 @@ export async function PATCH(
       if (validatedData.status === 'aggregated') {
         // 現在の集計結果を計算
         const currentActivities = await calculateActivitiesForWorkOrder(workOrder.id, tx);
-        const currentMaterials = await tx.material.findMany({
+        const currentExpenses = await tx.material.findMany({
           where: { workOrderId: workOrder.id },
         });
 
@@ -771,9 +812,9 @@ export async function PATCH(
         const totalHours = currentActivities.reduce((sum, activity) => sum + activity.hours, 0);
         const costTotal = currentActivities.reduce((sum, activity) => sum + activity.costAmount, 0);
         const billTotal = currentActivities.reduce((sum, activity) => sum + activity.billAmount, 0);
-        const materialTotal = currentMaterials.reduce((sum, material) => sum + material.totalAmount, 0);
+        const expenseBillTotal = currentExpenses.reduce((sum, expense) => sum + expense.billTotal, 0);
         const adjustmentTotal = currentActivities.reduce((sum, activity) => sum + activity.adjustment, 0);
-        const finalAmount = billTotal + materialTotal;
+        const finalAmount = billTotal + expenseBillTotal;
 
         // Activity別詳細をJSON形式で準備
         const activityBreakdown = currentActivities.map(activity => ({
@@ -787,12 +828,16 @@ export async function PATCH(
           adjustment: activity.adjustment,
         }));
 
-        // 材料費詳細をJSON形式で準備
-        const materialBreakdown = currentMaterials.map(material => ({
-          name: material.name,
-          unitPrice: material.unitPrice,
-          quantity: material.quantity,
-          totalAmount: material.totalAmount,
+        // 経費詳細をJSON形式で準備
+        const materialBreakdown = currentExpenses.map(expense => ({
+          category: expense.category,
+          costUnitPrice: expense.costUnitPrice,
+          costQuantity: expense.costQuantity,
+          costTotal: expense.costTotal,
+          billUnitPrice: expense.billUnitPrice,
+          billQuantity: expense.billQuantity,
+          billTotal: expense.billTotal,
+          fileEstimate: expense.fileEstimate,
         }));
 
         // AggregationSummaryレコードを作成
@@ -823,7 +868,7 @@ export async function PATCH(
             totalHours: totalHours,
             costTotal: costTotal,
             billTotal: billTotal,
-            materialTotal: materialTotal,
+            materialTotal: expenseBillTotal,
             adjustmentTotal: adjustmentTotal,
             finalAmount: finalAmount,
             activityBreakdown: activityBreakdown,

@@ -151,15 +151,19 @@ model Adjustment {
 }
 
 model Material {
-  id          String    @id @default(cuid())
-  workOrderId String    @map("work_order_id")
-  name        String    @db.VarChar(200)
-  unitPrice   Int       @map("unit_price")
-  quantity    Int
-  totalAmount Int       @map("total_amount")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  id             String    @id @default(cuid())
+  workOrderId    String    @map("work_order_id")
+  category       String    @db.VarChar(50)
+  costUnitPrice  Int       @map("cost_unit_price")
+  costQuantity   Int       @map("cost_quantity")
+  costTotal      Int       @map("cost_total")
+  billUnitPrice  Int       @map("bill_unit_price")
+  billQuantity   Int       @map("bill_quantity")
+  billTotal      Int       @map("bill_total")
+  fileEstimate   Int?      @map("file_estimate")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  workOrder      WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
 
   @@index([workOrderId])
   @@map("materials")

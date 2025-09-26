@@ -9,12 +9,18 @@ export interface ActivitySummary {
   adjustment: number;
 }
 
-export interface Material {
+export type ExpenseCategory = 'materials' | 'outsourcing' | 'shipping' | 'other';
+
+export interface ExpenseItem {
   id: string;
-  name: string;
-  unitPrice: number;
-  quantity: number;
-  totalAmount: number;
+  category: ExpenseCategory;
+  costUnitPrice: number;
+  costQuantity: number;
+  costTotal: number;
+  billUnitPrice: number;
+  billQuantity: number;
+  billTotal: number;
+  fileEstimate?: number | null;
 }
 
 export interface AggregationAdjustment {
@@ -36,7 +42,7 @@ export interface WorkOrderDetail {
   status: 'aggregating' | 'aggregated';
   totalHours: number;
   activities: ActivitySummary[];
-  materials: Material[];
+  expenses: ExpenseItem[];
   adjustments: AggregationAdjustment[];
 }
 
