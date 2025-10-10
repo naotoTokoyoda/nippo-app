@@ -104,17 +104,17 @@ export default function AggregationBillingPanel({
         </table>
       </div>
       <div className="border-t border-gray-200 p-4 space-y-4">
-        <h4 className="text-sm font-medium text-gray-700">経費明細（請求側）</h4>
+        <h4 className="text-sm font-medium text-gray-800">経費明細（請求側）</h4>
         {expenses.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">カテゴリ</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">請求単価</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">数量</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">請求小計</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">ファイル見積</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-20">カテゴリ</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-800 uppercase tracking-wider w-24">請求単価</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-800 uppercase tracking-wider w-16">数量</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-800 uppercase tracking-wider w-28">請求小計</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-800 uppercase tracking-wider w-32">ファイル見積</th>
                   {isEditing && <th className="px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">操作</th>}
                 </tr>
               </thead>
@@ -153,7 +153,7 @@ export default function AggregationBillingPanel({
                             step={1}
                           />
                         ) : (
-                          expense.billQuantity.toLocaleString()
+                          expense.billQuantity?.toLocaleString() || '0'
                         )}
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
@@ -202,34 +202,19 @@ export default function AggregationBillingPanel({
             </table>
           </div>
         ) : (
-          <div className="text-center py-6 text-gray-500 text-sm border border-dashed border-gray-300 rounded">
+          <div className="text-center py-6 text-gray-700 text-sm border border-dashed border-gray-300 rounded">
             経費の請求データはありません
           </div>
         )}
-        <div className="bg-blue-50 border border-blue-100 rounded p-3">
-          <h5 className="text-xs font-semibold text-blue-900 uppercase tracking-wide mb-2">カテゴリ別請求小計</h5>
-          <div className="space-y-1">
-            {Object.entries(categorySummaries).map(([category, summary]) => (
-              <div key={category} className="flex justify-between text-xs text-blue-900">
-                <span className="font-medium">{categoryLabelMap[category] ?? category}</span>
-                <span>
-                  請求 {formatCurrency(summary.billTotal)}
-                  <span className="mx-1 text-blue-300">|</span>
-                  ファイル見積 {summary.fileEstimateTotal > 0 ? formatCurrency(summary.fileEstimateTotal) : '—'}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
       <div className="border-t border-gray-200 bg-blue-50 p-4">
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">労務費小計</span>
+            <span className="text-sm text-gray-900">労務費小計</span>
             <span className="text-sm font-medium">{formatCurrency(billLaborSubtotal)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">経費小計</span>
+            <span className="text-sm text-gray-900">経費小計</span>
             <span className="text-sm font-medium">{formatCurrency(expenseSubtotal)}</span>
           </div>
           <div className="border-t border-blue-200 pt-2 flex justify-between items-center">

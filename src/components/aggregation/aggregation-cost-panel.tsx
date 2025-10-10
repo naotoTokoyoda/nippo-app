@@ -88,7 +88,7 @@ export default function AggregationCostPanel({
       </div>
       <div className="border-t border-gray-200 p-4 space-y-4">
         <div className="flex items-center justify-between">
-          <h4 className="text-sm font-medium text-gray-700">経費明細（原価側）</h4>
+          <h4 className="text-sm font-medium text-gray-800">経費明細（原価側）</h4>
           {isEditing && (
             <button onClick={onExpenseAdd} className="text-blue-600 hover:text-blue-800 text-sm">
               + 行を追加
@@ -100,11 +100,11 @@ export default function AggregationCostPanel({
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">カテゴリ</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">原価単価</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">数量</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">原価小計</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">ファイル見積</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-20">カテゴリ</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-800 uppercase tracking-wider w-24">原価単価</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-800 uppercase tracking-wider w-16">数量</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-800 uppercase tracking-wider w-28">原価小計</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-800 uppercase tracking-wider w-32">ファイル見積</th>
                   {isEditing && <th className="px-3 py-2" />}
                 </tr>
               </thead>
@@ -153,7 +153,7 @@ export default function AggregationCostPanel({
                           step={1}
                         />
                       ) : (
-                        expense.costQuantity.toLocaleString()
+                        expense.costQuantity?.toLocaleString() || '0'
                       )}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
@@ -189,38 +189,19 @@ export default function AggregationCostPanel({
             </table>
           </div>
         ) : (
-          <div className="text-center py-6 text-gray-600 text-sm border border-dashed border-gray-300 rounded">
+          <div className="text-center py-6 text-gray-700 text-sm border border-dashed border-gray-300 rounded">
             経費データはありません
           </div>
         )}
-        <div className="bg-gray-50 border border-gray-200 rounded p-3">
-          <h5 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">カテゴリ別小計</h5>
-          <div className="space-y-1">
-            {orderedCategories.map(category => {
-              const summary = categorySummaries[category] ?? { costTotal: 0, fileEstimateTotal: 0 };
-              const hasData = summary.costTotal > 0 || summary.fileEstimateTotal > 0;
-              return (
-                <div key={category} className="flex justify-between text-xs text-gray-700">
-                  <span className="font-medium">{categoryLabelMap[category] ?? category}</span>
-                  <span>
-                    原価 {formatCurrency(summary.costTotal)}
-                    <span className="mx-1 text-gray-400">|</span>
-                    ファイル見積 {hasData ? formatCurrency(summary.fileEstimateTotal) : '—'}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
       </div>
       <div className="border-t border-gray-200 bg-gray-50 p-4">
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-800">労務費小計</span>
+            <span className="text-sm text-gray-900">労務費小計</span>
             <span className="text-sm font-medium">{formatCurrency(costLaborSubtotal)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-800">経費小計</span>
+            <span className="text-sm text-gray-900">経費小計</span>
             <span className="text-sm font-medium">{formatCurrency(expenseSubtotal)}</span>
           </div>
           <div className="border-t border-gray-200 pt-2 flex justify-between items-center">

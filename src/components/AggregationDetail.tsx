@@ -103,8 +103,14 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
     }
   }, [fetchWorkOrderDetail, isAuthenticated]);
 
-  const formatCurrency = useCallback((amount: number) => `¥${amount.toLocaleString()}`, []);
-  const formatHours = useCallback((hours: number) => `${hours.toFixed(1)}h`, []);
+  const formatCurrency = useCallback((amount: number | undefined | null) => {
+    if (amount === undefined || amount === null) return '¥0';
+    return `¥${amount.toLocaleString()}`;
+  }, []);
+  const formatHours = useCallback((hours: number | undefined | null) => {
+    if (hours === undefined || hours === null) return '0.0h';
+    return `${hours.toFixed(1)}h`;
+  }, []);
 
   const determineManualOverride = useCallback((expense: ExpenseItem | EditableExpense) => {
     if (!AUTO_MARKUP_CATEGORIES.includes(expense.category)) {

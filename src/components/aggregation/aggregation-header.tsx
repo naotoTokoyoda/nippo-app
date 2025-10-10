@@ -10,24 +10,24 @@ export default function AggregationHeader({ workOrder, formatHours }: Aggregatio
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-500">工番</label>
+          <label className="block text-sm font-medium text-gray-700">工番</label>
           <div className="text-lg font-semibold">{workOrder.workNumber}</div>
-          <div className="text-sm text-gray-500">{workOrder.term}</div>
+          <div className="text-sm text-gray-700">{workOrder.term}</div>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-500">顧客</label>
+          <label className="block text-sm font-medium text-gray-700">顧客</label>
           <div className="text-lg font-semibold">{workOrder.customerName}</div>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-500">案件名</label>
+          <label className="block text-sm font-medium text-gray-700">案件名</label>
           <div className="text-lg font-semibold">{workOrder.projectName}</div>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-500">総時間</label>
+          <label className="block text-sm font-medium text-gray-700">総時間</label>
           <div className="text-lg font-semibold">{formatHours(workOrder.totalHours)}</div>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-500">ステータス</label>
+          <label className="block text-sm font-medium text-gray-700">ステータス</label>
           <div className="flex items-center">
             <span
               className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
