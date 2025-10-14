@@ -259,15 +259,21 @@ export async function GET(
       } else {
         // データベースにない場合は、Jooto APIを試行
         try {
+          console.log(`Attempting to fetch Jooto tasks for task ID: ${taskId}`);
           const deliveredTasks = await getDeliveredTasks();
+          console.log(`Found ${deliveredTasks.length} delivered tasks`);
+          
           const jootoTask = deliveredTasks.find(task => task.taskId.toString() === taskId);
           
           if (!jootoTask) {
+            console.warn(`Jooto task not found for ID: ${taskId}`);
             return Response.json(
-              { error: 'Jootoタスクが見つかりません' },
+              { error: `Jootoタスクが見つかりません（ID: ${taskId}）` },
               { status: 404 }
             );
           }
+          
+          console.log(`Found Jooto task: ${jootoTask.workNumberFront}-${jootoTask.workNumberBack}`);
 
           // 既存の工番データを確認
           workOrder = await prisma.workOrder.findUnique({
@@ -373,10 +379,11 @@ export async function GET(
             });
           }
         } catch (jootoError) {
-          console.warn('Jooto API取得エラー（データベース検索も失敗）:', jootoError);
+          console.error('Jooto API取得エラー:', jootoError);
+          const errorMessage = jootoError instanceof Error ? jootoError.message : 'Unknown error';
           return Response.json(
-            { error: 'Jooto APIが利用できず、該当する工番データも見つかりませんでした。' },
-            { status: 404 }
+            { error: `Jooto APIが利用できません: ${errorMessage}` },
+            { status: 500 }
           );
         }
       }
@@ -626,10 +633,11 @@ export async function PATCH(
             );
           }
         } catch (jootoError) {
-          console.warn('Jooto API取得エラー:', jootoError);
+          console.error('Jooto API取得エラー（PATCH）:', jootoError);
+          const errorMessage = jootoError instanceof Error ? jootoError.message : 'Unknown error';
           return Response.json(
-            { error: 'Jooto APIが利用できず、該当する工番データも見つかりませんでした。' },
-            { status: 404 }
+            { error: `Jooto APIが利用できません: ${errorMessage}` },
+            { status: 500 }
           );
         }
       }
