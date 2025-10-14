@@ -10,8 +10,8 @@ import AggregationHeader from './aggregation/aggregation-header';
 import AggregationActions from './aggregation/aggregation-actions';
 import AggregationBillingPanel from './aggregation/aggregation-billing-panel';
 import AggregationCostPanel from './aggregation/aggregation-cost-panel';
-import AggregationAdjustmentMemo from './aggregation/aggregation-adjustment-memo';
 import AggregationAdjustmentHistory from './aggregation/aggregation-adjustment-history';
+import AggregationAdjustmentMemo from './aggregation/aggregation-adjustment-memo';
 import {
   ActivityBillAmountMap,
   EditedRates,
@@ -674,7 +674,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
           onSaveClick={handleSaveClick}
           onFinalize={handleFinalize}
         />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6">
           <AggregationCostPanel
             activities={workOrder.activities}
             expenses={expensesForDisplay}

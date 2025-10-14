@@ -21,7 +21,7 @@ export default function PageLayout({
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <div className="max-w-7xl-5 mx-auto p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto p-6 lg:p-8">
         {/* ヘッダー */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800">{title}</h1>
