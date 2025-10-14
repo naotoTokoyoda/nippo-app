@@ -107,15 +107,14 @@ export default function AggregationBillingPanel({
         <h4 className="text-sm font-medium text-gray-800">経費明細（請求側）</h4>
         {expenses.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="min-w-full divide-y divide-gray-200 table-fixed">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-20">カテゴリ</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-800 uppercase tracking-wider w-24">請求単価</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-800 uppercase tracking-wider w-16">数量</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-800 uppercase tracking-wider w-28">請求小計</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-800 uppercase tracking-wider w-32">ファイル見積</th>
-                  {isEditing && <th className="px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">操作</th>}
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-24">請求単価</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-16">数量</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-28">請求小計</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-32">ファイル見積</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -128,13 +127,13 @@ export default function AggregationBillingPanel({
                       <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
                         {categoryLabelMap[expense.category] ?? expense.category}
                       </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-right">
+                      <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-left">
                         {isEditing ? (
                           <input
                             type="number"
                             value={expense.billUnitPrice === 0 ? '' : expense.billUnitPrice}
                             onChange={(event) => onExpenseBillingChange(index, 'billUnitPrice', event.target.value)}
-                            className="w-24 px-2 py-1 border border-gray-300 rounded text-sm text-right"
+                            className="w-24 px-2 py-1 border border-gray-300 rounded text-sm text-left"
                             min={0}
                             step={100}
                           />
@@ -142,13 +141,13 @@ export default function AggregationBillingPanel({
                           formatCurrency(expense.billUnitPrice)
                         )}
                       </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-right">
+                      <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-left">
                         {isEditing ? (
                           <input
                             type="number"
                             value={expense.billQuantity === 0 ? '' : expense.billQuantity}
                             onChange={(event) => onExpenseBillingChange(index, 'billQuantity', event.target.value)}
-                            className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-right"
+                            className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-left"
                             min={1}
                             step={1}
                           />
@@ -156,13 +155,13 @@ export default function AggregationBillingPanel({
                           expense.billQuantity?.toLocaleString() || '0'
                         )}
                       </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
+                      <td className="px-3 py-2 whitespace-nowrap text-sm font-semibold text-gray-900 text-left">
                         {isEditing ? (
                           <input
                             type="number"
                             value={expense.billTotal === 0 ? '' : expense.billTotal}
                             onChange={(event) => onExpenseBillingChange(index, 'billTotal', event.target.value)}
-                            className="w-28 px-2 py-1 border border-gray-300 rounded text-sm text-right"
+                            className="w-28 px-2 py-1 border border-gray-300 rounded text-sm text-left"
                             min={0}
                             step={100}
                           />
@@ -170,13 +169,13 @@ export default function AggregationBillingPanel({
                           formatCurrency(expense.billTotal)
                         )}
                       </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-right">
+                      <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-left">
                         {isEditing ? (
                           <input
                             type="number"
                             value={expense.fileEstimate ?? ''}
                             onChange={(event) => onFileEstimateChange(index, event.target.value)}
-                            className="w-28 px-2 py-1 border border-gray-300 rounded text-sm text-right"
+                            className="w-28 px-2 py-1 border border-gray-300 rounded text-sm text-left"
                             min={0}
                             step={100}
                           />
@@ -184,17 +183,6 @@ export default function AggregationBillingPanel({
                           expense.fileEstimate != null ? formatCurrency(expense.fileEstimate) : '—'
                         )}
                       </td>
-                      {isEditing && (
-                        <td className="px-3 py-2 text-right space-x-2">
-                          <button
-                            onClick={() => onExpenseBillingReset(index)}
-                            className={`text-xs ${isAutoSuggested ? 'text-gray-400 cursor-not-allowed' : 'text-blue-600 hover:text-blue-800'}`}
-                            disabled={isAutoSuggested}
-                          >
-                            自動計算
-                          </button>
-                        </td>
-                      )}
                     </tr>
                   );
                 })}

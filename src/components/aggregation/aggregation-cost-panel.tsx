@@ -97,14 +97,14 @@ export default function AggregationCostPanel({
         </div>
         {expenses.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="min-w-full divide-y divide-gray-200 table-fixed">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-20">カテゴリ</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-800 uppercase tracking-wider w-24">原価単価</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-800 uppercase tracking-wider w-16">数量</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-800 uppercase tracking-wider w-28">原価小計</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-800 uppercase tracking-wider w-32">ファイル見積</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-24">原価単価</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-16">数量</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-28">原価小計</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-32">ファイル見積</th>
                   {isEditing && <th className="px-3 py-2" />}
                 </tr>
               </thead>
@@ -116,7 +116,7 @@ export default function AggregationCostPanel({
                         <select
                           value={expense.category}
                           onChange={(event) => onExpenseCategoryChange(index, event.target.value as ExpenseCategory)}
-                          className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                          className="w-20 px-2 py-1 border border-gray-300 rounded text-sm bg-white text-left"
                         >
                           {categoryOptions.map((option) => (
                             <option key={option.value} value={option.value}>
@@ -128,13 +128,13 @@ export default function AggregationCostPanel({
                         categoryOptions.find((option) => option.value === expense.category)?.label ?? expense.category
                       )}
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-right">
+                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-left">
                       {isEditing ? (
                         <input
                           type="number"
                           value={expense.costUnitPrice === 0 ? '' : expense.costUnitPrice}
                           onChange={(event) => onExpenseCostChange(index, 'costUnitPrice', event.target.value)}
-                          className="w-24 px-2 py-1 border border-gray-300 rounded text-sm text-right"
+                          className="w-24 px-2 py-1 border border-gray-300 rounded text-sm text-left"
                           min={0}
                           step={100}
                         />
@@ -142,13 +142,13 @@ export default function AggregationCostPanel({
                         formatCurrency(expense.costUnitPrice)
                       )}
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-right">
+                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-left">
                       {isEditing ? (
                         <input
                           type="number"
                           value={expense.costQuantity === 0 ? '' : expense.costQuantity}
                           onChange={(event) => onExpenseCostChange(index, 'costQuantity', event.target.value)}
-                          className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-right"
+                          className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-left"
                           min={1}
                           step={1}
                         />
@@ -156,16 +156,16 @@ export default function AggregationCostPanel({
                         expense.costQuantity?.toLocaleString() || '0'
                       )}
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
+                    <td className="px-3 py-2 whitespace-nowrap text-sm font-semibold text-gray-900 text-left">
                       {formatCurrency(expense.costTotal)}
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-right">
+                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-left">
                       {isEditing ? (
                         <input
                           type="number"
                           value={expense.fileEstimate ?? ''}
                           onChange={(event) => onFileEstimateChange(index, event.target.value)}
-                          className="w-28 px-2 py-1 border border-gray-300 rounded text-sm text-right"
+                          className="w-28 px-2 py-1 border border-gray-300 rounded text-sm text-left"
                           min={0}
                           step={100}
                         />
