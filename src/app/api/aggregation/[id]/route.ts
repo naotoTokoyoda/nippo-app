@@ -778,7 +778,7 @@ export async function PATCH(
           } else if (shouldAutoMarkup) {
             billTotal = Math.ceil(costTotal * 1.2);
           } else {
-            const fallbackUnitPrice = Number.isFinite(expense.billUnitPrice) ? Math.max(0, expense.billUnitPrice) : 0;
+            const fallbackUnitPrice = Number.isFinite(expense.billUnitPrice ?? 0) ? Math.max(0, expense.billUnitPrice ?? 0) : 0;
             billTotal = fallbackUnitPrice * billQuantity;
           }
 
