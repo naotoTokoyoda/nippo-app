@@ -12,6 +12,7 @@ import AggregationBillingPanel from './aggregation/aggregation-billing-panel';
 import AggregationCostPanel from './aggregation/aggregation-cost-panel';
 import AggregationAdjustmentHistory from './aggregation/aggregation-adjustment-history';
 import AggregationAdjustmentMemo from './aggregation/aggregation-adjustment-memo';
+import AggregationWorkerHistory from './aggregation/aggregation-worker-history';
 import {
   ActivityBillAmountMap,
   EditedRates,
@@ -716,6 +717,10 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
             onRateEdit={handleRateEdit}
           />
         )}
+        <AggregationWorkerHistory 
+          workNumberFront={workOrder.workNumber.split('-')[0]} 
+          workNumberBack={workOrder.workNumber.split('-')[1]} 
+        />
         <AggregationAdjustmentHistory adjustments={workOrder.adjustments} formatCurrency={formatCurrency} />
       </div>
 
