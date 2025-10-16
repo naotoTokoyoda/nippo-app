@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { getDeliveredTasks, moveJootoTask } from '@/lib/jooto-api';
 import { Prisma } from '@prisma/client';
+import { calculateWorkTime, formatUTCToJSTTime } from '@/utils/timeCalculation';
 
 // 型定義
 type ReportItem = Prisma.ReportItemGetPayload<{
@@ -419,9 +420,12 @@ export async function GET(
     // 各レポートアイテムのActivityを判定し、時間を集計
     workOrder.reportItems.forEach((item: ReportItem) => {
       const activity = determineActivity(item);
-      const startTime = new Date(item.startTime);
-      const endTime = new Date(item.endTime);
-      const hours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+      // 勤務状況を考慮した時間計算を適用
+      const hours = calculateWorkTime(
+        formatUTCToJSTTime(item.startTime), 
+        formatUTCToJSTTime(item.endTime), 
+        item.workStatus || undefined
+      );
 
       if (!activityMap.has(activity)) {
         activityMap.set(activity, {
