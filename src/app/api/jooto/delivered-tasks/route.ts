@@ -5,6 +5,7 @@
 
 import { getDeliveredTasks } from '@/lib/jooto-api';
 import { prisma } from '@/lib/prisma';
+import { calculateWorkTime, formatUTCToJSTTime } from '@/utils/timeCalculation';
 
 /**
  * 納品済みタスク一覧を取得し、日報データと紐付けて集計情報を返す
@@ -40,9 +41,12 @@ export async function GET() {
 
         for (const workOrder of workOrders) {
           for (const item of workOrder.reportItems) {
-            const startTime = new Date(item.startTime);
-            const endTime = new Date(item.endTime);
-            const hours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+            // 勤務状況を考慮した時間計算を適用
+            const hours = calculateWorkTime(
+              formatUTCToJSTTime(item.startTime), 
+              formatUTCToJSTTime(item.endTime), 
+              item.workStatus || undefined
+            );
             totalHours += hours;
 
             // 最終更新日を更新

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
+import { calculateWorkTime, formatUTCToJSTTime } from '@/utils/timeCalculation';
 
 // Prismaが生成する型を使用
 
@@ -86,9 +87,12 @@ export async function GET(request: NextRequest) {
     // 各工番の累計時間を計算
     const aggregationItems = workOrders.map(workOrder => {
       const totalHours = workOrder.reportItems.reduce((total, item) => {
-        const startTime = new Date(item.startTime);
-        const endTime = new Date(item.endTime);
-        const hours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+        // 勤務状況を考慮した時間計算を適用
+        const hours = calculateWorkTime(
+          formatUTCToJSTTime(item.startTime), 
+          formatUTCToJSTTime(item.endTime), 
+          item.workStatus || undefined
+        );
         return total + hours;
       }, 0);
 
