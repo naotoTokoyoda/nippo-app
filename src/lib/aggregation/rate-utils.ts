@@ -1,4 +1,4 @@
-import { ActivitySummary, EditedRate, EditedRates, RateChange } from '@/types/aggregation';
+import { ActivitySummary, EditedRates, RateChange } from '@/types/aggregation';
 
 /**
  * 活動の請求額情報
