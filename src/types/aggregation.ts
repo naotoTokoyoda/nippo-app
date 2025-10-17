@@ -25,6 +25,13 @@ export interface ExpenseItem {
   memo?: string;
 }
 
+/**
+ * 編集可能な経費アイテム（手動上書きフラグを含む）
+ */
+export interface EditableExpenseItem extends ExpenseItem {
+  manualBillOverride?: boolean;
+}
+
 export interface AggregationAdjustment {
   id: string;
   type: string;
