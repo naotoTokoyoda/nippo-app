@@ -200,6 +200,18 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
     return isEditing ? editedExpenses : workOrder.expenses;
   }, [editedExpenses, isEditing, workOrder]);
 
+  const activitiesForDisplay = useMemo(() => {
+    if (!workOrder) {
+      return [];
+    }
+    return workOrder.activities.map(activity => ({
+      ...activity,
+      memo: editedRates[activity.activity]?.memo && editedRates[activity.activity].memo !== '' 
+        ? editedRates[activity.activity].memo 
+        : activity.memo,
+    }));
+  }, [workOrder, editedRates]);
+
   const activityBillAmounts = useMemo<ActivityBillAmountMap>(() => {
     if (!workOrder) {
       return {};
@@ -579,12 +591,29 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
       setIsSaving(true);
 
       const adjustmentsForAPI: Record<string, { billRate: number; memo: string }> = {};
+      
+      // editedRatesがある場合は送信
       Object.entries(editedRates).forEach(([activity, data]) => {
+        // メモのみの変更でも送信するため、billRateは元の値を保持
+        const originalBillRate = workOrder?.activities.find(a => a.activity === activity)?.billRate || 0;
         adjustmentsForAPI[activity] = {
-          billRate: parseInt(data.billRate, 10) || 0,
+          billRate: parseInt(data.billRate, 10) || originalBillRate,
           memo: data.memo || '',
         };
       });
+      
+      // editedRatesが空でも、activitiesForDisplayでメモが変更されている場合は送信
+      if (Object.keys(adjustmentsForAPI).length === 0 && workOrder) {
+        workOrder.activities.forEach(activity => {
+          const editedActivity = activitiesForDisplay.find(a => a.activity === activity.activity);
+          if (editedActivity && editedActivity.memo !== activity.memo) {
+            adjustmentsForAPI[activity.activity] = {
+              billRate: activity.billRate,
+              memo: editedActivity.memo || '',
+            };
+          }
+        });
+      }
 
       const expensePayload = sanitizeExpensesForSave();
 
@@ -620,7 +649,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
     } finally {
       setIsSaving(false);
     }
-  }, [editedRates, fetchWorkOrderDetail, sanitizeExpensesForSave, showToast, workOrderId]);
+  }, [editedRates, fetchWorkOrderDetail, sanitizeExpensesForSave, showToast, workOrderId, workOrder, activitiesForDisplay]);
 
   const handleFinalize = useCallback(async () => {
     if (!confirm('集計を完了しますか？完了後は編集できなくなります。')) {
@@ -690,7 +719,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
         />
         <div className="grid grid-cols-1 gap-6">
           <AggregationCostPanel
-            activities={workOrder.activities}
+            activities={activitiesForDisplay}
             expenses={expensesForDisplay}
             isEditing={isEditing}
             categoryOptions={EXPENSE_CATEGORY_OPTIONS}
@@ -699,6 +728,8 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
             onExpenseCostChange={handleExpenseCostChange}
             onExpenseRemove={handleExpenseRemove}
             onFileEstimateChange={handleExpenseFileEstimateChange}
+            onActivityMemoChange={(activity, memo) => handleRateEdit(activity, 'memo', memo)}
+            editedRates={editedRates}
             costLaborSubtotal={totals.costLaborTotal}
             expenseSubtotal={costExpenseSubtotal}
             costTotal={costGrandTotal}
@@ -706,7 +737,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
             formatHours={formatHours}
           />
           <AggregationBillingPanel
-            activities={workOrder.activities}
+            activities={activitiesForDisplay}
             expenses={expensesForDisplay}
             isEditing={isEditing}
             categoryOptions={EXPENSE_CATEGORY_OPTIONS}

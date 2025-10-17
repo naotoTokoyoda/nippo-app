@@ -10,6 +10,8 @@ interface AggregationCostPanelProps {
   onExpenseCostChange: (index: number, field: 'costUnitPrice' | 'costQuantity' | 'memo', value: string | number) => void;
   onExpenseRemove: (index: number) => void;
   onFileEstimateChange: (index: number, value: string | number) => void;
+  onActivityMemoChange: (activity: string, memo: string) => void;
+  editedRates: Record<string, { billRate: string; memo: string }>;
   costLaborSubtotal: number;
   expenseSubtotal: number;
   costTotal: number;
@@ -27,6 +29,8 @@ export default function AggregationCostPanel({
   onExpenseCostChange,
   onExpenseRemove,
   onFileEstimateChange,
+  onActivityMemoChange,
+  editedRates,
   costLaborSubtotal,
   expenseSubtotal,
   costTotal,
@@ -85,7 +89,20 @@ export default function AggregationCostPanel({
                   {formatCurrency(activity.costAmount)}
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {activity.memo || '—'}
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editedRates[activity.activity]?.memo && editedRates[activity.activity].memo !== '' 
+                        ? editedRates[activity.activity].memo 
+                        : activity.memo ?? ''}
+                      onChange={(event) => onActivityMemoChange(activity.activity, event.target.value)}
+                      placeholder="メモを入力..."
+                      maxLength={50}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                    />
+                  ) : (
+                    activity.memo || '—'
+                  )}
                 </td>
               </tr>
             ))}

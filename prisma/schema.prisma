@@ -63,6 +63,7 @@ model WorkOrder {
   adjustments           Adjustment[]
   materials             Material[]
   aggregationSummaries  AggregationSummary[]
+  activityMemos         WorkOrderActivityMemo[]
   customer              Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@unique([frontNumber, backNumber])
@@ -169,6 +170,23 @@ model Material {
 
   @@index([workOrderId])
   @@map("materials")
+}
+
+model WorkOrderActivityMemo {
+  id          String    @id @default(cuid())
+  workOrderId String    @map("work_order_id")
+  activity    String    @db.VarChar(20)
+  memo        String?   @db.VarChar(500)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // リレーション
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  @@unique([workOrderId, activity])
+  @@index([workOrderId])
+  @@index([activity])
+  @@map("work_order_activity_memos")
 }
 
 model AggregationSummary {

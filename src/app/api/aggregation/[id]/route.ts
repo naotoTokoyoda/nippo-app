@@ -108,6 +108,7 @@ async function calculateActivitiesForWorkOrder(workOrderId: string, tx: Prisma.T
   costAmount: number;
   billAmount: number;
   adjustment: number;
+  memo?: string;
 }>> {
   // WorkOrderとreportItemsを取得
   const workOrder = await tx.workOrder.findUnique({
@@ -183,6 +184,17 @@ async function calculateActivitiesForWorkOrder(workOrderId: string, tx: Prisma.T
         },
       });
 
+      // 工番ごとのActivityメモを取得
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const activityMemo = await (tx as any).workOrderActivityMemo.findUnique({
+        where: {
+          workOrderId_activity: {
+            workOrderId,
+            activity: activityData.activity,
+          },
+        },
+      });
+
       const costRate = rate?.costRate || 11000; // デフォルト単価
       const billRate = rate?.billRate || 11000;
       const originalBillRate = originalRate?.billRate || 11000;
@@ -203,7 +215,7 @@ async function calculateActivitiesForWorkOrder(workOrderId: string, tx: Prisma.T
         costAmount,
         billAmount,
         adjustment,
-        memo: rate?.memo || undefined,
+        memo: activityMemo?.memo || undefined,
       };
     })
   );
@@ -441,60 +453,8 @@ export async function GET(
       activityData.items.push(item);
     });
 
-    // 各Activity別の単価・金額を計算
-    const activities = await Promise.all(
-      Array.from(activityMap.values()).map(async (activityData) => {
-        // 現在有効な単価を取得
-        const rate = await prisma.rate.findFirst({
-          where: {
-            activity: activityData.activity,
-            effectiveFrom: {
-              lte: new Date(),
-            },
-            OR: [
-              { effectiveTo: null },
-              { effectiveTo: { gte: new Date() } },
-            ],
-          },
-          orderBy: {
-            effectiveFrom: 'desc',
-          },
-        });
-
-        // 最初（デフォルト）の単価を取得
-        const originalRate = await prisma.rate.findFirst({
-          where: {
-            activity: activityData.activity,
-          },
-          orderBy: {
-            effectiveFrom: 'asc',
-          },
-        });
-
-        const costRate = rate?.costRate || 11000; // デフォルト単価
-        const billRate = rate?.billRate || 11000;
-        const originalBillRate = originalRate?.billRate || 11000;
-        const hours = Math.round(activityData.hours * 10) / 10;
-        const costAmount = Math.round(hours * costRate);
-        const billAmount = Math.round(hours * billRate);
-        
-        // 調整額 = 現在の請求額 - 元の請求額
-        const originalBillAmount = Math.round(hours * originalBillRate);
-        const adjustment = billAmount - originalBillAmount;
-
-        return {
-          activity: activityData.activity,
-          activityName: getActivityName(activityData.activity),
-          hours,
-          costRate,
-          billRate,
-          costAmount,
-          billAmount,
-          adjustment,
-          memo: rate?.memo || undefined,
-        };
-      })
-    );
+    // 各Activity別の単価・金額を計算（calculateActivitiesForWorkOrder関数を使用）
+    const activities = await calculateActivitiesForWorkOrder(workOrder.id, prisma);
 
     // 調整履歴を整形
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -666,6 +626,7 @@ export async function PATCH(
       );
     }
 
+
     // トランザクション内で更新処理
     await prisma.$transaction(async (tx) => {
       // 単価調整がある場合
@@ -684,6 +645,27 @@ export async function PATCH(
             orderBy: { effectiveFrom: 'desc' },
           });
 
+          // 工番ごとのActivityメモを保存/更新
+          if (adjustment.memo !== undefined) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await (tx as any).workOrderActivityMemo.upsert({
+              where: {
+                workOrderId_activity: {
+                  workOrderId: workOrder.id,
+                  activity,
+                },
+              },
+              update: {
+                memo: adjustment.memo || null,
+              },
+              create: {
+                workOrderId: workOrder.id,
+                activity,
+                memo: adjustment.memo || null,
+              },
+            });
+          }
+
           if (currentRate && currentRate.billRate !== adjustment.billRate) {
             // 現在の単価の有効期限を今日までに設定
             await tx.rate.update({
@@ -699,7 +681,7 @@ export async function PATCH(
                 effectiveTo: null,
                 costRate: currentRate.costRate,
                 billRate: adjustment.billRate,
-                memo: adjustment.memo || null,
+                // memo: currentRate.memo, // Rateテーブルのメモは変更しない
               },
             });
 
@@ -747,7 +729,22 @@ export async function PATCH(
                   },
                 });
               }
+          } else if (adjustment.memo !== undefined) {
+            // メモのみが変更された場合の調整履歴を記録
+            const firstUser = await tx.user.findFirst();
+            if (firstUser) {
+              await tx.adjustment.create({
+                data: {
+                  workOrderId: workOrder.id,
+                  type: 'memo_update',
+                  amount: 0,
+                  reason: `${activity}メモ更新`,
+                  memo: adjustment.memo || null,
+                  createdBy: firstUser.id,
+                },
+              });
             }
+          }
           }
         }
       }
@@ -805,7 +802,8 @@ export async function PATCH(
               billTotal,
               fileEstimate: typeof expense.fileEstimate === 'number' ? expense.fileEstimate : null,
               memo: expense.memo || null,
-            },
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any,
           });
         }
       }
