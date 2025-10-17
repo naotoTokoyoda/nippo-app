@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import PageLayout from '@/components/PageLayout';
 import SaveConfirmModal from './SaveConfirmModal';
@@ -14,28 +13,21 @@ import AggregationAdjustmentHistory from './aggregation/aggregation-adjustment-h
 import AggregationWorkerHistory from './aggregation/aggregation-worker-history';
 import { useExpenseEditor } from '@/hooks/useExpenseEditor';
 import { useRateEditor } from '@/hooks/useRateEditor';
+import { useAggregationData } from '@/hooks/useAggregationData';
+import { useAggregationSave } from '@/hooks/useAggregationSave';
 import { EXPENSE_CATEGORY_OPTIONS } from '@/lib/aggregation/expense-utils';
-import {
-  ExpenseItem,
-  WorkOrderDetail,
-  RateChange,
-} from '@/types/aggregation';
+import { ExpenseItem } from '@/types/aggregation';
 
 interface AggregationDetailProps {
   workOrderId: string;
 }
 
 export default function AggregationDetail({ workOrderId }: AggregationDetailProps) {
-  const router = useRouter();
   const { showToast } = useToast();
-  const [workOrder, setWorkOrder] = useState<WorkOrderDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [pendingRateChanges, setPendingRateChanges] = useState<RateChange[]>([]);
-  const [pendingExpenseSnapshot, setPendingExpenseSnapshot] = useState<ExpenseItem[]>([]);
-  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+
+  // データ取得のカスタムフック
+  const { workOrder, loading, isAuthenticated, refetch } = useAggregationData(workOrderId);
 
   // 経費編集のカスタムフック
   const expenseEditor = useExpenseEditor(workOrder?.expenses || []);
@@ -43,50 +35,17 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
   // 単価編集のカスタムフック
   const rateEditor = useRateEditor(workOrder?.activities || []);
 
-  const fetchWorkOrderDetail = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`/api/aggregation/${workOrderId}`);
-      if (!response.ok) {
-        throw new Error('データの取得に失敗しました');
-      }
-
-      const data = await response.json();
-      setWorkOrder(data);
-    } catch (error) {
-      console.error('集計詳細取得エラー:', error);
-      alert('データの取得に失敗しました。再度お試しください。');
-    } finally {
-      setLoading(false);
-    }
-  }, [workOrderId]);
-
-  const checkAuthentication = useCallback(async () => {
-    try {
-      const response = await fetch('/api/auth/aggregation');
-      const data = await response.json();
-
-      if (!data.authenticated) {
-        router.replace('/');
-        return;
-      }
-
-      setIsAuthenticated(true);
-    } catch (error) {
-      console.error('認証チェックエラー:', error);
-      router.replace('/');
-    }
-  }, [router]);
-
-  useEffect(() => {
-    checkAuthentication();
-  }, [checkAuthentication]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchWorkOrderDetail();
-    }
-  }, [fetchWorkOrderDetail, isAuthenticated]);
+  // 保存・API通信のカスタムフック
+  const saveManager = useAggregationSave({
+    workOrderId,
+    onSaveSuccess: async () => {
+      setIsEditing(false);
+      rateEditor.cancelEditing();
+      expenseEditor.cancelEditing();
+      await refetch();
+    },
+    onShowToast: showToast,
+  });
 
   const formatCurrency = useCallback((amount: number | undefined | null) => {
     if (amount === undefined || amount === null) return '¥0';
@@ -155,18 +114,16 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
 
     rateEditor.startEditing(workOrder.activities);
     expenseEditor.startEditing(workOrder.expenses);
-    setPendingRateChanges([]);
-    setPendingExpenseSnapshot([]);
+    saveManager.clearPendingData();
     setIsEditing(true);
-  }, [workOrder, rateEditor, expenseEditor]);
+  }, [workOrder, rateEditor, expenseEditor, saveManager]);
 
   const handleEditCancel = useCallback(() => {
     setIsEditing(false);
     rateEditor.cancelEditing();
     expenseEditor.cancelEditing();
-    setPendingRateChanges([]);
-    setPendingExpenseSnapshot([]);
-  }, [rateEditor, expenseEditor]);
+    saveManager.clearPendingData();
+  }, [rateEditor, expenseEditor, saveManager]);
 
   const calculateChanges = useCallback(() => {
     const rateChanges = rateEditor.rateChanges;
@@ -184,80 +141,18 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
       alert('変更がありません。');
       return;
     }
-    setPendingRateChanges(rateChanges);
-    setPendingExpenseSnapshot(sanitizedExpenses);
-    setShowSaveConfirm(true);
-  }, [calculateChanges]);
+    saveManager.openSaveConfirm(rateChanges, sanitizedExpenses);
+  }, [calculateChanges, saveManager]);
 
   const handleSaveConfirm = useCallback(async () => {
-    try {
-      setIsSaving(true);
+    const adjustmentsForAPI = rateEditor.getAdjustmentsForAPI();
+    const expensePayload = expenseEditor.sanitizedExpenses;
 
-      const adjustmentsForAPI = rateEditor.getAdjustmentsForAPI();
-      const expensePayload = expenseEditor.sanitizedExpenses;
-
-      const response = await fetch(`/api/aggregation/${workOrderId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          billRateAdjustments: adjustmentsForAPI,
-          expenses: expensePayload,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || '保存に失敗しました');
-      }
-
-      setShowSaveConfirm(false);
-      setIsEditing(false);
-      rateEditor.cancelEditing();
-      expenseEditor.cancelEditing();
-      setPendingRateChanges([]);
-      setPendingExpenseSnapshot([]);
-
-      await fetchWorkOrderDetail();
-
-      showToast('単価の更新が保存されました', 'success');
-    } catch (error) {
-      console.error('保存エラー:', error);
-      showToast(error instanceof Error ? error.message : '保存中にエラーが発生しました', 'error');
-    } finally {
-      setIsSaving(false);
-    }
-  }, [rateEditor, fetchWorkOrderDetail, expenseEditor, showToast, workOrderId]);
-
-  const handleFinalize = useCallback(async () => {
-    if (!confirm('集計を完了しますか？完了後は編集できなくなります。')) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/aggregation/${workOrderId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          status: 'aggregated',
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || '完了処理に失敗しました');
-      }
-
-      showToast('集計が完了されました', 'success');
-      router.push('/aggregation');
-    } catch (error) {
-      console.error('完了エラー:', error);
-      showToast(error instanceof Error ? error.message : '完了処理中にエラーが発生しました', 'error');
-    }
-  }, [router, showToast, workOrderId]);
+    await saveManager.saveChanges({
+      adjustmentsForAPI,
+      expensePayload,
+    });
+  }, [rateEditor, expenseEditor, saveManager]);
 
   if (!isAuthenticated || loading) {
     return (
@@ -290,11 +185,11 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
         <AggregationActions
           status={workOrder.status}
           isEditing={isEditing}
-          isSaving={isSaving}
+          isSaving={saveManager.isSaving}
           onEditStart={handleEditStart}
           onCancelEdit={handleEditCancel}
           onSaveClick={handleSaveClick}
-          onFinalize={handleFinalize}
+          onFinalize={saveManager.finalizeAggregation}
         />
         <div className="grid grid-cols-1 gap-6">
           <AggregationCostPanel
@@ -341,11 +236,11 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
       </div>
 
       <SaveConfirmModal
-        isOpen={showSaveConfirm}
-        onClose={() => setShowSaveConfirm(false)}
+        isOpen={saveManager.showSaveConfirm}
+        onClose={saveManager.closeSaveConfirm}
         onConfirm={handleSaveConfirm}
-        rateChanges={pendingRateChanges}
-        expenses={pendingExpenseSnapshot}
+        rateChanges={saveManager.pendingRateChanges}
+        expenses={saveManager.pendingExpenseSnapshot}
       />
     </PageLayout>
   );
