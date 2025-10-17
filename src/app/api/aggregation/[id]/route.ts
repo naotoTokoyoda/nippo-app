@@ -1,226 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { z } from 'zod';
 import { getDeliveredTasks, moveJootoTask } from '@/lib/jooto-api';
-import { Prisma } from '@prisma/client';
-import { calculateWorkTime, formatUTCToJSTTime } from '@/utils/timeCalculation';
+import { determineActivity } from '@/lib/aggregation/activity-utils';
+import { 
+  calculateActivitiesForWorkOrder,
+  calculateSummary 
+} from '@/lib/aggregation/calculation-service';
+import { updateAggregationSchema } from '@/lib/aggregation/schemas';
+import { z } from 'zod';
 
-// 型定義
-type ReportItem = Prisma.ReportItemGetPayload<{
-  include: {
-    machine: true;
-    report: {
-      include: {
-        worker: true;
-      };
-    };
-  };
-}>;
-
-interface ActivityGroup {
-  activity: string;
-  hours: number;
-  items: ReportItem[];
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-type WorkOrderWithIncludes = Prisma.WorkOrderGetPayload<{
-  include: {
-    customer: true;
-    reportItems: {
-      include: {
-        report: {
-          include: {
-            worker: true;
-          };
-        };
-        machine: true;
-      };
-    };
-    adjustments: {
-      include: {
-        user: true;
-      };
-    };
-    materials: true;
-  };
-}>;
-
-// 通貨フォーマット関数
+/**
+ * 通貨フォーマット関数
+ */
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('ja-JP', {
     style: 'currency',
     currency: 'JPY',
     minimumFractionDigits: 0,
   }).format(amount);
-}
-
-// Activity判定ロジック
-function determineActivity(reportItem: ReportItem): string {
-  // 1. 実習生判定（作業者名がカタカナ）
-  const workerName = reportItem.report.worker.name;
-  if (/^[\u30A0-\u30FF\s]+$/.test(workerName)) {
-    return 'TRAINEE1';
-  }
-
-  // 2. 検品判定（作業内容に「検品」が含まれる）
-  const workDescription = reportItem.workDescription || '';
-  if (workDescription.includes('検品')) {
-    return 'INSPECTION';
-  }
-
-  // 3. 機械種類による判定
-  const machineName = reportItem.machine.name;
-  if (machineName === 'MILLAC 1052 VII') {
-    return 'M_1052';
-  }
-  if (machineName === '正面盤 : Chubu LF 500') {
-    return 'M_SHOMEN';
-  }
-  if (machineName === '12尺 : 汎用旋盤') {
-    return 'M_12SHAKU';
-  }
-
-  // 4. デフォルトは通常作業
-  return 'NORMAL';
-}
-
-// Activity名を取得
-function getActivityName(activity: string): string {
-  const names: Record<string, string> = {
-    'NORMAL': '通常',
-    'TRAINEE1': '1号実習生', 
-    'INSPECTION': '検品',
-    'M_1052': '1052',
-    'M_SHOMEN': '正面盤',
-    'M_12SHAKU': '12尺',
-  };
-  return names[activity] || activity;
-}
-
-// WorkOrderのActivity別集計を計算する関数
-async function calculateActivitiesForWorkOrder(workOrderId: string, tx: Prisma.TransactionClient): Promise<Array<{
-  activity: string;
-  activityName: string;
-  hours: number;
-  costRate: number;
-  billRate: number;
-  costAmount: number;
-  billAmount: number;
-  adjustment: number;
-  memo?: string;
-}>> {
-  // WorkOrderとreportItemsを取得
-  const workOrder = await tx.workOrder.findUnique({
-    where: { id: workOrderId },
-    include: {
-      reportItems: {
-        include: {
-          report: {
-            include: {
-              worker: true,
-            },
-          },
-          machine: true,
-        },
-      },
-    },
-  });
-
-  if (!workOrder) {
-    throw new Error('WorkOrder not found');
-  }
-
-  // Activity別に集計
-  const activityMap = new Map<string, ActivityGroup>();
-
-  // 各レポートアイテムのActivityを判定し、時間を集計
-  workOrder.reportItems.forEach((item) => {
-    const activity = determineActivity(item);
-    const startTime = new Date(item.startTime);
-    const endTime = new Date(item.endTime);
-    const hours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
-
-    if (!activityMap.has(activity)) {
-      activityMap.set(activity, {
-        activity,
-        hours: 0,
-        items: [],
-      });
-    }
-
-    const activityData = activityMap.get(activity)!;
-    activityData.hours += hours;
-    activityData.items.push(item);
-  });
-
-  // 各Activity別の単価・金額を計算
-  const activities = await Promise.all(
-    Array.from(activityMap.values()).map(async (activityData) => {
-      // 現在有効な単価を取得
-      const rate = await tx.rate.findFirst({
-        where: {
-          activity: activityData.activity,
-          effectiveFrom: {
-            lte: new Date(),
-          },
-          OR: [
-            { effectiveTo: null },
-            { effectiveTo: { gte: new Date() } },
-          ],
-        },
-        orderBy: {
-          effectiveFrom: 'desc',
-        },
-      });
-
-      // 最初（デフォルト）の単価を取得
-      const originalRate = await tx.rate.findFirst({
-        where: {
-          activity: activityData.activity,
-        },
-        orderBy: {
-          effectiveFrom: 'asc',
-        },
-      });
-
-      // 工番ごとのActivityメモを取得
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const activityMemo = await (tx as any).workOrderActivityMemo.findUnique({
-        where: {
-          workOrderId_activity: {
-            workOrderId,
-            activity: activityData.activity,
-          },
-        },
-      });
-
-      const costRate = rate?.costRate || 11000; // デフォルト単価
-      const billRate = rate?.billRate || 11000;
-      const originalBillRate = originalRate?.billRate || 11000;
-      const hours = Math.round(activityData.hours * 10) / 10;
-      const costAmount = Math.round(hours * costRate);
-      const billAmount = Math.round(hours * billRate);
-      
-      // 調整額 = 現在の請求額 - 元の請求額
-      const originalBillAmount = Math.round(hours * originalBillRate);
-      const adjustment = billAmount - originalBillAmount;
-
-      return {
-        activity: activityData.activity,
-        activityName: getActivityName(activityData.activity),
-        hours,
-        costRate,
-        billRate,
-        costAmount,
-        billAmount,
-        adjustment,
-        memo: activityMemo?.memo || undefined,
-      };
-    })
-  );
-
-  return activities;
 }
 
 // 集計詳細を取得
@@ -427,33 +224,7 @@ export async function GET(
       );
     }
 
-    // Activity別に集計
-    const activityMap = new Map<string, ActivityGroup>();
-
-    // 各レポートアイテムのActivityを判定し、時間を集計
-    workOrder.reportItems.forEach((item: ReportItem) => {
-      const activity = determineActivity(item);
-      // 勤務状況を考慮した時間計算を適用
-      const hours = calculateWorkTime(
-        formatUTCToJSTTime(item.startTime), 
-        formatUTCToJSTTime(item.endTime), 
-        item.workStatus || undefined
-      );
-
-      if (!activityMap.has(activity)) {
-        activityMap.set(activity, {
-          activity,
-          hours: 0,
-          items: [],
-        });
-      }
-
-      const activityData = activityMap.get(activity)!;
-      activityData.hours += hours;
-      activityData.items.push(item);
-    });
-
-    // 各Activity別の単価・金額を計算（calculateActivitiesForWorkOrder関数を使用）
+    // Activity別の単価・金額を計算
     const activities = await calculateActivitiesForWorkOrder(workOrder.id, prisma);
 
     // 調整履歴を整形
@@ -510,27 +281,6 @@ export async function GET(
   }
 }
 
-// 集計詳細を更新（単価調整など）
-const updateSchema = z.object({
-  billRateAdjustments: z.record(z.string(), z.object({
-    billRate: z.number(),
-    memo: z.string().max(50).optional(),
-  })).optional(),
-  expenses: z.array(z.object({
-    id: z.string().optional(),
-    category: z.string(),
-    costUnitPrice: z.number(),
-    costQuantity: z.number(),
-    costTotal: z.number(),
-    billUnitPrice: z.number().optional(),
-    billQuantity: z.number().optional(),
-    billTotal: z.number().optional(),
-    fileEstimate: z.number().nullable().optional(),
-    memo: z.string().max(50).optional(),
-  })).optional(),
-  status: z.enum(['aggregating', 'aggregated']).optional(),
-});
-
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -539,7 +289,7 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
 
-    const validatedData = updateSchema.parse(body);
+    const validatedData = updateAggregationSchema.parse(body);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let workOrder: any;
@@ -817,12 +567,8 @@ export async function PATCH(
         });
 
         // 合計値を計算
-        const totalHours = currentActivities.reduce((sum, activity) => sum + activity.hours, 0);
-        const costTotal = currentActivities.reduce((sum, activity) => sum + activity.costAmount, 0);
-        const billTotal = currentActivities.reduce((sum, activity) => sum + activity.billAmount, 0);
-        const expenseBillTotal = currentExpenses.reduce((sum, expense) => sum + expense.billTotal, 0);
-        const adjustmentTotal = currentActivities.reduce((sum, activity) => sum + activity.adjustment, 0);
-        const finalAmount = billTotal + expenseBillTotal;
+        const summary = calculateSummary(currentActivities, currentExpenses);
+        const { totalHours, costTotal, billTotal, expenseBillTotal, adjustmentTotal, finalAmount } = summary;
 
         // Activity別詳細をJSON形式で準備
         const activityBreakdown = currentActivities.map(activity => ({
@@ -917,7 +663,7 @@ export async function PATCH(
 
     return NextResponse.json({ success: true });
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('集計詳細更新エラー:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
