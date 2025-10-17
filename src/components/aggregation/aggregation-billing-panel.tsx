@@ -59,8 +59,10 @@ export default function AggregationBillingPanel({
       <div className="bg-blue-50 px-6 py-4 border-b border-gray-200">
         <h3 className="text-lg font-medium text-blue-900">実際請求</h3>
       </div>
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
+      <div className="border-b border-gray-200 p-4">
+        <h4 className="text-sm font-medium text-gray-800 mb-3">労務費詳細</h4>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">区分</th>
@@ -102,6 +104,7 @@ export default function AggregationBillingPanel({
             })}
           </tbody>
         </table>
+        </div>
       </div>
       <div className="border-t border-gray-200 p-4 space-y-4">
         <h4 className="text-sm font-medium text-gray-800">経費明細（請求側）</h4>
