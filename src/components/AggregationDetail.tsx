@@ -13,22 +13,13 @@ import AggregationCostPanel from './aggregation/aggregation-cost-panel';
 import AggregationAdjustmentHistory from './aggregation/aggregation-adjustment-history';
 import AggregationWorkerHistory from './aggregation/aggregation-worker-history';
 import { useExpenseEditor } from '@/hooks/useExpenseEditor';
+import { useRateEditor } from '@/hooks/useRateEditor';
 import { EXPENSE_CATEGORY_OPTIONS } from '@/lib/aggregation/expense-utils';
 import {
-  ActivityBillAmountMap,
-  EditedRates,
   ExpenseItem,
   WorkOrderDetail,
+  RateChange,
 } from '@/types/aggregation';
-type RateChange = {
-  activity: string;
-  activityName: string;
-  oldRate: number;
-  newRate: number;
-  memo: string;
-  hours: number;
-  adjustment: number;
-};
 
 interface AggregationDetailProps {
   workOrderId: string;
@@ -41,7 +32,6 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editedRates, setEditedRates] = useState<EditedRates>({});
   const [pendingRateChanges, setPendingRateChanges] = useState<RateChange[]>([]);
   const [pendingExpenseSnapshot, setPendingExpenseSnapshot] = useState<ExpenseItem[]>([]);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
@@ -49,6 +39,9 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
 
   // 経費編集のカスタムフック
   const expenseEditor = useExpenseEditor(workOrder?.expenses || []);
+  
+  // 単価編集のカスタムフック
+  const rateEditor = useRateEditor(workOrder?.activities || []);
 
   const fetchWorkOrderDetail = useCallback(async () => {
     try {
@@ -115,33 +108,8 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
     if (!workOrder) {
       return [];
     }
-    return workOrder.activities.map(activity => ({
-      ...activity,
-      memo: editedRates[activity.activity]?.memo ?? activity.memo,
-    }));
-  }, [workOrder, editedRates]);
-
-  const activityBillAmounts = useMemo<ActivityBillAmountMap>(() => {
-    if (!workOrder) {
-      return {};
-    }
-
-    return workOrder.activities.reduce<ActivityBillAmountMap>((acc, activity) => {
-      const editedRate = editedRates[activity.activity];
-      const currentBillRate = editedRate ? parseInt(editedRate.billRate, 10) || activity.billRate : activity.billRate;
-      const currentBillAmount = activity.hours * currentBillRate;
-      acc[activity.activity] = {
-        currentBillRate,
-        currentBillAmount,
-      };
-      return acc;
-    }, {});
-  }, [editedRates, workOrder]);
-
-  const billLaborSubtotal = useMemo(
-    () => Object.values(activityBillAmounts).reduce((sum, info) => sum + info.currentBillAmount, 0),
-    [activityBillAmounts],
-  );
+    return isEditing ? rateEditor.activitiesForDisplay : workOrder.activities;
+  }, [workOrder, isEditing, rateEditor.activitiesForDisplay]);
 
   const costExpenseSubtotal = useMemo(
     () => expensesForDisplay.reduce((sum, expense) => sum + expense.costTotal, 0),
@@ -160,34 +128,14 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
     return workOrder.activities.reduce((sum, activity) => sum + activity.costAmount, 0);
   }, [workOrder]);
 
-  const adjustmentTotal = useMemo(() => {
-    if (!workOrder) {
-      return 0;
-    }
-
-    return workOrder.activities.reduce((sum, activity) => {
-      const editedRate = editedRates[activity.activity];
-
-      if (editedRate) {
-        const currentBillRate = parseInt(editedRate.billRate, 10) || 0;
-        const originalBillRate = activity.billRate;
-        const originalAmount = activity.hours * originalBillRate;
-        const newAmount = activity.hours * currentBillRate;
-        return sum + (newAmount - originalAmount);
-      }
-
-      return sum + activity.adjustment;
-    }, 0);
-  }, [editedRates, workOrder]);
-
   const totals = useMemo(
     () => ({
       costLaborTotal: costLaborSubtotal,
-      billLaborTotal: billLaborSubtotal,
-      adjustmentTotal,
-      finalAmount: billLaborSubtotal + billExpenseSubtotal,
+      billLaborTotal: rateEditor.billLaborSubtotal,
+      adjustmentTotal: rateEditor.adjustmentTotal,
+      finalAmount: rateEditor.billLaborSubtotal + billExpenseSubtotal,
     }),
-    [adjustmentTotal, billExpenseSubtotal, billLaborSubtotal, costLaborSubtotal],
+    [rateEditor.adjustmentTotal, billExpenseSubtotal, rateEditor.billLaborSubtotal, costLaborSubtotal],
   );
 
   const costGrandTotal = useMemo(
@@ -196,21 +144,8 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
   );
 
   const billGrandTotal = useMemo(
-    () => billLaborSubtotal + billExpenseSubtotal,
-    [billExpenseSubtotal, billLaborSubtotal],
-  );
-
-  const handleRateEdit = useCallback(
-    (activity: string, field: 'billRate' | 'memo', value: string) => {
-      setEditedRates((prev) => ({
-        ...prev,
-        [activity]: {
-          ...prev[activity],
-          [field]: value,
-        },
-      }));
-    },
-    [],
+    () => rateEditor.billLaborSubtotal + billExpenseSubtotal,
+    [billExpenseSubtotal, rateEditor.billLaborSubtotal],
   );
 
   const handleEditStart = useCallback(() => {
@@ -218,66 +153,28 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
       return;
     }
 
-    const initialRates: EditedRates = {};
-    workOrder.activities.forEach((activity) => {
-      initialRates[activity.activity] = {
-        billRate: activity.billRate.toString(),
-        memo: activity.memo ?? '',
-      };
-    });
-
-    setEditedRates(initialRates);
+    rateEditor.startEditing(workOrder.activities);
     expenseEditor.startEditing(workOrder.expenses);
     setPendingRateChanges([]);
     setPendingExpenseSnapshot([]);
     setIsEditing(true);
-  }, [workOrder, expenseEditor]);
+  }, [workOrder, rateEditor, expenseEditor]);
 
   const handleEditCancel = useCallback(() => {
     setIsEditing(false);
-    setEditedRates({});
+    rateEditor.cancelEditing();
     expenseEditor.cancelEditing();
     setPendingRateChanges([]);
     setPendingExpenseSnapshot([]);
-  }, [expenseEditor]);
+  }, [rateEditor, expenseEditor]);
 
   const calculateChanges = useCallback(() => {
-    if (!workOrder) {
-      return {
-        rateChanges: [] as RateChange[],
-        expensesChanged: false,
-        sanitizedExpenses: [] as ExpenseItem[],
-      };
-    }
-
-    const rateChanges = Object.entries(editedRates)
-      .map(([activity, data]) => {
-        const activityData = workOrder.activities.find((a) => a.activity === activity);
-        if (!activityData) {
-          return null;
-        }
-
-        const oldRate = activityData.billRate;
-        const newRate = parseInt(data.billRate, 10) || 0;
-        const adjustment = (newRate - oldRate) * activityData.hours;
-
-        return {
-          activity,
-          activityName: activityData.activityName,
-          oldRate,
-          newRate,
-          memo: data.memo || '',
-          hours: activityData.hours,
-          adjustment,
-        };
-      })
-      .filter(Boolean) as RateChange[];
-
+    const rateChanges = rateEditor.rateChanges;
     const sanitizedExpenses = expenseEditor.sanitizedExpenses;
     const expensesChanged = expenseEditor.hasChanges;
 
     return { rateChanges, expensesChanged, sanitizedExpenses };
-  }, [editedRates, workOrder, expenseEditor.sanitizedExpenses, expenseEditor.hasChanges]);
+  }, [rateEditor.rateChanges, expenseEditor.sanitizedExpenses, expenseEditor.hasChanges]);
 
   const handleSaveClick = useCallback(() => {
     const { rateChanges, expensesChanged, sanitizedExpenses } = calculateChanges();
@@ -296,31 +193,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
     try {
       setIsSaving(true);
 
-      const adjustmentsForAPI: Record<string, { billRate: number; memo: string }> = {};
-      
-      // editedRatesがある場合は送信
-      Object.entries(editedRates).forEach(([activity, data]) => {
-        // メモのみの変更でも送信するため、billRateは元の値を保持
-        const originalBillRate = workOrder?.activities.find(a => a.activity === activity)?.billRate || 0;
-        adjustmentsForAPI[activity] = {
-          billRate: parseInt(data.billRate, 10) || originalBillRate,
-          memo: data.memo || '',
-        };
-      });
-      
-      // editedRatesが空でも、activitiesForDisplayでメモが変更されている場合は送信
-      if (Object.keys(adjustmentsForAPI).length === 0 && workOrder) {
-        workOrder.activities.forEach(activity => {
-          const editedActivity = activitiesForDisplay.find(a => a.activity === activity.activity);
-          if (editedActivity && editedActivity.memo !== activity.memo) {
-            adjustmentsForAPI[activity.activity] = {
-              billRate: activity.billRate,
-              memo: editedActivity.memo || '',
-            };
-          }
-        });
-      }
-
+      const adjustmentsForAPI = rateEditor.getAdjustmentsForAPI();
       const expensePayload = expenseEditor.sanitizedExpenses;
 
       const response = await fetch(`/api/aggregation/${workOrderId}`, {
@@ -341,7 +214,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
 
       setShowSaveConfirm(false);
       setIsEditing(false);
-      setEditedRates({});
+      rateEditor.cancelEditing();
       expenseEditor.cancelEditing();
       setPendingRateChanges([]);
       setPendingExpenseSnapshot([]);
@@ -355,7 +228,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
     } finally {
       setIsSaving(false);
     }
-  }, [editedRates, fetchWorkOrderDetail, expenseEditor, showToast, workOrderId, workOrder, activitiesForDisplay]);
+  }, [rateEditor, fetchWorkOrderDetail, expenseEditor, showToast, workOrderId]);
 
   const handleFinalize = useCallback(async () => {
     if (!confirm('集計を完了しますか？完了後は編集できなくなります。')) {
@@ -434,8 +307,8 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
             onExpenseCostChange={expenseEditor.changeCostFieldAt}
             onExpenseRemove={expenseEditor.removeExpense}
             onFileEstimateChange={expenseEditor.changeFileEstimateAt}
-            onActivityMemoChange={(activity, memo) => handleRateEdit(activity, 'memo', memo)}
-            editedRates={editedRates}
+            onActivityMemoChange={(activity, memo) => rateEditor.editRate(activity, 'memo', memo)}
+            editedRates={rateEditor.editedRates}
             costLaborSubtotal={totals.costLaborTotal}
             expenseSubtotal={costExpenseSubtotal}
             costTotal={costGrandTotal}
@@ -447,12 +320,12 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
             expenses={expensesForDisplay}
             isEditing={isEditing}
             categoryOptions={EXPENSE_CATEGORY_OPTIONS}
-            editedRates={editedRates}
-            activityBillAmounts={activityBillAmounts}
+            editedRates={rateEditor.editedRates}
+            activityBillAmounts={rateEditor.activityBillAmounts}
             billLaborSubtotal={totals.billLaborTotal}
             expenseSubtotal={billExpenseSubtotal}
             billTotal={billGrandTotal}
-            onRateEdit={handleRateEdit}
+            onRateEdit={rateEditor.editRate}
             onExpenseBillingChange={expenseEditor.changeBillingFieldAt}
             onExpenseBillingReset={expenseEditor.resetBillingAt}
             onFileEstimateChange={expenseEditor.changeFileEstimateAt}

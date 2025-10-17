@@ -62,6 +62,19 @@ export interface EditedRate {
 
 export type EditedRates = Record<string, EditedRate>;
 
+/**
+ * 単価変更の情報
+ */
+export interface RateChange {
+  activity: string;
+  activityName: string;
+  oldRate: number;
+  newRate: number;
+  memo: string;
+  hours: number;
+  adjustment: number;
+}
+
 export interface ActivityBillAmount {
   currentBillRate: number;
   currentBillAmount: number;
