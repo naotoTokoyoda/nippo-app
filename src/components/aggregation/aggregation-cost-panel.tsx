@@ -92,9 +92,7 @@ export default function AggregationCostPanel({
                   {isEditing ? (
                     <input
                       type="text"
-                      value={editedRates[activity.activity]?.memo && editedRates[activity.activity].memo !== '' 
-                        ? editedRates[activity.activity].memo 
-                        : activity.memo ?? ''}
+                      value={editedRates[activity.activity]?.memo ?? activity.memo ?? ''}
                       onChange={(event) => onActivityMemoChange(activity.activity, event.target.value)}
                       placeholder="メモを入力..."
                       maxLength={50}

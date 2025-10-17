@@ -206,9 +206,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
     }
     return workOrder.activities.map(activity => ({
       ...activity,
-      memo: editedRates[activity.activity]?.memo && editedRates[activity.activity].memo !== '' 
-        ? editedRates[activity.activity].memo 
-        : activity.memo,
+      memo: editedRates[activity.activity]?.memo ?? activity.memo,
     }));
   }, [workOrder, editedRates]);
 
@@ -464,7 +462,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
     workOrder.activities.forEach((activity) => {
       initialRates[activity.activity] = {
         billRate: activity.billRate.toString(),
-        memo: '',
+        memo: activity.memo ?? '',
       };
     });
 
