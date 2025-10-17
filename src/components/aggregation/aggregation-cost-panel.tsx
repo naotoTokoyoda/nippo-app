@@ -7,7 +7,7 @@ interface AggregationCostPanelProps {
   categoryOptions: Array<{ value: ExpenseCategory; label: string }>;
   onExpenseAdd: () => void;
   onExpenseCategoryChange: (index: number, category: ExpenseCategory) => void;
-  onExpenseCostChange: (index: number, field: 'costUnitPrice' | 'costQuantity', value: string | number) => void;
+  onExpenseCostChange: (index: number, field: 'costUnitPrice' | 'costQuantity' | 'memo', value: string | number) => void;
   onExpenseRemove: (index: number) => void;
   onFileEstimateChange: (index: number, value: string | number) => void;
   costLaborSubtotal: number;
@@ -66,6 +66,7 @@ export default function AggregationCostPanel({
               <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">時間</th>
               <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">単価</th>
               <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">小計</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">メモ</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -82,6 +83,9 @@ export default function AggregationCostPanel({
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-semibold">
                   {formatCurrency(activity.costAmount)}
+                </td>
+                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {activity.memo || '—'}
                 </td>
               </tr>
             ))}
@@ -108,6 +112,7 @@ export default function AggregationCostPanel({
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-16">数量</th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-28">原価小計</th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-32">ファイル見積</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-24">メモ</th>
                   {isEditing && <th className="px-3 py-2" />}
                 </tr>
               </thead>
@@ -174,6 +179,20 @@ export default function AggregationCostPanel({
                         />
                       ) : (
                         expense.fileEstimate != null ? formatCurrency(expense.fileEstimate) : '—'
+                      )}
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={expense.memo ?? ''}
+                          onChange={(event) => onExpenseCostChange(index, 'memo', event.target.value)}
+                          placeholder="メモを入力..."
+                          maxLength={50}
+                          className="w-24 px-2 py-1 border border-gray-300 rounded text-sm"
+                        />
+                      ) : (
+                        expense.memo || '—'
                       )}
                     </td>
                     {isEditing && (

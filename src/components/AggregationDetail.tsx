@@ -11,7 +11,6 @@ import AggregationActions from './aggregation/aggregation-actions';
 import AggregationBillingPanel from './aggregation/aggregation-billing-panel';
 import AggregationCostPanel from './aggregation/aggregation-cost-panel';
 import AggregationAdjustmentHistory from './aggregation/aggregation-adjustment-history';
-import AggregationAdjustmentMemo from './aggregation/aggregation-adjustment-memo';
 import AggregationWorkerHistory from './aggregation/aggregation-worker-history';
 import {
   ActivityBillAmountMap,
@@ -293,6 +292,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
     [],
   );
 
+
   const handleExpenseAdd = useCallback(() => {
     setEditedExpenses(prev => [...prev, normalizeExpense(createEmptyExpense())]);
   }, [createEmptyExpense, normalizeExpense]);
@@ -327,7 +327,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
   );
 
   const handleExpenseCostChange = useCallback(
-    (index: number, field: 'costUnitPrice' | 'costQuantity', value: string | number) => {
+    (index: number, field: 'costUnitPrice' | 'costQuantity' | 'memo', value: string | number) => {
       setEditedExpenses(prev => {
         const updated = [...prev];
         const target = updated[index];
@@ -335,12 +335,19 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
           return prev;
         }
 
-        const numericValue = parseInteger(value, field === 'costQuantity' ? 1 : 0);
+        if (field === 'memo') {
+          updated[index] = {
+            ...target,
+            memo: value as string,
+          };
+        } else {
+          const numericValue = parseInteger(value, field === 'costQuantity' ? 1 : 0);
 
-        updated[index] = normalizeExpense({
-          ...target,
-          [field]: field === 'costQuantity' ? Math.max(1, numericValue) : Math.max(0, numericValue),
-        });
+          updated[index] = normalizeExpense({
+            ...target,
+            [field]: field === 'costQuantity' ? Math.max(1, numericValue) : Math.max(0, numericValue),
+          });
+        }
 
         return updated;
       });
@@ -349,7 +356,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
   );
 
   const handleExpenseBillingChange = useCallback(
-    (index: number, field: 'billUnitPrice' | 'billQuantity' | 'billTotal', value: string | number) => {
+    (index: number, field: 'billUnitPrice' | 'billQuantity' | 'billTotal' | 'memo', value: string | number) => {
       setEditedExpenses(prev => {
         const updated = [...prev];
         const target = updated[index];
@@ -377,6 +384,11 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
             billTotal,
             manualBillOverride: true,
           });
+        } else if (field === 'memo') {
+          updated[index] = {
+            ...target,
+            memo: value as string,
+          };
         } else {
           const billTotal = Math.max(0, numericValue);
           const quantity = target.billQuantity > 0 ? target.billQuantity : 1;
@@ -480,6 +492,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
         billQuantity: expense.billQuantity,
         billTotal: expense.billTotal,
         fileEstimate: expense.fileEstimate ?? null,
+        memo: expense.memo || undefined,
       }));
   }, [editedExpenses, normalizeExpense]);
 
@@ -710,13 +723,6 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
             formatHours={formatHours}
           />
         </div>
-        {isEditing && (
-          <AggregationAdjustmentMemo
-            activities={workOrder.activities}
-            editedRates={editedRates}
-            onRateEdit={handleRateEdit}
-          />
-        )}
         <AggregationWorkerHistory 
           workNumberFront={workOrder.workNumber.split('-')[0]} 
           workNumberBack={workOrder.workNumber.split('-')[1]} 

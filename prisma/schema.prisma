@@ -124,6 +124,7 @@ model Rate {
   effectiveTo   DateTime? @map("effective_to") @db.Date // 適用終了日（NULLは現在有効）
   costRate      Int       @map("cost_rate") // 原価単価
   billRate      Int       @map("bill_rate") // 請求単価
+  memo          String?   @db.VarChar(50) // メモ
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
@@ -161,6 +162,7 @@ model Material {
   billQuantity   Int       @map("bill_quantity")
   billTotal      Int       @map("bill_total")
   fileEstimate   Int?      @map("file_estimate")
+  memo           String?   @db.VarChar(50) // メモ
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
   workOrder      WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)

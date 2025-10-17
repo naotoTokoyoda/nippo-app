@@ -7,6 +7,7 @@ export interface ActivitySummary {
   costAmount: number;
   billAmount: number;
   adjustment: number;
+  memo?: string;
 }
 
 export type ExpenseCategory = 'materials' | 'outsourcing' | 'shipping' | 'other';
@@ -21,6 +22,7 @@ export interface ExpenseItem {
   billQuantity: number;
   billTotal: number;
   fileEstimate?: number | null;
+  memo?: string;
 }
 
 export interface AggregationAdjustment {
@@ -59,3 +61,12 @@ export interface ActivityBillAmount {
 }
 
 export type ActivityBillAmountMap = Record<string, ActivityBillAmount>;
+
+export interface EditedExpense {
+  billUnitPrice: string;
+  billQuantity: string;
+  billTotal: string;
+  memo: string;
+}
+
+export type EditedExpenses = Record<string, EditedExpense>;

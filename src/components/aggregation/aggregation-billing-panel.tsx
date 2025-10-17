@@ -17,7 +17,7 @@ interface AggregationBillingPanelProps {
   expenseSubtotal: number;
   billTotal: number;
   onRateEdit: (activity: string, field: 'billRate' | 'memo', value: string) => void;
-  onExpenseBillingChange: (index: number, field: 'billUnitPrice' | 'billQuantity' | 'billTotal', value: string | number) => void;
+  onExpenseBillingChange: (index: number, field: 'billUnitPrice' | 'billQuantity' | 'billTotal' | 'memo', value: string | number) => void;
   onExpenseBillingReset: (index: number) => void;
   onFileEstimateChange: (index: number, value: string | number) => void;
   formatCurrency: (amount: number) => string;
@@ -69,6 +69,7 @@ export default function AggregationBillingPanel({
               <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">時間</th>
               <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">単価</th>
               <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">小計</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">メモ</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -99,6 +100,20 @@ export default function AggregationBillingPanel({
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-semibold">
                     {formatCurrency(billInfo?.currentBillAmount ?? activity.hours * activity.billRate)}
                   </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editedRates[activity.activity]?.memo ?? activity.memo ?? ''}
+                        onChange={(event) => onRateEdit(activity.activity, 'memo', event.target.value)}
+                        placeholder="メモを入力..."
+                        maxLength={50}
+                        className="w-24 px-2 py-1 border border-gray-300 rounded text-sm"
+                      />
+                    ) : (
+                      activity.memo || '—'
+                    )}
+                  </td>
                 </tr>
               );
             })}
@@ -118,6 +133,7 @@ export default function AggregationBillingPanel({
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-16">数量</th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-28">請求小計</th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-32">ファイル見積</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-24">メモ</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -184,6 +200,20 @@ export default function AggregationBillingPanel({
                           />
                         ) : (
                           expense.fileEstimate != null ? formatCurrency(expense.fileEstimate) : '—'
+                        )}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={expense.memo ?? ''}
+                            onChange={(event) => onExpenseBillingChange(index, 'memo', event.target.value)}
+                            placeholder="メモを入力..."
+                            maxLength={50}
+                            className="w-24 px-2 py-1 border border-gray-300 rounded text-sm"
+                          />
+                        ) : (
+                          expense.memo || '—'
                         )}
                       </td>
                     </tr>

@@ -203,6 +203,7 @@ async function calculateActivitiesForWorkOrder(workOrderId: string, tx: Prisma.T
         costAmount,
         billAmount,
         adjustment,
+        memo: rate?.memo || undefined,
       };
     })
   );
@@ -490,6 +491,7 @@ export async function GET(
           costAmount,
           billAmount,
           adjustment,
+          memo: rate?.memo || undefined,
         };
       })
     );
@@ -518,6 +520,7 @@ export async function GET(
       billQuantity: material.billQuantity,
       billTotal: material.billTotal,
       fileEstimate: material.fileEstimate,
+      memo: material.memo || undefined,
     }));
 
     // 総時間を計算
@@ -551,7 +554,7 @@ export async function GET(
 const updateSchema = z.object({
   billRateAdjustments: z.record(z.string(), z.object({
     billRate: z.number(),
-    memo: z.string().optional(),
+    memo: z.string().max(50).optional(),
   })).optional(),
   expenses: z.array(z.object({
     id: z.string().optional(),
@@ -563,6 +566,7 @@ const updateSchema = z.object({
     billQuantity: z.number().optional(),
     billTotal: z.number().optional(),
     fileEstimate: z.number().nullable().optional(),
+    memo: z.string().max(50).optional(),
   })).optional(),
   status: z.enum(['aggregating', 'aggregated']).optional(),
 });
@@ -695,6 +699,7 @@ export async function PATCH(
                 effectiveTo: null,
                 costRate: currentRate.costRate,
                 billRate: adjustment.billRate,
+                memo: adjustment.memo || null,
               },
             });
 
@@ -799,6 +804,7 @@ export async function PATCH(
               billQuantity,
               billTotal,
               fileEstimate: typeof expense.fileEstimate === 'number' ? expense.fileEstimate : null,
+              memo: expense.memo || null,
             },
           });
         }
