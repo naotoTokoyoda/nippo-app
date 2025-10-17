@@ -26,7 +26,7 @@ type ReportItemWithRelations = {
     description: string | null;
   };
   machine: {
-    category: string;
+    name: string;
   };
 };
 
@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
         }),
         ...(machineType && {
           machine: {
-            category: machineType,
+            name: machineType,
           },
         }),
       },
@@ -149,7 +149,7 @@ export async function GET(request: NextRequest) {
         }),
         ...(machineType && {
           machine: {
-            category: machineType,
+            name: machineType,
           },
         }),
       },
@@ -185,7 +185,7 @@ export async function GET(request: NextRequest) {
         },
         machine: {
           select: {
-            category: true,
+            name: true,
           },
         },
       },
@@ -210,7 +210,7 @@ export async function GET(request: NextRequest) {
       name: item.workDescription || item.workOrder.description || '未入力', // workDescriptionを優先、フォールバック付き
       startTime: formatUTCToJSTTime(item.startTime),
       endTime: formatUTCToJSTTime(item.endTime),
-      machineType: item.machine.category,
+      machineType: item.machine.name,
       remarks: item.remarks || '',
       workStatus: item.workStatus || 'completed',
     }));
