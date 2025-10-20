@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import PageLayout from '@/components/PageLayout';
 import SaveConfirmModal from './SaveConfirmModal';
@@ -11,12 +11,10 @@ import AggregationBillingPanel from './aggregation/aggregation-billing-panel';
 import AggregationCostPanel from './aggregation/aggregation-cost-panel';
 import AggregationAdjustmentHistory from './aggregation/aggregation-adjustment-history';
 import AggregationWorkerHistory from './aggregation/aggregation-worker-history';
-import { useExpenseEditor } from '@/hooks/useExpenseEditor';
-import { useRateEditor } from '@/hooks/useRateEditor';
 import { useAggregationData } from '@/hooks/useAggregationData';
 import { useAggregationSave } from '@/hooks/useAggregationSave';
+import { useAggregationStore } from '@/stores/aggregationStore';
 import { EXPENSE_CATEGORY_OPTIONS } from '@/lib/aggregation/expense-utils';
-import { ExpenseItem } from '@/types/aggregation';
 
 interface AggregationDetailProps {
   workOrderId: string;
@@ -24,24 +22,30 @@ interface AggregationDetailProps {
 
 export default function AggregationDetail({ workOrderId }: AggregationDetailProps) {
   const { showToast } = useToast();
-  const [isEditing, setIsEditing] = useState(false);
 
   // データ取得のカスタムフック
   const { workOrder, loading, isAuthenticated, refetch } = useAggregationData(workOrderId);
 
-  // 経費編集のカスタムフック
-  const expenseEditor = useExpenseEditor(workOrder?.expenses || []);
-  
-  // 単価編集のカスタムフック
-  const rateEditor = useRateEditor(workOrder?.activities || []);
+  // Zustandストアから状態とアクションを取得
+  const isEditing = useAggregationStore((state) => state.isEditing);
+  const setWorkOrder = useAggregationStore((state) => state.setWorkOrder);
+  const startEditing = useAggregationStore((state) => state.startEditing);
+  const cancelEditing = useAggregationStore((state) => state.cancelEditing);
+  const getExpensesHasChanges = useAggregationStore((state) => state.getExpensesHasChanges);
+  const getRateChanges = useAggregationStore((state) => state.getRateChanges);
+  const getSanitizedExpenses = useAggregationStore((state) => state.getSanitizedExpenses);
+  const getAdjustmentsForAPI = useAggregationStore((state) => state.getAdjustmentsForAPI);
+
+  // workOrderが変更されたらストアに反映
+  useEffect(() => {
+    setWorkOrder(workOrder);
+  }, [workOrder, setWorkOrder]);
 
   // 保存・API通信のカスタムフック
   const saveManager = useAggregationSave({
     workOrderId,
     onSaveSuccess: async () => {
-      setIsEditing(false);
-      rateEditor.cancelEditing();
-      expenseEditor.cancelEditing();
+      cancelEditing();
       await refetch();
     },
     onShowToast: showToast,
@@ -56,82 +60,26 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
     return `${hours.toFixed(1)}h`;
   }, []);
 
-  const expensesForDisplay = useMemo(() => {
-    if (!workOrder) {
-      return [] as ExpenseItem[];
-    }
-    return isEditing ? expenseEditor.editedExpenses : workOrder.expenses;
-  }, [expenseEditor.editedExpenses, isEditing, workOrder]);
-
-  const activitiesForDisplay = useMemo(() => {
-    if (!workOrder) {
-      return [];
-    }
-    return isEditing ? rateEditor.activitiesForDisplay : workOrder.activities;
-  }, [workOrder, isEditing, rateEditor.activitiesForDisplay]);
-
-  const costExpenseSubtotal = useMemo(
-    () => expensesForDisplay.reduce((sum, expense) => sum + expense.costTotal, 0),
-    [expensesForDisplay],
-  );
-
-  const billExpenseSubtotal = useMemo(
-    () => expensesForDisplay.reduce((sum, expense) => sum + expense.billTotal, 0),
-    [expensesForDisplay],
-  );
-
-  const costLaborSubtotal = useMemo(() => {
-    if (!workOrder) {
-      return 0;
-    }
-    return workOrder.activities.reduce((sum, activity) => sum + activity.costAmount, 0);
-  }, [workOrder]);
-
-  const totals = useMemo(
-    () => ({
-      costLaborTotal: costLaborSubtotal,
-      billLaborTotal: rateEditor.billLaborSubtotal,
-      adjustmentTotal: rateEditor.adjustmentTotal,
-      finalAmount: rateEditor.billLaborSubtotal + billExpenseSubtotal,
-    }),
-    [rateEditor.adjustmentTotal, billExpenseSubtotal, rateEditor.billLaborSubtotal, costLaborSubtotal],
-  );
-
-  const costGrandTotal = useMemo(
-    () => costLaborSubtotal + costExpenseSubtotal,
-    [costExpenseSubtotal, costLaborSubtotal],
-  );
-
-  const billGrandTotal = useMemo(
-    () => rateEditor.billLaborSubtotal + billExpenseSubtotal,
-    [billExpenseSubtotal, rateEditor.billLaborSubtotal],
-  );
-
   const handleEditStart = useCallback(() => {
     if (!workOrder) {
       return;
     }
-
-    rateEditor.startEditing(workOrder.activities);
-    expenseEditor.startEditing(workOrder.expenses);
+    startEditing();
     saveManager.clearPendingData();
-    setIsEditing(true);
-  }, [workOrder, rateEditor, expenseEditor, saveManager]);
+  }, [workOrder, startEditing, saveManager]);
 
   const handleEditCancel = useCallback(() => {
-    setIsEditing(false);
-    rateEditor.cancelEditing();
-    expenseEditor.cancelEditing();
+    cancelEditing();
     saveManager.clearPendingData();
-  }, [rateEditor, expenseEditor, saveManager]);
+  }, [cancelEditing, saveManager]);
 
   const calculateChanges = useCallback(() => {
-    const rateChanges = rateEditor.rateChanges;
-    const sanitizedExpenses = expenseEditor.sanitizedExpenses;
-    const expensesChanged = expenseEditor.hasChanges;
+    const rateChanges = getRateChanges();
+    const sanitizedExpenses = getSanitizedExpenses();
+    const expensesChanged = getExpensesHasChanges();
 
     return { rateChanges, expensesChanged, sanitizedExpenses };
-  }, [rateEditor.rateChanges, expenseEditor.sanitizedExpenses, expenseEditor.hasChanges]);
+  }, [getRateChanges, getSanitizedExpenses, getExpensesHasChanges]);
 
   const handleSaveClick = useCallback(() => {
     const { rateChanges, expensesChanged, sanitizedExpenses } = calculateChanges();
@@ -145,14 +93,14 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
   }, [calculateChanges, saveManager]);
 
   const handleSaveConfirm = useCallback(async () => {
-    const adjustmentsForAPI = rateEditor.getAdjustmentsForAPI();
-    const expensePayload = expenseEditor.sanitizedExpenses;
+    const adjustmentsForAPI = getAdjustmentsForAPI();
+    const expensePayload = getSanitizedExpenses();
 
     await saveManager.saveChanges({
       adjustmentsForAPI,
       expensePayload,
     });
-  }, [rateEditor, expenseEditor, saveManager]);
+  }, [getAdjustmentsForAPI, getSanitizedExpenses, saveManager]);
 
   if (!isAuthenticated || loading) {
     return (
@@ -193,37 +141,12 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
         />
         <div className="grid grid-cols-1 gap-6">
           <AggregationCostPanel
-            activities={activitiesForDisplay}
-            expenses={expensesForDisplay}
-            isEditing={isEditing}
             categoryOptions={EXPENSE_CATEGORY_OPTIONS}
-            onExpenseAdd={expenseEditor.addExpense}
-            onExpenseCategoryChange={expenseEditor.changeCategoryAt}
-            onExpenseCostChange={expenseEditor.changeCostFieldAt}
-            onExpenseRemove={expenseEditor.removeExpense}
-            onFileEstimateChange={expenseEditor.changeFileEstimateAt}
-            onActivityMemoChange={(activity, memo) => rateEditor.editRate(activity, 'memo', memo)}
-            editedRates={rateEditor.editedRates}
-            costLaborSubtotal={totals.costLaborTotal}
-            expenseSubtotal={costExpenseSubtotal}
-            costTotal={costGrandTotal}
             formatCurrency={formatCurrency}
             formatHours={formatHours}
           />
           <AggregationBillingPanel
-            activities={activitiesForDisplay}
-            expenses={expensesForDisplay}
-            isEditing={isEditing}
             categoryOptions={EXPENSE_CATEGORY_OPTIONS}
-            editedRates={rateEditor.editedRates}
-            activityBillAmounts={rateEditor.activityBillAmounts}
-            billLaborSubtotal={totals.billLaborTotal}
-            expenseSubtotal={billExpenseSubtotal}
-            billTotal={billGrandTotal}
-            onRateEdit={rateEditor.editRate}
-            onExpenseBillingChange={expenseEditor.changeBillingFieldAt}
-            onExpenseBillingReset={expenseEditor.resetBillingAt}
-            onFileEstimateChange={expenseEditor.changeFileEstimateAt}
             formatCurrency={formatCurrency}
             formatHours={formatHours}
           />

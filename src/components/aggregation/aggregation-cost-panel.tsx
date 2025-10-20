@@ -1,59 +1,40 @@
-import { ActivitySummary, ExpenseCategory, ExpenseItem } from '@/types/aggregation';
+import { ExpenseCategory } from '@/types/aggregation';
+import { useAggregationStore } from '@/stores/aggregationStore';
 
 interface AggregationCostPanelProps {
-  activities: ActivitySummary[];
-  expenses: ExpenseItem[];
-  isEditing: boolean;
   categoryOptions: Array<{ value: ExpenseCategory; label: string }>;
-  onExpenseAdd: () => void;
-  onExpenseCategoryChange: (index: number, category: ExpenseCategory) => void;
-  onExpenseCostChange: (index: number, field: 'costUnitPrice' | 'costQuantity' | 'memo', value: string | number) => void;
-  onExpenseRemove: (index: number) => void;
-  onFileEstimateChange: (index: number, value: string | number) => void;
-  onActivityMemoChange: (activity: string, memo: string) => void;
-  editedRates: Record<string, { billRate: string; memo: string }>;
-  costLaborSubtotal: number;
-  expenseSubtotal: number;
-  costTotal: number;
   formatCurrency: (amount: number) => string;
   formatHours: (hours: number) => string;
 }
 
 export default function AggregationCostPanel({
-  activities,
-  expenses,
-  isEditing,
   categoryOptions,
-  onExpenseAdd,
-  onExpenseCategoryChange,
-  onExpenseCostChange,
-  onExpenseRemove,
-  onFileEstimateChange,
-  onActivityMemoChange,
-  editedRates,
-  costLaborSubtotal,
-  expenseSubtotal,
-  costTotal,
   formatCurrency,
   formatHours,
 }: AggregationCostPanelProps) {
-  const categoryLabelMap = categoryOptions.reduce<Record<string, string>>((acc, option) => {
-    acc[option.value] = option.label;
-    return acc;
-  }, {});
+  // Zustandストアからデータ・アクションを取得
+  const workOrder = useAggregationStore((state) => state.workOrder);
+  const isEditing = useAggregationStore((state) => state.isEditing);
+  const editedRates = useAggregationStore((state) => state.editedRates);
+  const getActivitiesForDisplay = useAggregationStore((state) => state.getActivitiesForDisplay);
+  const getCostLaborSubtotal = useAggregationStore((state) => state.getCostLaborSubtotal);
+  const getCostExpenseSubtotal = useAggregationStore((state) => state.getCostExpenseSubtotal);
+  const getCostGrandTotal = useAggregationStore((state) => state.getCostGrandTotal);
+  const addExpense = useAggregationStore((state) => state.addExpense);
+  const removeExpense = useAggregationStore((state) => state.removeExpense);
+  const changeCategoryAt = useAggregationStore((state) => state.changeCategoryAt);
+  const changeCostFieldAt = useAggregationStore((state) => state.changeCostFieldAt);
+  const changeFileEstimateAt = useAggregationStore((state) => state.changeFileEstimateAt);
+  const editRate = useAggregationStore((state) => state.editRate);
 
-  const categorySummaries = expenses.reduce<Record<string, { costTotal: number; fileEstimateTotal: number }>>((acc, expense) => {
-    const summary = acc[expense.category] ?? { costTotal: 0, fileEstimateTotal: 0 };
-    summary.costTotal += expense.costTotal;
-    summary.fileEstimateTotal += expense.fileEstimate ?? 0;
-    acc[expense.category] = summary;
-    return acc;
-  }, {});
-
-  const orderedCategories = [
-    ...categoryOptions.map(option => option.value),
-    ...Object.keys(categorySummaries).filter(key => !categoryOptions.some(option => option.value === key)),
-  ];
+  // 表示用データを取得
+  const activities = getActivitiesForDisplay();
+  const expenses = isEditing 
+    ? useAggregationStore.getState().editedExpenses 
+    : (workOrder?.expenses || []);
+  const costLaborSubtotal = getCostLaborSubtotal();
+  const expenseSubtotal = getCostExpenseSubtotal();
+  const costTotal = getCostGrandTotal();
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -93,7 +74,7 @@ export default function AggregationCostPanel({
                     <input
                       type="text"
                       value={editedRates[activity.activity]?.memo ?? activity.memo ?? ''}
-                      onChange={(event) => onActivityMemoChange(activity.activity, event.target.value)}
+                      onChange={(event) => editRate(activity.activity, 'memo', event.target.value)}
                       placeholder="メモを入力..."
                       maxLength={50}
                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
@@ -112,7 +93,7 @@ export default function AggregationCostPanel({
         <div className="flex items-center justify-between">
           <h4 className="text-sm font-medium text-gray-800">経費明細（原価側）</h4>
           {isEditing && (
-            <button onClick={onExpenseAdd} className="text-blue-600 hover:text-blue-800 text-sm">
+            <button onClick={addExpense} className="text-blue-600 hover:text-blue-800 text-sm">
               + 行を追加
             </button>
           )}
@@ -138,7 +119,7 @@ export default function AggregationCostPanel({
                       {isEditing ? (
                         <select
                           value={expense.category}
-                          onChange={(event) => onExpenseCategoryChange(index, event.target.value as ExpenseCategory)}
+                          onChange={(event) => changeCategoryAt(index, event.target.value as ExpenseCategory)}
                           className="w-20 px-2 py-1 border border-gray-300 rounded text-sm bg-white text-left"
                         >
                           {categoryOptions.map((option) => (
@@ -156,7 +137,7 @@ export default function AggregationCostPanel({
                         <input
                           type="number"
                           value={expense.costUnitPrice === 0 ? '' : expense.costUnitPrice}
-                          onChange={(event) => onExpenseCostChange(index, 'costUnitPrice', event.target.value)}
+                          onChange={(event) => changeCostFieldAt(index, 'costUnitPrice', event.target.value)}
                           className="w-24 px-2 py-1 border border-gray-300 rounded text-sm text-left"
                           min={0}
                           step={100}
@@ -170,7 +151,7 @@ export default function AggregationCostPanel({
                         <input
                           type="number"
                           value={expense.costQuantity === 0 ? '' : expense.costQuantity}
-                          onChange={(event) => onExpenseCostChange(index, 'costQuantity', event.target.value)}
+                          onChange={(event) => changeCostFieldAt(index, 'costQuantity', event.target.value)}
                           className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-left"
                           min={1}
                           step={1}
@@ -187,7 +168,7 @@ export default function AggregationCostPanel({
                         <input
                           type="number"
                           value={expense.fileEstimate ?? ''}
-                          onChange={(event) => onFileEstimateChange(index, event.target.value)}
+                          onChange={(event) => changeFileEstimateAt(index, event.target.value)}
                           className="w-28 px-2 py-1 border border-gray-300 rounded text-sm text-left"
                           min={0}
                           step={100}
@@ -201,7 +182,7 @@ export default function AggregationCostPanel({
                         <input
                           type="text"
                           value={expense.memo ?? ''}
-                          onChange={(event) => onExpenseCostChange(index, 'memo', event.target.value)}
+                          onChange={(event) => changeCostFieldAt(index, 'memo', event.target.value)}
                           placeholder="メモを入力..."
                           maxLength={50}
                           className="w-24 px-2 py-1 border border-gray-300 rounded text-sm"
@@ -213,7 +194,7 @@ export default function AggregationCostPanel({
                     {isEditing && (
                       <td className="px-3 py-2 text-right">
                         <button
-                          onClick={() => onExpenseRemove(index)}
+                          onClick={() => removeExpense(index)}
                           className="text-red-600 hover:text-red-800 text-sm"
                         >
                           削除
