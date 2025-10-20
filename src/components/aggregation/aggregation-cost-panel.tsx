@@ -16,6 +16,7 @@ export default function AggregationCostPanel({
   const workOrder = useAggregationStore((state) => state.workOrder);
   const isEditing = useAggregationStore((state) => state.isEditing);
   const editedRates = useAggregationStore((state) => state.editedRates);
+  const editedExpenses = useAggregationStore((state) => state.editedExpenses);
   const getActivitiesForDisplay = useAggregationStore((state) => state.getActivitiesForDisplay);
   const getCostLaborSubtotal = useAggregationStore((state) => state.getCostLaborSubtotal);
   const getCostExpenseSubtotal = useAggregationStore((state) => state.getCostExpenseSubtotal);
@@ -29,9 +30,7 @@ export default function AggregationCostPanel({
 
   // 表示用データを取得
   const activities = getActivitiesForDisplay();
-  const expenses = isEditing 
-    ? useAggregationStore.getState().editedExpenses 
-    : (workOrder?.expenses || []);
+  const expenses = isEditing ? editedExpenses : (workOrder?.expenses || []);
   const costLaborSubtotal = getCostLaborSubtotal();
   const expenseSubtotal = getCostExpenseSubtotal();
   const costTotal = getCostGrandTotal();

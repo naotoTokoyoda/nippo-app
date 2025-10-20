@@ -16,6 +16,7 @@ export default function AggregationBillingPanel({
   const workOrder = useAggregationStore((state) => state.workOrder);
   const isEditing = useAggregationStore((state) => state.isEditing);
   const editedRates = useAggregationStore((state) => state.editedRates);
+  const editedExpenses = useAggregationStore((state) => state.editedExpenses);
   const getActivitiesForDisplay = useAggregationStore((state) => state.getActivitiesForDisplay);
   const getActivityBillAmounts = useAggregationStore((state) => state.getActivityBillAmounts);
   const getBillLaborSubtotal = useAggregationStore((state) => state.getBillLaborSubtotal);
@@ -27,9 +28,7 @@ export default function AggregationBillingPanel({
 
   // 表示用データを取得
   const activities = getActivitiesForDisplay();
-  const expenses = isEditing 
-    ? useAggregationStore.getState().editedExpenses 
-    : (workOrder?.expenses || []);
+  const expenses = isEditing ? editedExpenses : (workOrder?.expenses || []);
   const activityBillAmounts = getActivityBillAmounts();
   const billLaborSubtotal = getBillLaborSubtotal();
   const expenseSubtotal = getBillExpenseSubtotal();
