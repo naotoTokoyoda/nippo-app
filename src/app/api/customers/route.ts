@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 // 顧客一覧を取得
 export async function GET() {
@@ -18,7 +19,7 @@ export async function GET() {
     return NextResponse.json(customers);
 
   } catch (error) {
-    console.error('顧客一覧取得エラー:', error);
+    logger.apiError('/api/customers', error instanceof Error ? error : new Error('Unknown error'));
     return NextResponse.json(
       { error: '顧客一覧の取得に失敗しました' },
       { status: 500 }

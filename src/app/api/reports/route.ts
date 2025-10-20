@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 import { formatDateToISO, getJSTTimestamp, createJSTDateTime, formatUTCToJSTTime } from '@/utils/timeCalculation';
 
 // Prismaの戻り値の型を定義
@@ -234,10 +235,8 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('日報データ取得エラー:', error);
-    console.error('エラーの詳細:', {
+    logger.apiError('/api/reports', error instanceof Error ? error : new Error('Unknown error'), {
       message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
       name: error instanceof Error ? error.name : 'Unknown'
     });
     return NextResponse.json(
@@ -363,7 +362,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('日報保存エラー:', error);
+    logger.apiError('/api/reports [POST]', error instanceof Error ? error : new Error('Unknown error'));
     return NextResponse.json(
       { success: false, error: '日報の保存に失敗しました' },
       { status: 500 }

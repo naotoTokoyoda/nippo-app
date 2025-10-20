@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
       message: '認証成功' 
     });
   } catch (error) {
-    console.error('Basic認証エラー:', error);
+    logger.apiError('/api/auth/basic', error instanceof Error ? error : new Error('Unknown error'));
     return NextResponse.json(
       { success: false, message: '認証処理中にエラーが発生しました' },
       { status: 500 }
@@ -85,7 +86,7 @@ export async function GET() {
 
     return NextResponse.json({ authenticated: false });
   } catch (error) {
-    console.error('Basic認証セッション確認エラー:', error);
+    logger.apiError('/api/auth/basic [GET]', error instanceof Error ? error : new Error('Unknown error'));
     return NextResponse.json({ authenticated: false });
   }
 }
@@ -108,7 +109,7 @@ export async function DELETE() {
       message: 'ログアウト成功' 
     });
   } catch (error) {
-    console.error('ログアウトエラー:', error);
+    logger.apiError('/api/auth/basic [DELETE]', error instanceof Error ? error : new Error('Unknown error'));
     return NextResponse.json(
       { success: false, message: 'ログアウト処理中にエラーが発生しました' },
       { status: 500 }

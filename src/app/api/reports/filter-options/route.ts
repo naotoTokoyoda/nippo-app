@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 import dayjs from 'dayjs';
 
 export async function GET() {
@@ -83,10 +84,8 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error('フィルター選択肢取得エラー:', error);
-    console.error('エラーの詳細:', {
+    logger.apiError('/api/reports/filter-options', error instanceof Error ? error : new Error('Unknown error'), {
       message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
       name: error instanceof Error ? error.name : 'Unknown'
     });
     return NextResponse.json(

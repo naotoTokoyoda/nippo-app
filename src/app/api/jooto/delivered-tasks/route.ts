@@ -5,6 +5,7 @@
 
 import { getDeliveredTasks } from '@/lib/jooto-api';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 import { calculateWorkTime, formatUTCToJSTTime } from '@/utils/timeCalculation';
 
 /**
@@ -78,7 +79,7 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error('Delivered tasks API error:', error);
+    logger.apiError('/api/jooto/delivered-tasks', error instanceof Error ? error : new Error('Unknown error'));
     
     return Response.json(
       { 

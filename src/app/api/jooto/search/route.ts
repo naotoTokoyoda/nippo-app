@@ -5,6 +5,7 @@
 
 import { NextRequest } from 'next/server';
 import { searchWorkNumberInfo } from '@/lib/jooto-api';
+import { logger } from '@/lib/logger';
 import { z } from 'zod';
 
 // リクエストパラメータのバリデーションスキーマ
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Jooto search API error:', error);
+    logger.apiError('/api/jooto/search', error instanceof Error ? error : new Error('Unknown error'));
     
     return Response.json(
       { 

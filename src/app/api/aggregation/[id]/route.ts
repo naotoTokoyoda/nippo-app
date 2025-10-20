@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 import { getDeliveredTasks, moveJootoTask } from '@/lib/jooto-api';
 import { determineActivity } from '@/lib/aggregation/activity-utils';
 import { 
@@ -66,7 +67,7 @@ export async function GET(
 
       // データベースに工番データがある場合は、それを返す
       if (workOrder) {
-        console.log(`Found work order in database for Jooto task ID: ${taskId}`);
+        logger.info(`Found work order in database for Jooto task ID: ${taskId}`);
       } else {
         // データベースにない場合は、Jooto APIを試行
         try {
@@ -184,7 +185,9 @@ export async function GET(
             });
           }
         } catch (jootoError) {
-          console.warn('Jooto API取得エラー（データベース検索も失敗）:', jootoError);
+          logger.warn('Jooto API取得エラー（データベース検索も失敗）', {
+            error: jootoError instanceof Error ? jootoError.message : 'Unknown error'
+          });
           return Response.json(
             { error: 'Jooto APIが利用できず、該当する工番データも見つかりませんでした。' },
             { status: 404 }
@@ -273,7 +276,7 @@ export async function GET(
     return NextResponse.json(result);
 
   } catch (error) {
-    console.error('集計詳細取得エラー:', error);
+    logger.apiError('/api/aggregation/[id]', error instanceof Error ? error : new Error('Unknown error'));
     return NextResponse.json(
       { error: '集計詳細の取得に失敗しました' },
       { status: 500 }
@@ -344,7 +347,9 @@ export async function PATCH(
             );
           }
         } catch (jootoError) {
-          console.warn('Jooto API取得エラー:', jootoError);
+          logger.warn('Jooto API取得エラー', {
+            error: jootoError instanceof Error ? jootoError.message : 'Unknown error'
+          });
           return Response.json(
             { error: 'Jooto APIが利用できず、該当する工番データも見つかりませんでした。' },
             { status: 404 }
@@ -651,26 +656,27 @@ export async function PATCH(
         
         if (aggregatingListId) {
           await moveJootoTask(taskId, aggregatingListId);
-          console.log(`Moved Jooto task ${taskId} from 納品済み to 集計中`);
+          logger.info(`Moved Jooto task ${taskId} from 納品済み to 集計中`);
         } else {
-          console.warn('JOOTO_AGGREGATING_LIST_ID environment variable is not set');
+          logger.warn('JOOTO_AGGREGATING_LIST_ID environment variable is not set');
         }
       } catch (jootoError) {
         // Jootoの移動が失敗してもデータベースの更新は成功として扱う
-        console.error('Jooto task move failed, but database update succeeded:', jootoError);
+        logger.error('Jooto task move failed, but database update succeeded', jootoError instanceof Error ? jootoError : new Error('Unknown error'));
       }
     }
 
     return NextResponse.json({ success: true });
 
   } catch (error: unknown) {
-    console.error('集計詳細更新エラー:', error);
     if (error instanceof z.ZodError) {
+      logger.validationError('aggregation-update-api', error.issues);
       return NextResponse.json(
         { error: 'リクエストデータが無効です', details: error.issues },
         { status: 400 }
       );
     }
+    logger.apiError('/api/aggregation/[id] [PATCH]', error instanceof Error ? error : new Error('Unknown error'));
     return NextResponse.json(
       { error: '集計詳細の更新に失敗しました' },
       { status: 500 }

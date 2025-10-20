@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { calculateWorkTime, formatUTCToJSTTime } from '@/utils/timeCalculation';
@@ -120,7 +121,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('集計一覧取得エラー:', error);
+    logger.apiError('/api/aggregation', error instanceof Error ? error : new Error('Unknown error'));
     return NextResponse.json(
       { error: '集計一覧の取得に失敗しました' },
       { status: 500 }
