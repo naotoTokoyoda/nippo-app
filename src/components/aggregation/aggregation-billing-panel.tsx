@@ -1,53 +1,39 @@
-import {
-  ActivityBillAmountMap,
-  ActivitySummary,
-  EditedRates,
-  ExpenseCategory,
-  ExpenseItem,
-} from '@/types/aggregation';
+import { ExpenseCategory } from '@/types/aggregation';
+import { useAggregationStore } from '@/stores/aggregationStore';
 
 interface AggregationBillingPanelProps {
-  activities: ActivitySummary[];
-  expenses: ExpenseItem[];
-  isEditing: boolean;
   categoryOptions: Array<{ value: ExpenseCategory; label: string }>;
-  editedRates: EditedRates;
-  activityBillAmounts: ActivityBillAmountMap;
-  billLaborSubtotal: number;
-  expenseSubtotal: number;
-  billTotal: number;
-  onRateEdit: (activity: string, field: 'billRate' | 'memo', value: string) => void;
-  onExpenseBillingChange: (index: number, field: 'billUnitPrice' | 'billQuantity' | 'billTotal' | 'memo', value: string | number) => void;
-  onExpenseBillingReset: (index: number) => void;
-  onFileEstimateChange: (index: number, value: string | number) => void;
   formatCurrency: (amount: number) => string;
   formatHours: (hours: number) => string;
 }
 
 export default function AggregationBillingPanel({
-  activities,
-  expenses,
-  isEditing,
   categoryOptions,
-  editedRates,
-  activityBillAmounts,
-  billLaborSubtotal,
-  expenseSubtotal,
-  billTotal,
-  onRateEdit,
-  onExpenseBillingChange,
-  onExpenseBillingReset,
-  onFileEstimateChange,
   formatCurrency,
   formatHours,
 }: AggregationBillingPanelProps) {
-  const categorySummaries = expenses.reduce<Record<string, { billTotal: number; fileEstimateTotal: number }>>((acc, expense) => {
-    const summary = acc[expense.category] ?? { billTotal: 0, fileEstimateTotal: 0 };
-    summary.billTotal += expense.billTotal;
-    summary.fileEstimateTotal += expense.fileEstimate ?? 0;
-    acc[expense.category] = summary;
-    return acc;
-  }, {});
+  // Zustandストアからデータ・アクションを取得
+  const workOrder = useAggregationStore((state) => state.workOrder);
+  const isEditing = useAggregationStore((state) => state.isEditing);
+  const editedRates = useAggregationStore((state) => state.editedRates);
+  const getActivitiesForDisplay = useAggregationStore((state) => state.getActivitiesForDisplay);
+  const getActivityBillAmounts = useAggregationStore((state) => state.getActivityBillAmounts);
+  const getBillLaborSubtotal = useAggregationStore((state) => state.getBillLaborSubtotal);
+  const getBillExpenseSubtotal = useAggregationStore((state) => state.getBillExpenseSubtotal);
+  const getBillGrandTotal = useAggregationStore((state) => state.getBillGrandTotal);
+  const changeBillingFieldAt = useAggregationStore((state) => state.changeBillingFieldAt);
+  const changeFileEstimateAt = useAggregationStore((state) => state.changeFileEstimateAt);
+  const editRate = useAggregationStore((state) => state.editRate);
+
+  // 表示用データを取得
+  const activities = getActivitiesForDisplay();
+  const expenses = isEditing 
+    ? useAggregationStore.getState().editedExpenses 
+    : (workOrder?.expenses || []);
+  const activityBillAmounts = getActivityBillAmounts();
+  const billLaborSubtotal = getBillLaborSubtotal();
+  const expenseSubtotal = getBillExpenseSubtotal();
+  const billTotal = getBillGrandTotal();
 
   const categoryLabelMap = categoryOptions.reduce<Record<string, string>>((acc, option) => {
     acc[option.value] = option.label;
@@ -88,7 +74,7 @@ export default function AggregationBillingPanel({
                       <input
                         type="number"
                         value={editedRates[activity.activity]?.billRate ?? activity.billRate.toString()}
-                        onChange={(event) => onRateEdit(activity.activity, 'billRate', event.target.value)}
+                        onChange={(event) => editRate(activity.activity, 'billRate', event.target.value)}
                         className="w-20 px-2 py-1 border border-gray-300 rounded text-right text-sm"
                         min="0"
                         step="1000"
@@ -105,7 +91,7 @@ export default function AggregationBillingPanel({
                       <input
                         type="text"
                         value={editedRates[activity.activity]?.memo ?? activity.memo ?? ''}
-                        onChange={(event) => onRateEdit(activity.activity, 'memo', event.target.value)}
+                        onChange={(event) => editRate(activity.activity, 'memo', event.target.value)}
                         placeholder="メモを入力..."
                         maxLength={50}
                         className="w-24 px-2 py-1 border border-gray-300 rounded text-sm"
@@ -137,11 +123,7 @@ export default function AggregationBillingPanel({
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {expenses.map((expense, index) => {
-                  const expectedTotal = Math.ceil(expense.costTotal * 1.2);
-                  const isAutoSuggested = expense.billTotal === expectedTotal;
-
-                  return (
+                {expenses.map((expense, index) => (
                     <tr key={expense.id || index}>
                       <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
                         {categoryLabelMap[expense.category] ?? expense.category}
@@ -151,7 +133,7 @@ export default function AggregationBillingPanel({
                           <input
                             type="number"
                             value={expense.billUnitPrice === 0 ? '' : expense.billUnitPrice}
-                            onChange={(event) => onExpenseBillingChange(index, 'billUnitPrice', event.target.value)}
+                            onChange={(event) => changeBillingFieldAt(index, 'billUnitPrice', event.target.value)}
                             className="w-24 px-2 py-1 border border-gray-300 rounded text-sm text-left"
                             min={0}
                             step={100}
@@ -165,7 +147,7 @@ export default function AggregationBillingPanel({
                           <input
                             type="number"
                             value={expense.billQuantity === 0 ? '' : expense.billQuantity}
-                            onChange={(event) => onExpenseBillingChange(index, 'billQuantity', event.target.value)}
+                            onChange={(event) => changeBillingFieldAt(index, 'billQuantity', event.target.value)}
                             className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-left"
                             min={1}
                             step={1}
@@ -179,7 +161,7 @@ export default function AggregationBillingPanel({
                           <input
                             type="number"
                             value={expense.billTotal === 0 ? '' : expense.billTotal}
-                            onChange={(event) => onExpenseBillingChange(index, 'billTotal', event.target.value)}
+                            onChange={(event) => changeBillingFieldAt(index, 'billTotal', event.target.value)}
                             className="w-28 px-2 py-1 border border-gray-300 rounded text-sm text-left"
                             min={0}
                             step={100}
@@ -193,7 +175,7 @@ export default function AggregationBillingPanel({
                           <input
                             type="number"
                             value={expense.fileEstimate ?? ''}
-                            onChange={(event) => onFileEstimateChange(index, event.target.value)}
+                            onChange={(event) => changeFileEstimateAt(index, event.target.value)}
                             className="w-28 px-2 py-1 border border-gray-300 rounded text-sm text-left"
                             min={0}
                             step={100}
@@ -207,7 +189,7 @@ export default function AggregationBillingPanel({
                           <input
                             type="text"
                             value={expense.memo ?? ''}
-                            onChange={(event) => onExpenseBillingChange(index, 'memo', event.target.value)}
+                            onChange={(event) => changeBillingFieldAt(index, 'memo', event.target.value)}
                             placeholder="メモを入力..."
                             maxLength={50}
                             className="w-24 px-2 py-1 border border-gray-300 rounded text-sm"
@@ -217,8 +199,7 @@ export default function AggregationBillingPanel({
                         )}
                       </td>
                     </tr>
-                  );
-                })}
+                ))}
               </tbody>
             </table>
           </div>
