@@ -36,8 +36,12 @@ export interface PaginationInfo {
 // APIレスポンスの型定義
 export interface ReportsApiResponse {
   success: boolean;
-  data: DatabaseReport[];
-  filteredItems: DatabaseWorkItem[];
+  data?: DatabaseReport[] | {
+    filteredItems?: DatabaseWorkItem[];
+    totalCount?: number;
+    pagination?: PaginationInfo;
+  } | DatabaseWorkItem[];
+  filteredItems?: DatabaseWorkItem[];
   totalCount?: number;
   totalReports?: number;
   pagination?: PaginationInfo;

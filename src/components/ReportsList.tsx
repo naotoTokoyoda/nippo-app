@@ -136,10 +136,35 @@ export default function ReportsList() {
       const result: ReportsApiResponse = await response.json();
 
       if (result.success) {
-        setFilteredWorkItems(result.filteredItems);
-        setTotalCount(result.totalCount || 0);
-        if (result.pagination) {
-          setPagination(result.pagination);
+        // APIレスポンスの構造に対応: result.data.filteredItems または result.filteredItems または result.data
+        let items: DatabaseWorkItem[] = [];
+        
+        if (result.filteredItems) {
+          items = result.filteredItems;
+        } else if (result.data) {
+          if (Array.isArray(result.data)) {
+            // 配列の場合、DatabaseWorkItem[]かどうかチェック
+            if (result.data.length > 0 && 'reportId' in result.data[0]) {
+              items = result.data as DatabaseWorkItem[];
+            }
+          } else if (typeof result.data === 'object' && 'filteredItems' in result.data) {
+            items = result.data.filteredItems || [];
+          }
+        }
+        
+        setFilteredWorkItems(items);
+        
+        // totalCountの取得
+        const totalCount = result.totalCount || 
+          (result.data && typeof result.data === 'object' && !Array.isArray(result.data) && 'totalCount' in result.data ? result.data.totalCount : 0) || 
+          0;
+        setTotalCount(totalCount);
+        
+        // paginationの取得
+        const paginationData = result.pagination || 
+          (result.data && typeof result.data === 'object' && !Array.isArray(result.data) && 'pagination' in result.data ? result.data.pagination : undefined);
+        if (paginationData) {
+          setPagination(paginationData);
         }
       } else {
         setError(result.error || 'データの取得に失敗しました');

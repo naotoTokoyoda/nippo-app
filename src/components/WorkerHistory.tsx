@@ -28,17 +28,9 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
         const response = await fetch(`/api/reports?workerName=${encodeURIComponent(workerName)}&month=${selectedMonth}&limit=100`);
         const result = await response.json();
 
-        // デバッグ用ログ（本番環境での問題調査用）
-        console.log('=== WorkerHistory Debug ===');
-        console.log('Worker Name:', workerName);
-        console.log('Selected Month:', selectedMonth);
-        console.log('Current Date:', currentDate);
-        console.log('API Response:', result);
-        console.log('Filtered Items Count:', result.filteredItems?.length || 0);
-
         if (result.success) {
-          // APIの新しい形式に対応：filteredItemsからDatabaseReport形式に変換
-          const workItems = result.filteredItems || [];
+          // APIレスポンスの構造に対応: result.data.filteredItems または result.filteredItems または result.data
+          const workItems = result.data?.filteredItems || result.filteredItems || result.data || [];
           
           // reportIdでグループ化してDatabaseReport形式に変換
           const reportsMap = new Map<string, DatabaseReport>();
@@ -60,8 +52,6 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
           });
           
           const reports = Array.from(reportsMap.values());
-          console.log('Processed Reports:', reports);
-          console.log('Reports Count:', reports.length);
           setReports(reports);
         } else {
           setReports([]);
@@ -75,7 +65,7 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
     };
 
     fetchWorkerReports();
-  }, [workerName]);
+  }, [workerName, currentDate]);
 
 
 
