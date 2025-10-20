@@ -27,7 +27,9 @@ export default function AggregationWorkerHistory({
         const result = await response.json();
         
         if (result.success) {
-          setWorkHistory(result.filteredItems || []);
+          // APIレスポンスの構造に対応: result.data.filteredItems または result.data が配列の場合
+          const items = result.data?.filteredItems || result.filteredItems || result.data || [];
+          setWorkHistory(items);
         } else {
           console.error('作業履歴取得エラー:', result.error);
           setWorkHistory([]);
