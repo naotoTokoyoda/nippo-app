@@ -7,12 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { searchWorkNumberInfo } from '@/lib/jooto-api';
 import { logger } from '@/lib/logger';
 import { ApiSuccessResponse, ApiErrorResponse } from '@/types/api';
-import { z } from 'zod';
-
-// リクエストパラメータのバリデーションスキーマ
-const searchParamsSchema = z.object({
-  workNumber: z.string().min(1, '工番を入力してください').max(50, '工番が長すぎます')
-});
+import { searchParamsSchema } from '@/lib/validation/jooto';
 
 /**
  * 工番検索API

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+import { createWorkOrderSchema } from '@/lib/validation/work-order';
 import { z } from 'zod';
 
 // 期区分を自動判定する関数
@@ -17,16 +18,6 @@ function determineTerm(frontNumber: string, backNumber: string): string {
   // その他のパターンも追加可能
   return `${frontNumber}期`;
 }
-
-// 工番登録用のスキーマ
-const createWorkOrderSchema = z.object({
-  frontNumber: z.string().min(4).max(4).regex(/^\d{4}$/, '工番（前番）は4桁の数字で入力してください'),
-  backNumber: z.string().min(1, '工番（後番）は必須です'),
-  customerId: z.string().min(1, '顧客は必須です'),
-  projectName: z.string().min(1, '作業名称は必須です'),
-  handling: z.string().optional(),
-  quantity: z.number().optional(),
-});
 
 // 工番を作成
 export async function POST(request: NextRequest) {

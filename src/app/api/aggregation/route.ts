@@ -2,19 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { ListResponse, ApiErrorResponse } from '@/types/api';
+import { aggregationListQuerySchema } from '@/lib/validation/aggregation';
 import { Prisma } from '@prisma/client';
-import { z } from 'zod';
 import { calculateWorkTime, formatUTCToJSTTime } from '@/utils/timeCalculation';
-
-// Prismaが生成する型を使用
-
-// 集計一覧用のクエリパラメータスキーマ
-const aggregationListQuerySchema = z.object({
-  term: z.string().optional(),
-  customer: z.string().optional(),
-  search: z.string().optional(),
-  status: z.enum(['aggregating', 'aggregated']).optional().default('aggregating'),
-});
 
 // 集計一覧を取得
 export async function GET(request: NextRequest) {
