@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+import { ListResponse, ApiErrorResponse } from '@/types/api';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { calculateWorkTime, formatUTCToJSTTime } from '@/utils/timeCalculation';
@@ -115,15 +116,21 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({
+    type AggregationItem = typeof aggregationItems[number];
+
+    return NextResponse.json<ListResponse<AggregationItem>>({
+      success: true,
       items: aggregationItems,
       total: aggregationItems.length,
     });
 
   } catch (error) {
     logger.apiError('/api/aggregation', error instanceof Error ? error : new Error('Unknown error'));
-    return NextResponse.json(
-      { error: '集計一覧の取得に失敗しました' },
+    return NextResponse.json<ApiErrorResponse>(
+      { 
+        success: false,
+        error: '集計一覧の取得に失敗しました' 
+      },
       { status: 500 }
     );
   }

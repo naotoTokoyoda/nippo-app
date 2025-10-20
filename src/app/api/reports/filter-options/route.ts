@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+import { ApiSuccessResponse, ApiErrorResponse } from '@/types/api';
 import dayjs from 'dayjs';
 
 export async function GET() {
@@ -74,13 +75,23 @@ export async function GET() {
       }).then(machines => machines.map(machine => machine.category)),
     ]);
 
-    return NextResponse.json({
+    type FilterOptions = {
+      availableMonths: string[];
+      uniqueWorkers: string[];
+      uniqueCustomerNames: string[];
+      uniqueWorkNumbers: string[];
+      uniqueMachineTypes: string[];
+    };
+
+    return NextResponse.json<ApiSuccessResponse<FilterOptions>>({
       success: true,
-      availableMonths,
-      uniqueWorkers,
-      uniqueCustomerNames,
-      uniqueWorkNumbers,
-      uniqueMachineTypes,
+      data: {
+        availableMonths,
+        uniqueWorkers,
+        uniqueCustomerNames,
+        uniqueWorkNumbers,
+        uniqueMachineTypes,
+      }
     });
 
   } catch (error) {
@@ -88,7 +99,7 @@ export async function GET() {
       message: error instanceof Error ? error.message : 'Unknown error',
       name: error instanceof Error ? error.name : 'Unknown'
     });
-    return NextResponse.json(
+    return NextResponse.json<ApiErrorResponse>(
       { 
         success: false, 
         error: 'フィルター選択肢の取得に失敗しました',
