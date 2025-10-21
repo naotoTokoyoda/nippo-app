@@ -21,14 +21,18 @@ export function useAggregationData(workOrderId: string) {
       setLoading(true);
       const response = await fetch(`/api/aggregation/${workOrderId}`);
       if (!response.ok) {
-        throw new Error('データの取得に失敗しました');
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || 'データの取得に失敗しました';
+        const errorDetails = errorData.details ? `\n詳細: ${errorData.details}` : '';
+        throw new Error(`${errorMessage}${errorDetails}`);
       }
 
       const data = await response.json();
       setWorkOrder(data);
     } catch (error) {
       console.error('集計詳細取得エラー:', error);
-      alert('データの取得に失敗しました。再度お試しください。');
+      const message = error instanceof Error ? error.message : 'データの取得に失敗しました。再度お試しください。';
+      alert(message);
     } finally {
       setLoading(false);
     }

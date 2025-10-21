@@ -35,8 +35,10 @@ export async function GET(
     // JootoタスクIDの場合の処理（フォールバック機能付き）
     if (id.startsWith('jooto-')) {
       const taskId = id.replace('jooto-', '');
+      logger.info(`Processing Jooto task ID: ${taskId}`);
       
       // まずデータベースから工番を検索（Jooto APIに依存しない）
+      logger.info(`Searching database for task ID: ${taskId}`);
       workOrder = await prisma.workOrder.findFirst({
         where: {
           OR: [
@@ -67,25 +69,65 @@ export async function GET(
 
       // データベースに工番データがある場合は、それを返す
       if (workOrder) {
-        logger.info(`Found work order in database for Jooto task ID: ${taskId}`);
+        logger.info(`Found work order in database for Jooto task ID: ${taskId}`, {
+          workOrderId: workOrder.id,
+          workNumber: `${workOrder.frontNumber}-${workOrder.backNumber}`
+        });
       } else {
         // データベースにない場合は、Jooto APIを試行
         try {
-          console.log(`Attempting to fetch Jooto tasks for task ID: ${taskId}`);
+          // 環境変数の確認
+          if (!process.env.JOOTO_API_KEY || !process.env.JOOTO_BOARD_ID || !process.env.JOOTO_DELIVERED_LIST_ID) {
+            logger.warn('Jooto API環境変数が未設定', {
+              hasApiKey: !!process.env.JOOTO_API_KEY,
+              hasBoardId: !!process.env.JOOTO_BOARD_ID,
+              hasDeliveredListId: !!process.env.JOOTO_DELIVERED_LIST_ID,
+            });
+            return Response.json(
+              { 
+                error: `工番が見つかりません（タスクID: ${taskId}）`,
+                details: 'データベースに工番が登録されていません。Jooto APIの設定も確認できません。'
+              },
+              { status: 404 }
+            );
+          }
+
+          logger.info(`Attempting to fetch Jooto tasks for task ID: ${taskId}`);
           const deliveredTasks = await getDeliveredTasks();
-          console.log(`Found ${deliveredTasks.length} delivered tasks`);
+          logger.info(`Found ${deliveredTasks.length} delivered tasks`);
           
-          const jootoTask = deliveredTasks.find(task => task.taskId.toString() === taskId);
+          // デバッグ: 取得したタスクIDをログ出力
+          if (deliveredTasks.length > 0) {
+            const taskIds = deliveredTasks.slice(0, 5).map(t => t.taskId);
+            logger.info(`Sample task IDs: ${taskIds.join(', ')}`);
+          }
+          
+          const jootoTask = deliveredTasks.find(task => {
+            const match = task.taskId.toString() === taskId;
+            if (match) {
+              logger.info(`Found matching task: ${task.taskId} === ${taskId}`);
+            }
+            return match;
+          });
           
           if (!jootoTask) {
-            console.warn(`Jooto task not found for ID: ${taskId}`);
+            logger.warn(`Jooto task not found for ID: ${taskId}`, {
+              taskId,
+              searchedId: taskId,
+              deliveredTaskCount: deliveredTasks.length,
+              availableTaskIds: deliveredTasks.map(t => t.taskId)
+            });
             return Response.json(
-              { error: `Jootoタスクが見つかりません（ID: ${taskId}）` },
+              { 
+                error: `Jootoタスクが見つかりません（ID: ${taskId}）`,
+                details: '納品済みリストに該当するタスクがありません。タスクIDが正しいか、またはタスクが既に移動されていないか確認してください。',
+                availableTaskIds: deliveredTasks.slice(0, 10).map(t => t.taskId)
+              },
               { status: 404 }
             );
           }
           
-          console.log(`Found Jooto task: ${jootoTask.workNumberFront}-${jootoTask.workNumberBack}`);
+          logger.info(`Found Jooto task: ${jootoTask.workNumberFront}-${jootoTask.workNumberBack}`);
 
           // 既存の工番データを確認
           workOrder = await prisma.workOrder.findUnique({
@@ -191,13 +233,18 @@ export async function GET(
             });
           }
         } catch (jootoError) {
-          const errorMessage = jootoError instanceof Error ? jootoError.message : 'Unknown error';
-          logger.warn('Jooto API取得エラー（データベース検索も失敗）', {
-            error: errorMessage
-          });
+          const error = jootoError instanceof Error ? jootoError : new Error(String(jootoError));
+          logger.error(
+            `Jooto API取得エラー（データベース検索も失敗） - taskId: ${taskId}`, 
+            error
+          );
           return Response.json(
-            { error: `Jooto APIが利用できません: ${errorMessage}` },
-            { status: 500 }
+            { 
+              error: `工番が見つかりません。Jooto APIとデータベースの両方で見つかりませんでした。`,
+              details: error.message,
+              taskId: taskId
+            },
+            { status: 404 }
           );
         }
       }
