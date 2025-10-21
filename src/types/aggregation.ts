@@ -7,6 +7,7 @@ export interface ActivitySummary {
   costAmount: number;
   billAmount: number;
   adjustment: number;
+  memo?: string;
 }
 
 export type ExpenseCategory = 'materials' | 'outsourcing' | 'shipping' | 'other';
@@ -21,6 +22,14 @@ export interface ExpenseItem {
   billQuantity: number;
   billTotal: number;
   fileEstimate?: number | null;
+  memo?: string;
+}
+
+/**
+ * 編集可能な経費アイテム（手動上書きフラグを含む）
+ */
+export interface EditableExpenseItem extends ExpenseItem {
+  manualBillOverride?: boolean;
 }
 
 export interface AggregationAdjustment {
@@ -53,9 +62,31 @@ export interface EditedRate {
 
 export type EditedRates = Record<string, EditedRate>;
 
+/**
+ * 単価変更の情報
+ */
+export interface RateChange {
+  activity: string;
+  activityName: string;
+  oldRate: number;
+  newRate: number;
+  memo: string;
+  hours: number;
+  adjustment: number;
+}
+
 export interface ActivityBillAmount {
   currentBillRate: number;
   currentBillAmount: number;
 }
 
 export type ActivityBillAmountMap = Record<string, ActivityBillAmount>;
+
+export interface EditedExpense {
+  billUnitPrice: string;
+  billQuantity: string;
+  billTotal: string;
+  memo: string;
+}
+
+export type EditedExpenses = Record<string, EditedExpense>;

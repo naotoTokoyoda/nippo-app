@@ -36,58 +36,55 @@ async function seedCompleteTestData() {
     ]);
     console.log(`✅ 顧客 ${customers.length}社を作成しました`);
 
-    // 2. 機械データを作成
+    // 2. 機械データを作成（本番環境の機械種類）
     console.log('🔧 機械データを作成中...');
-    const machines = await Promise.all([
-      prisma.machine.create({
-        data: {
-          name: 'MILLAC 1052 VII',
-          category: 'NC旋盤',
-        }
-      }),
-      prisma.machine.create({
-        data: {
-          name: '正面盤 : Chubu LF 500',
-          category: '正面盤',
-        }
-      }),
-      prisma.machine.create({
-        data: {
-          name: '12尺 : 汎用旋盤',
-          category: '汎用旋盤',
-        }
-      }),
-      prisma.machine.create({
-        data: {
-          name: '汎用旋盤',
-          category: '汎用',
-        }
-      }),
-      prisma.machine.create({
-        data: {
-          name: '溶接機',
-          category: '溶接',
-        }
-      }),
-    ]);
+    const machineNames = [
+      'MILLAC 1052 VII',
+      'MILLAC 761 VII',
+      '250 : NC旋盤マザック',
+      '350 : NC旋盤マザック',
+      'スマート250 L : NC旋盤',
+      'Mazak REX',
+      'Mazatrol M-32',
+      '正面盤 : Chubu LF 500',
+      '12尺 : 汎用旋盤',
+      '汎用旋盤',
+      '溶接',
+      '該当なし',
+    ];
+
+    const machines = await Promise.all(
+      machineNames.map(name => 
+        prisma.machine.create({
+          data: {
+            name,
+            category: 'NC旋盤', // デフォルトカテゴリ
+          }
+        })
+      )
+    );
     console.log(`✅ 機械 ${machines.length}台を作成しました`);
 
-    // 3. 作業者データを作成
+    // 3. 作業者データを作成（WORKER_OPTIONSから）
     console.log('👤 作業者データを作成中...');
-    const workers = await Promise.all([
-      prisma.user.create({
-        data: { name: '田中太郎' } // 通常作業者
-      }),
-      prisma.user.create({
-        data: { name: '佐藤次郎' } // 通常作業者
-      }),
-      prisma.user.create({
-        data: { name: 'ヤマダタロウ' } // 実習生（カタカナ）
-      }),
-      prisma.user.create({
-        data: { name: 'サトウジロウ' } // 実習生（カタカナ）
-      }),
-    ]);
+    const workerNames = [
+      '橋本正朗',
+      '常世田博',
+      '野城喜幸',
+      '三好耕平',
+      '高梨純一',
+      '（トン）シーワイ チャナラット',
+      '（ポーン）テートシームアン タナーポーン',
+      '（コー）ジャンペンペーン パッタウィ',
+    ];
+    
+    const workers = await Promise.all(
+      workerNames.map(name => 
+        prisma.user.create({
+          data: { name }
+        })
+      )
+    );
     console.log(`✅ 作業者 ${workers.length}名を作成しました`);
 
     // 4. 工番データを作成（5案件）
@@ -189,40 +186,41 @@ async function seedCompleteTestData() {
         });
         totalReports++;
 
-        // 各日、各作業者が2-3件の作業項目を作成
-        const workItemsPerDay = Math.floor(Math.random() * 2) + 2; // 2-3件
+        // 各日、各作業者が1-4件の作業項目を作成（本番環境想定）
+        const workItemsPerDay = Math.floor(Math.random() * 4) + 1; // 1-4件
 
         for (let item = 0; item < workItemsPerDay; item++) {
           const workOrder = workOrders[Math.floor(Math.random() * workOrders.length)];
           let machine;
           let workDescription;
 
-          // 作業内容と機械を工番に応じて選択
+          // 作業内容と機械を工番に応じて選択（本番環境の機械から選択）
           if (workOrder.backNumber.includes('J-')) {
             // JFE案件は正面盤メイン
-            machine = machines[1]; // 正面盤
+            machine = machines.find(m => m.name === '正面盤 : Chubu LF 500') || machines[0];
             workDescription = '転炉ライニング作業';
           } else if (workOrder.description?.includes('溶射')) {
             // 溶射案件
-            machine = machines[4]; // 溶接機
+            machine = machines.find(m => m.name === '溶接') || machines[0];
             workDescription = 'ロール表面溶射作業';
           } else if (workOrder.description?.includes('精密')) {
             // 精密加工案件
-            machine = machines[0]; // MILLAC 1052
+            machine = machines.find(m => m.name === 'MILLAC 1052 VII') || machines[0];
             workDescription = 'シャフト精密加工';
           } else if (day % 3 === 0 && item === workItemsPerDay - 1) {
             // 検品作業（3日に1回、最後の作業項目）
-            machine = machines[3]; // 汎用旋盤
+            machine = machines.find(m => m.name === '汎用旋盤') || machines[0];
             workDescription = '検品作業';
           } else {
-            // 通常作業
-            machine = machines[Math.floor(Math.random() * 3)]; // 最初の3台からランダム
+            // 通常作業（全機械からランダム選択）
+            machine = machines[Math.floor(Math.random() * machines.length)];
             workDescription = workOrder.description || '設備メンテナンス';
           }
 
-          // 作業時間をランダムに設定（4-8時間）
-          const startHour = 9 + Math.floor(Math.random() * 2); // 9-10時開始
-          const workHours = 4 + Math.floor(Math.random() * 4); // 4-7時間
+          // 作業時間を15分刻みでランダムに設定（本番環境想定）
+          const startHour = 8 + Math.floor(Math.random() * 3); // 8-10時開始
+          const workHoursInMinutes = 180 + Math.floor(Math.random() * 300); // 3-8時間（180-480分）
+          const workHours = Math.round(workHoursInMinutes / 15) * 15 / 60; // 15分刻みに調整して時間に変換
 
           await prisma.reportItem.create({
             data: {
@@ -258,14 +256,14 @@ async function seedCompleteTestData() {
     console.log('✅ 調整データ 1件を作成しました');
 
     // 完了レポート
-    console.log('\n🎉 完全なテストデータの作成が完了しました！');
+    console.log('\n🎉 本番環境想定のテストデータの作成が完了しました！');
     console.log('\n📊 作成されたデータ:');
     console.log(`  👥 顧客: ${customers.length}社`);
-    console.log(`  🔧 機械: ${machines.length}台`);
-    console.log(`  👤 作業者: ${workers.length}名`);
+    console.log(`  🔧 機械: ${machines.length}台（本番環境の機械種類）`);
+    console.log(`  👤 作業者: ${workers.length}名（WORKER_OPTIONSから）`);
     console.log(`  📋 工番: ${workOrders.length}件`);
-    console.log(`  📝 日報: ${totalReports}件`);
-    console.log(`  ⏰ 作業項目: ${totalReportItems}件`);
+    console.log(`  📝 日報: ${totalReports}件（過去10日分）`);
+    console.log(`  ⏰ 作業項目: ${totalReportItems}件（15分刻みの作業時間）`);
     console.log(`  ⚙️ 調整: 1件`);
 
     console.log('\n📋 作成された工番一覧:');

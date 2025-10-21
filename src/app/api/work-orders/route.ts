@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
+import { createWorkOrderSchema } from '@/lib/validation/work-order';
 import { z } from 'zod';
 
 // 期区分を自動判定する関数
@@ -16,16 +18,6 @@ function determineTerm(frontNumber: string, backNumber: string): string {
   // その他のパターンも追加可能
   return `${frontNumber}期`;
 }
-
-// 工番登録用のスキーマ
-const createWorkOrderSchema = z.object({
-  frontNumber: z.string().min(4).max(4).regex(/^\d{4}$/, '工番（前番）は4桁の数字で入力してください'),
-  backNumber: z.string().min(1, '工番（後番）は必須です'),
-  customerId: z.string().min(1, '顧客は必須です'),
-  projectName: z.string().min(1, '作業名称は必須です'),
-  handling: z.string().optional(),
-  quantity: z.number().optional(),
-});
 
 // 工番を作成
 export async function POST(request: NextRequest) {
@@ -92,13 +84,14 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
 
   } catch (error) {
-    console.error('工番登録エラー:', error);
     if (error instanceof z.ZodError) {
+      logger.validationError('work-order-api', error.issues);
       return NextResponse.json(
         { error: 'リクエストデータが無効です', details: error.issues },
         { status: 400 }
       );
     }
+    logger.apiError('/api/work-orders', error instanceof Error ? error : new Error('Unknown error'));
     return NextResponse.json(
       { error: '工番の登録に失敗しました' },
       { status: 500 }
@@ -137,7 +130,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result);
 
   } catch (error) {
-    console.error('工番一覧取得エラー:', error);
+    logger.apiError('/api/work-orders', error instanceof Error ? error : new Error('Unknown error'));
     return NextResponse.json(
       { error: '工番一覧の取得に失敗しました' },
       { status: 500 }

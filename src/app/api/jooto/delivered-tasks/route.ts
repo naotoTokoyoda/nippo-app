@@ -3,8 +3,12 @@
  * GET /api/jooto/delivered-tasks
  */
 
+import { NextResponse } from 'next/server';
 import { getDeliveredTasks } from '@/lib/jooto-api';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
+import { ListResponse, ApiErrorResponse } from '@/types/api';
+import { calculateWorkTime, formatUTCToJSTTime } from '@/utils/timeCalculation';
 
 /**
  * 納品済みタスク一覧を取得し、日報データと紐付けて集計情報を返す
@@ -40,9 +44,12 @@ export async function GET() {
 
         for (const workOrder of workOrders) {
           for (const item of workOrder.reportItems) {
-            const startTime = new Date(item.startTime);
-            const endTime = new Date(item.endTime);
-            const hours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+            // 勤務状況を考慮した時間計算を適用
+            const hours = calculateWorkTime(
+              formatUTCToJSTTime(item.startTime), 
+              formatUTCToJSTTime(item.endTime), 
+              item.workStatus || undefined
+            );
             totalHours += hours;
 
             // 最終更新日を更新
@@ -66,17 +73,19 @@ export async function GET() {
       })
     );
 
+    type AggregationItem = typeof aggregationItems[number];
+
     // 全てのタスクを表示（日報データがない場合は累計時間0h）
-    return Response.json({
+    return NextResponse.json<ListResponse<AggregationItem>>({
       success: true,
       items: aggregationItems,
       total: aggregationItems.length,
     });
 
   } catch (error) {
-    console.error('Delivered tasks API error:', error);
+    logger.apiError('/api/jooto/delivered-tasks', error instanceof Error ? error : new Error('Unknown error'));
     
-    return Response.json(
+    return NextResponse.json<ApiErrorResponse>(
       { 
         success: false, 
         error: 'サーバーエラーが発生しました',
@@ -91,5 +100,5 @@ export async function GET() {
  * 許可されていないメソッドの処理
  */
 export async function POST() {
-  return Response.json({ error: 'Method not allowed' }, { status: 405 });
+  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
 }

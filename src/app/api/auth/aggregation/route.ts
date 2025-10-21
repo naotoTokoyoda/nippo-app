@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ message: '認証成功' });
   } catch (error) {
-    console.error('集計認証エラー:', error);
+    logger.apiError('/api/auth/aggregation', error instanceof Error ? error : new Error('Unknown error'));
     return NextResponse.json(
       { message: '認証処理中にエラーが発生しました' },
       { status: 500 }
@@ -79,7 +80,7 @@ export async function GET() {
 
     return NextResponse.json({ authenticated: false });
   } catch (error) {
-    console.error('セッション確認エラー:', error);
+    logger.apiError('/api/auth/aggregation [GET]', error instanceof Error ? error : new Error('Unknown error'));
     return NextResponse.json({ authenticated: false });
   }
 }

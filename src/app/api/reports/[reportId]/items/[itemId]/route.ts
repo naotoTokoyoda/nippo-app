@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 import { formatDateToISO, createJSTDateTime, formatUTCToJSTTime } from '@/utils/timeCalculation';
 
 export async function PUT(
@@ -121,7 +122,7 @@ export async function PUT(
     });
 
   } catch (error) {
-    console.error('作業項目更新エラー:', error);
+    logger.apiError('/api/reports/[reportId]/items/[itemId]', error instanceof Error ? error : new Error('Unknown error'));
     return NextResponse.json(
       { success: false, error: '作業項目の更新に失敗しました' },
       { status: 500 }

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
+import { ApiSuccessResponse, ApiErrorResponse, PaginationInfo } from '@/types/api';
 import { formatDateToISO, getJSTTimestamp, createJSTDateTime, formatUTCToJSTTime } from '@/utils/timeCalculation';
 
 // Prismaの戻り値の型を定義
@@ -26,7 +28,7 @@ type ReportItemWithRelations = {
     description: string | null;
   };
   machine: {
-    category: string;
+    name: string;
   };
 };
 
@@ -116,7 +118,7 @@ export async function GET(request: NextRequest) {
         }),
         ...(machineType && {
           machine: {
-            category: machineType,
+            name: machineType,
           },
         }),
       },
@@ -149,7 +151,7 @@ export async function GET(request: NextRequest) {
         }),
         ...(machineType && {
           machine: {
-            category: machineType,
+            name: machineType,
           },
         }),
       },
@@ -185,7 +187,7 @@ export async function GET(request: NextRequest) {
         },
         machine: {
           select: {
-            category: true,
+            name: true,
           },
         },
       },
@@ -210,7 +212,7 @@ export async function GET(request: NextRequest) {
       name: item.workDescription || item.workOrder.description || '未入力', // workDescriptionを優先、フォールバック付き
       startTime: formatUTCToJSTTime(item.startTime),
       endTime: formatUTCToJSTTime(item.endTime),
-      machineType: item.machine.category,
+      machineType: item.machine.name,
       remarks: item.remarks || '',
       workStatus: item.workStatus || 'completed',
     }));
@@ -218,29 +220,37 @@ export async function GET(request: NextRequest) {
     // ユニークなレポートIDを取得してレポート数を計算
     const uniqueReportIds = [...new Set(reportItems.map((item: ReportItemWithRelations) => item.reportId))];
 
-    return NextResponse.json({
+    const paginationInfo: PaginationInfo = {
+      page,
+      limit,
+      totalPages: Math.ceil(totalCount / limit),
+      hasNextPage: page * limit < totalCount,
+      hasPrevPage: page > 1,
+    };
+
+    type ReportsData = {
+      filteredItems: typeof formattedItems;
+      totalCount: number;
+      totalReports: number;
+      pagination: PaginationInfo;
+    };
+
+    return NextResponse.json<ApiSuccessResponse<ReportsData>>({
       success: true,
-      data: [], // フロントエンドでは使用しないため空配列
-      filteredItems: formattedItems,
-      totalCount,
-      totalReports: uniqueReportIds.length,
-      pagination: {
-        page,
-        limit,
-        totalPages: Math.ceil(totalCount / limit),
-        hasNextPage: page * limit < totalCount,
-        hasPrevPage: page > 1,
-      },
+      data: {
+        filteredItems: formattedItems,
+        totalCount,
+        totalReports: uniqueReportIds.length,
+        pagination: paginationInfo,
+      }
     });
 
   } catch (error) {
-    console.error('日報データ取得エラー:', error);
-    console.error('エラーの詳細:', {
+    logger.apiError('/api/reports', error instanceof Error ? error : new Error('Unknown error'), {
       message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
       name: error instanceof Error ? error.name : 'Unknown'
     });
-    return NextResponse.json(
+    return NextResponse.json<ApiErrorResponse>(
       { 
         success: false, 
         error: '日報データの取得に失敗しました',
@@ -354,17 +364,23 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({
+    type SaveReportData = {
+      reportId: string;
+    };
+
+    return NextResponse.json<ApiSuccessResponse<SaveReportData>>({
       success: true,
       message: report.submittedAt.getTime() === report.createdAt.getTime() 
         ? '日報が正常に保存されました' 
         : '既存の日報に作業項目が追加されました',
-      reportId: report.id,
+      data: {
+        reportId: report.id,
+      }
     });
 
   } catch (error) {
-    console.error('日報保存エラー:', error);
-    return NextResponse.json(
+    logger.apiError('/api/reports [POST]', error instanceof Error ? error : new Error('Unknown error'));
+    return NextResponse.json<ApiErrorResponse>(
       { success: false, error: '日報の保存に失敗しました' },
       { status: 500 }
     );

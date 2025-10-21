@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
+import { ListResponse, ApiErrorResponse } from '@/types/api';
+import { aggregationListQuerySchema } from '@/lib/validation/aggregation';
 import { Prisma } from '@prisma/client';
-import { z } from 'zod';
-
-// Prismaが生成する型を使用
-
-// 集計一覧用のクエリパラメータスキーマ
-const aggregationListQuerySchema = z.object({
-  term: z.string().optional(),
-  customer: z.string().optional(),
-  search: z.string().optional(),
-  status: z.enum(['aggregating', 'aggregated']).optional().default('aggregating'),
-});
+import { calculateWorkTime, formatUTCToJSTTime } from '@/utils/timeCalculation';
 
 // 集計一覧を取得
 export async function GET(request: NextRequest) {
@@ -86,9 +79,12 @@ export async function GET(request: NextRequest) {
     // 各工番の累計時間を計算
     const aggregationItems = workOrders.map(workOrder => {
       const totalHours = workOrder.reportItems.reduce((total, item) => {
-        const startTime = new Date(item.startTime);
-        const endTime = new Date(item.endTime);
-        const hours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+        // 勤務状況を考慮した時間計算を適用
+        const hours = calculateWorkTime(
+          formatUTCToJSTTime(item.startTime), 
+          formatUTCToJSTTime(item.endTime), 
+          item.workStatus || undefined
+        );
         return total + hours;
       }, 0);
 
@@ -110,15 +106,21 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({
+    type AggregationItem = typeof aggregationItems[number];
+
+    return NextResponse.json<ListResponse<AggregationItem>>({
+      success: true,
       items: aggregationItems,
       total: aggregationItems.length,
     });
 
   } catch (error) {
-    console.error('集計一覧取得エラー:', error);
-    return NextResponse.json(
-      { error: '集計一覧の取得に失敗しました' },
+    logger.apiError('/api/aggregation', error instanceof Error ? error : new Error('Unknown error'));
+    return NextResponse.json<ApiErrorResponse>(
+      { 
+        success: false,
+        error: '集計一覧の取得に失敗しました' 
+      },
       { status: 500 }
     );
   }

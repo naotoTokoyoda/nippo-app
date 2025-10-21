@@ -1,212 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { z } from 'zod';
+import { logger } from '@/lib/logger';
 import { getDeliveredTasks, moveJootoTask } from '@/lib/jooto-api';
-import { Prisma } from '@prisma/client';
+import { determineActivity } from '@/lib/aggregation/activity-utils';
+import { 
+  calculateActivitiesForWorkOrder,
+  calculateSummary 
+} from '@/lib/aggregation/calculation-service';
+import { updateAggregationSchema } from '@/lib/aggregation/schemas';
+import { z } from 'zod';
 
-// 型定義
-type ReportItem = Prisma.ReportItemGetPayload<{
-  include: {
-    machine: true;
-    report: {
-      include: {
-        worker: true;
-      };
-    };
-  };
-}>;
-
-interface ActivityGroup {
-  activity: string;
-  hours: number;
-  items: ReportItem[];
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-type WorkOrderWithIncludes = Prisma.WorkOrderGetPayload<{
-  include: {
-    customer: true;
-    reportItems: {
-      include: {
-        report: {
-          include: {
-            worker: true;
-          };
-        };
-        machine: true;
-      };
-    };
-    adjustments: {
-      include: {
-        user: true;
-      };
-    };
-    materials: true;
-  };
-}>;
-
-// 通貨フォーマット関数
+/**
+ * 通貨フォーマット関数
+ */
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('ja-JP', {
     style: 'currency',
     currency: 'JPY',
     minimumFractionDigits: 0,
   }).format(amount);
-}
-
-// Activity判定ロジック
-function determineActivity(reportItem: ReportItem): string {
-  // 1. 実習生判定（作業者名がカタカナ）
-  const workerName = reportItem.report.worker.name;
-  if (/^[\u30A0-\u30FF\s]+$/.test(workerName)) {
-    return 'TRAINEE1';
-  }
-
-  // 2. 検品判定（作業内容に「検品」が含まれる）
-  const workDescription = reportItem.workDescription || '';
-  if (workDescription.includes('検品')) {
-    return 'INSPECTION';
-  }
-
-  // 3. 機械種類による判定
-  const machineName = reportItem.machine.name;
-  if (machineName === 'MILLAC 1052 VII') {
-    return 'M_1052';
-  }
-  if (machineName === '正面盤 : Chubu LF 500') {
-    return 'M_SHOMEN';
-  }
-  if (machineName === '12尺 : 汎用旋盤') {
-    return 'M_12SHAKU';
-  }
-
-  // 4. デフォルトは通常作業
-  return 'NORMAL';
-}
-
-// Activity名を取得
-function getActivityName(activity: string): string {
-  const names: Record<string, string> = {
-    'NORMAL': '通常',
-    'TRAINEE1': '1号実習生', 
-    'INSPECTION': '検品',
-    'M_1052': '1052',
-    'M_SHOMEN': '正面盤',
-    'M_12SHAKU': '12尺',
-  };
-  return names[activity] || activity;
-}
-
-// WorkOrderのActivity別集計を計算する関数
-async function calculateActivitiesForWorkOrder(workOrderId: string, tx: Prisma.TransactionClient): Promise<Array<{
-  activity: string;
-  activityName: string;
-  hours: number;
-  costRate: number;
-  billRate: number;
-  costAmount: number;
-  billAmount: number;
-  adjustment: number;
-}>> {
-  // WorkOrderとreportItemsを取得
-  const workOrder = await tx.workOrder.findUnique({
-    where: { id: workOrderId },
-    include: {
-      reportItems: {
-        include: {
-          report: {
-            include: {
-              worker: true,
-            },
-          },
-          machine: true,
-        },
-      },
-    },
-  });
-
-  if (!workOrder) {
-    throw new Error('WorkOrder not found');
-  }
-
-  // Activity別に集計
-  const activityMap = new Map<string, ActivityGroup>();
-
-  // 各レポートアイテムのActivityを判定し、時間を集計
-  workOrder.reportItems.forEach((item) => {
-    const activity = determineActivity(item);
-    const startTime = new Date(item.startTime);
-    const endTime = new Date(item.endTime);
-    const hours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
-
-    if (!activityMap.has(activity)) {
-      activityMap.set(activity, {
-        activity,
-        hours: 0,
-        items: [],
-      });
-    }
-
-    const activityData = activityMap.get(activity)!;
-    activityData.hours += hours;
-    activityData.items.push(item);
-  });
-
-  // 各Activity別の単価・金額を計算
-  const activities = await Promise.all(
-    Array.from(activityMap.values()).map(async (activityData) => {
-      // 現在有効な単価を取得
-      const rate = await tx.rate.findFirst({
-        where: {
-          activity: activityData.activity,
-          effectiveFrom: {
-            lte: new Date(),
-          },
-          OR: [
-            { effectiveTo: null },
-            { effectiveTo: { gte: new Date() } },
-          ],
-        },
-        orderBy: {
-          effectiveFrom: 'desc',
-        },
-      });
-
-      // 最初（デフォルト）の単価を取得
-      const originalRate = await tx.rate.findFirst({
-        where: {
-          activity: activityData.activity,
-        },
-        orderBy: {
-          effectiveFrom: 'asc',
-        },
-      });
-
-      const costRate = rate?.costRate || 11000; // デフォルト単価
-      const billRate = rate?.billRate || 11000;
-      const originalBillRate = originalRate?.billRate || 11000;
-      const hours = Math.round(activityData.hours * 10) / 10;
-      const costAmount = Math.round(hours * costRate);
-      const billAmount = Math.round(hours * billRate);
-      
-      // 調整額 = 現在の請求額 - 元の請求額
-      const originalBillAmount = Math.round(hours * originalBillRate);
-      const adjustment = billAmount - originalBillAmount;
-
-      return {
-        activity: activityData.activity,
-        activityName: getActivityName(activityData.activity),
-        hours,
-        costRate,
-        billRate,
-        costAmount,
-        billAmount,
-        adjustment,
-      };
-    })
-  );
-
-  return activities;
 }
 
 // 集計詳細を取得
@@ -255,7 +67,7 @@ export async function GET(
 
       // データベースに工番データがある場合は、それを返す
       if (workOrder) {
-        console.log(`Found work order in database for Jooto task ID: ${taskId}`);
+        logger.info(`Found work order in database for Jooto task ID: ${taskId}`);
       } else {
         // データベースにない場合は、Jooto APIを試行
         try {
@@ -379,8 +191,10 @@ export async function GET(
             });
           }
         } catch (jootoError) {
-          console.error('Jooto API取得エラー:', jootoError);
           const errorMessage = jootoError instanceof Error ? jootoError.message : 'Unknown error';
+          logger.warn('Jooto API取得エラー（データベース検索も失敗）', {
+            error: errorMessage
+          });
           return Response.json(
             { error: `Jooto APIが利用できません: ${errorMessage}` },
             { status: 500 }
@@ -420,82 +234,8 @@ export async function GET(
       );
     }
 
-    // Activity別に集計
-    const activityMap = new Map<string, ActivityGroup>();
-
-    // 各レポートアイテムのActivityを判定し、時間を集計
-    workOrder.reportItems.forEach((item: ReportItem) => {
-      const activity = determineActivity(item);
-      const startTime = new Date(item.startTime);
-      const endTime = new Date(item.endTime);
-      const hours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
-
-      if (!activityMap.has(activity)) {
-        activityMap.set(activity, {
-          activity,
-          hours: 0,
-          items: [],
-        });
-      }
-
-      const activityData = activityMap.get(activity)!;
-      activityData.hours += hours;
-      activityData.items.push(item);
-    });
-
-    // 各Activity別の単価・金額を計算
-    const activities = await Promise.all(
-      Array.from(activityMap.values()).map(async (activityData) => {
-        // 現在有効な単価を取得
-        const rate = await prisma.rate.findFirst({
-          where: {
-            activity: activityData.activity,
-            effectiveFrom: {
-              lte: new Date(),
-            },
-            OR: [
-              { effectiveTo: null },
-              { effectiveTo: { gte: new Date() } },
-            ],
-          },
-          orderBy: {
-            effectiveFrom: 'desc',
-          },
-        });
-
-        // 最初（デフォルト）の単価を取得
-        const originalRate = await prisma.rate.findFirst({
-          where: {
-            activity: activityData.activity,
-          },
-          orderBy: {
-            effectiveFrom: 'asc',
-          },
-        });
-
-        const costRate = rate?.costRate || 11000; // デフォルト単価
-        const billRate = rate?.billRate || 11000;
-        const originalBillRate = originalRate?.billRate || 11000;
-        const hours = Math.round(activityData.hours * 10) / 10;
-        const costAmount = Math.round(hours * costRate);
-        const billAmount = Math.round(hours * billRate);
-        
-        // 調整額 = 現在の請求額 - 元の請求額
-        const originalBillAmount = Math.round(hours * originalBillRate);
-        const adjustment = billAmount - originalBillAmount;
-
-        return {
-          activity: activityData.activity,
-          activityName: getActivityName(activityData.activity),
-          hours,
-          costRate,
-          billRate,
-          costAmount,
-          billAmount,
-          adjustment,
-        };
-      })
-    );
+    // Activity別の単価・金額を計算
+    const activities = await calculateActivitiesForWorkOrder(workOrder.id, prisma);
 
     // 調整履歴を整形
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -521,6 +261,7 @@ export async function GET(
       billQuantity: material.billQuantity,
       billTotal: material.billTotal,
       fileEstimate: material.fileEstimate,
+      memo: material.memo || undefined,
     }));
 
     // 総時間を計算
@@ -542,33 +283,13 @@ export async function GET(
     return NextResponse.json(result);
 
   } catch (error) {
-    console.error('集計詳細取得エラー:', error);
+    logger.apiError('/api/aggregation/[id]', error instanceof Error ? error : new Error('Unknown error'));
     return NextResponse.json(
       { error: '集計詳細の取得に失敗しました' },
       { status: 500 }
     );
   }
 }
-
-// 集計詳細を更新（単価調整など）
-const updateSchema = z.object({
-  billRateAdjustments: z.record(z.string(), z.object({
-    billRate: z.number(),
-    memo: z.string().optional(),
-  })).optional(),
-  expenses: z.array(z.object({
-    id: z.string().optional(),
-    category: z.string(),
-    costUnitPrice: z.number(),
-    costQuantity: z.number(),
-    costTotal: z.number(),
-    billUnitPrice: z.number().optional(),
-    billQuantity: z.number().optional(),
-    billTotal: z.number().optional(),
-    fileEstimate: z.number().nullable().optional(),
-  })).optional(),
-  status: z.enum(['aggregating', 'aggregated']).optional(),
-});
 
 export async function PATCH(
   request: NextRequest,
@@ -578,7 +299,7 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
 
-    const validatedData = updateSchema.parse(body);
+    const validatedData = updateAggregationSchema.parse(body);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let workOrder: any;
@@ -633,8 +354,10 @@ export async function PATCH(
             );
           }
         } catch (jootoError) {
-          console.error('Jooto API取得エラー（PATCH）:', jootoError);
           const errorMessage = jootoError instanceof Error ? jootoError.message : 'Unknown error';
+          logger.warn('Jooto API取得エラー', {
+            error: errorMessage
+          });
           return Response.json(
             { error: `Jooto APIが利用できません: ${errorMessage}` },
             { status: 500 }
@@ -666,6 +389,7 @@ export async function PATCH(
       );
     }
 
+
     // トランザクション内で更新処理
     await prisma.$transaction(async (tx) => {
       // 単価調整がある場合
@@ -684,6 +408,27 @@ export async function PATCH(
             orderBy: { effectiveFrom: 'desc' },
           });
 
+          // 工番ごとのActivityメモを保存/更新
+          if (adjustment.memo !== undefined) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await (tx as any).workOrderActivityMemo.upsert({
+              where: {
+                workOrderId_activity: {
+                  workOrderId: workOrder.id,
+                  activity,
+                },
+              },
+              update: {
+                memo: adjustment.memo || null,
+              },
+              create: {
+                workOrderId: workOrder.id,
+                activity,
+                memo: adjustment.memo || null,
+              },
+            });
+          }
+
           if (currentRate && currentRate.billRate !== adjustment.billRate) {
             // 現在の単価の有効期限を今日までに設定
             await tx.rate.update({
@@ -699,6 +444,7 @@ export async function PATCH(
                 effectiveTo: null,
                 costRate: currentRate.costRate,
                 billRate: adjustment.billRate,
+                // memo: currentRate.memo, // Rateテーブルのメモは変更しない
               },
             });
 
@@ -746,7 +492,22 @@ export async function PATCH(
                   },
                 });
               }
+          } else if (adjustment.memo !== undefined) {
+            // メモのみが変更された場合の調整履歴を記録
+            const firstUser = await tx.user.findFirst();
+            if (firstUser) {
+              await tx.adjustment.create({
+                data: {
+                  workOrderId: workOrder.id,
+                  type: 'memo_update',
+                  amount: 0,
+                  reason: `${activity}メモ更新`,
+                  memo: adjustment.memo || null,
+                  createdBy: firstUser.id,
+                },
+              });
             }
+          }
           }
         }
       }
@@ -803,7 +564,9 @@ export async function PATCH(
               billQuantity,
               billTotal,
               fileEstimate: typeof expense.fileEstimate === 'number' ? expense.fileEstimate : null,
-            },
+              memo: expense.memo || null,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any,
           });
         }
       }
@@ -817,12 +580,8 @@ export async function PATCH(
         });
 
         // 合計値を計算
-        const totalHours = currentActivities.reduce((sum, activity) => sum + activity.hours, 0);
-        const costTotal = currentActivities.reduce((sum, activity) => sum + activity.costAmount, 0);
-        const billTotal = currentActivities.reduce((sum, activity) => sum + activity.billAmount, 0);
-        const expenseBillTotal = currentExpenses.reduce((sum, expense) => sum + expense.billTotal, 0);
-        const adjustmentTotal = currentActivities.reduce((sum, activity) => sum + activity.adjustment, 0);
-        const finalAmount = billTotal + expenseBillTotal;
+        const summary = calculateSummary(currentActivities, currentExpenses);
+        const { totalHours, costTotal, billTotal, expenseBillTotal, adjustmentTotal, finalAmount } = summary;
 
         // Activity別詳細をJSON形式で準備
         const activityBreakdown = currentActivities.map(activity => ({
@@ -905,26 +664,27 @@ export async function PATCH(
         
         if (aggregatingListId) {
           await moveJootoTask(taskId, aggregatingListId);
-          console.log(`Moved Jooto task ${taskId} from 納品済み to 集計中`);
+          logger.info(`Moved Jooto task ${taskId} from 納品済み to 集計中`);
         } else {
-          console.warn('JOOTO_AGGREGATING_LIST_ID environment variable is not set');
+          logger.warn('JOOTO_AGGREGATING_LIST_ID environment variable is not set');
         }
       } catch (jootoError) {
         // Jootoの移動が失敗してもデータベースの更新は成功として扱う
-        console.error('Jooto task move failed, but database update succeeded:', jootoError);
+        logger.error('Jooto task move failed, but database update succeeded', jootoError instanceof Error ? jootoError : new Error('Unknown error'));
       }
     }
 
     return NextResponse.json({ success: true });
 
-  } catch (error) {
-    console.error('集計詳細更新エラー:', error);
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
+      logger.validationError('aggregation-update-api', error.issues);
       return NextResponse.json(
         { error: 'リクエストデータが無効です', details: error.issues },
         { status: 400 }
       );
     }
+    logger.apiError('/api/aggregation/[id] [PATCH]', error instanceof Error ? error : new Error('Unknown error'));
     return NextResponse.json(
       { error: '集計詳細の更新に失敗しました' },
       { status: 500 }

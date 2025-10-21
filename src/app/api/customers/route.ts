@@ -1,5 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
+import { ApiErrorResponse } from '@/types/api';
+
+type Customer = {
+  id: string;
+  name: string;
+  code: string;
+};
 
 // 顧客一覧を取得
 export async function GET() {
@@ -15,12 +23,15 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json(customers);
+    return NextResponse.json<Customer[]>(customers);
 
   } catch (error) {
-    console.error('顧客一覧取得エラー:', error);
-    return NextResponse.json(
-      { error: '顧客一覧の取得に失敗しました' },
+    logger.apiError('/api/customers', error instanceof Error ? error : new Error('Unknown error'));
+    return NextResponse.json<ApiErrorResponse>(
+      { 
+        success: false,
+        error: '顧客一覧の取得に失敗しました' 
+      },
       { status: 500 }
     );
   }
