@@ -18,13 +18,15 @@ const JOOTO_CONFIG = {
  */
 export async function searchJootoTasks(searchQuery: string): Promise<JootoSearchResponse> {
   try {
+    console.log(`[Jooto] Searching for: "${searchQuery}"`);
+    
     // 環境変数の確認
     if (!JOOTO_CONFIG.apiKey) {
-      console.warn('JOOTO_API_KEY environment variable is not set - returning empty result');
+      console.warn('[Jooto] JOOTO_API_KEY environment variable is not set - returning empty result');
       return { tasks: [], total: 0, page: 1, per_page: 20, total_pages: 0 };
     }
     if (!JOOTO_CONFIG.boardId) {
-      console.warn('JOOTO_BOARD_ID environment variable is not set - returning empty result');
+      console.warn('[Jooto] JOOTO_BOARD_ID environment variable is not set - returning empty result');
       return { tasks: [], total: 0, page: 1, per_page: 20, total_pages: 0 };
     }
 
@@ -32,6 +34,8 @@ export async function searchJootoTasks(searchQuery: string): Promise<JootoSearch
     const params = new URLSearchParams({
       search_query: searchQuery
     });
+
+    console.log(`[Jooto] API URL: ${url}?${params}`);
 
     const response = await fetch(`${url}?${params}`, {
       method: 'GET',
@@ -41,14 +45,19 @@ export async function searchJootoTasks(searchQuery: string): Promise<JootoSearch
       },
     });
 
+    console.log(`[Jooto] Response status: ${response.status}`);
+
     if (!response.ok) {
-      throw new Error(`Jooto API error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.error(`[Jooto] API error response: ${errorText}`);
+      throw new Error(`Jooto API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
+    console.log(`[Jooto] Found ${data.tasks?.length || 0} tasks`);
     return data;
   } catch (error) {
-    console.error('Jooto API search error:', error);
+    console.error('[Jooto] API search error:', error);
     throw error;
   }
 }
