@@ -18,12 +18,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const workNumber = searchParams.get('workNumber');
 
-    logger.info(`Jooto search request: workNumber=${workNumber}`);
-
     // バリデーション
     const validation = searchParamsSchema.safeParse({ workNumber });
     if (!validation.success) {
-      logger.warn(`Jooto search validation failed: ${validation.error.issues[0].message}`);
       return NextResponse.json<ApiErrorResponse>(
         { 
           success: false, 
@@ -33,14 +30,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 環境変数の確認
-    const hasApiKey = !!process.env.JOOTO_API_KEY;
-    const hasBoardId = !!process.env.JOOTO_BOARD_ID;
-    logger.info(`Jooto API config: hasApiKey=${hasApiKey}, hasBoardId=${hasBoardId}`);
-
     // Jooto APIで検索実行
     const results = await searchWorkNumberInfo(validation.data.workNumber);
-    logger.info(`Jooto search results: count=${results.length}`);
 
     type SearchResult = {
       data: typeof results;

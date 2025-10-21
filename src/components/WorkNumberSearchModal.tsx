@@ -72,7 +72,9 @@ export default function WorkNumberSearchModal({
       const result = await response.json();
 
       if (result.success && result.data) {
-        setSearchResults(result.data);
+        // APIレスポンスは { success: true, data: { data: [...], count: number } } の構造
+        const searchData = result.data.data || result.data;
+        setSearchResults(Array.isArray(searchData) ? searchData : []);
       } else {
         setSearchResults([]);
       }
