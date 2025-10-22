@@ -255,6 +255,79 @@ export async function getDeliveredTasks(): Promise<WorkNumberSearchResult[]> {
 }
 
 /**
+ * 3つのリスト（納品済み、集計中、Freee納品書登録済み）すべてのタスクを取得
+ * @returns 工番情報の配列（ステータス付き）
+ */
+export async function getAllAggregationTasks(): Promise<Array<WorkNumberSearchResult & { status: 'delivered' | 'aggregating' | 'aggregated' }>> {
+  try {
+    const deliveredListId = process.env.JOOTO_DELIVERED_LIST_ID;
+    const aggregatingListId = process.env.JOOTO_AGGREGATING_LIST_ID;
+    const freeeListId = process.env.JOOTO_FREEE_INVOICE_REGISTERED_LIST_ID;
+
+    const results: Array<WorkNumberSearchResult & { status: 'delivered' | 'aggregating' | 'aggregated' }> = [];
+
+    // 納品済みリストからタスク取得
+    if (deliveredListId) {
+      const deliveredTasks = await getJootoTasksByListId(deliveredListId);
+      for (const task of deliveredTasks) {
+        const workNumberMatch = task.name.match(/(\d{4})-?([^\s]+)/);
+        if (workNumberMatch) {
+          const [, frontNumber, backNumber] = workNumberMatch;
+          const workNumber = `${frontNumber}-${backNumber}`;
+          const result = extractWorkInfoFromTask(task, workNumber);
+          if (result) {
+            results.push({ ...result, status: 'delivered' as const });
+          }
+        }
+      }
+    } else {
+      console.warn('JOOTO_DELIVERED_LIST_ID environment variable is not set');
+    }
+
+    // 集計中リストからタスク取得
+    if (aggregatingListId) {
+      const aggregatingTasks = await getJootoTasksByListId(aggregatingListId);
+      for (const task of aggregatingTasks) {
+        const workNumberMatch = task.name.match(/(\d{4})-?([^\s]+)/);
+        if (workNumberMatch) {
+          const [, frontNumber, backNumber] = workNumberMatch;
+          const workNumber = `${frontNumber}-${backNumber}`;
+          const result = extractWorkInfoFromTask(task, workNumber);
+          if (result) {
+            results.push({ ...result, status: 'aggregating' as const });
+          }
+        }
+      }
+    } else {
+      console.warn('JOOTO_AGGREGATING_LIST_ID environment variable is not set');
+    }
+
+    // Freee納品書登録済みリストからタスク取得
+    if (freeeListId) {
+      const freeeTasks = await getJootoTasksByListId(freeeListId);
+      for (const task of freeeTasks) {
+        const workNumberMatch = task.name.match(/(\d{4})-?([^\s]+)/);
+        if (workNumberMatch) {
+          const [, frontNumber, backNumber] = workNumberMatch;
+          const workNumber = `${frontNumber}-${backNumber}`;
+          const result = extractWorkInfoFromTask(task, workNumber);
+          if (result) {
+            results.push({ ...result, status: 'aggregated' as const });
+          }
+        }
+      }
+    } else {
+      console.warn('JOOTO_FREEE_INVOICE_REGISTERED_LIST_ID environment variable is not set');
+    }
+
+    return results;
+  } catch (error) {
+    console.error('Get all aggregation tasks error:', error);
+    return [];
+  }
+}
+
+/**
  * 組織情報を取得する（デバッグ用）
  */
 export async function getJootoOrganization() {

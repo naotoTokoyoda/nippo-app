@@ -48,7 +48,7 @@ export interface WorkOrderDetail {
   customerName: string;
   projectName: string;
   term: string;
-  status: 'aggregating' | 'aggregated';
+  status: 'delivered' | 'aggregating' | 'aggregated';
   totalHours: number;
   activities: ActivitySummary[];
   expenses: ExpenseItem[];

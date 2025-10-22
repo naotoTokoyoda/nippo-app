@@ -1,11 +1,14 @@
+'use client';
+
 import { WorkOrderDetail } from '@/types/aggregation';
 
 interface AggregationHeaderProps {
   workOrder: WorkOrderDetail;
   formatHours: (hours: number) => string;
+  onStatusChange?: (newStatus: 'aggregating' | 'aggregated' | 'delivered') => Promise<void>;
 }
 
-export default function AggregationHeader({ workOrder, formatHours }: AggregationHeaderProps) {
+export default function AggregationHeader({ workOrder, formatHours, onStatusChange }: AggregationHeaderProps) {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -29,15 +32,20 @@ export default function AggregationHeader({ workOrder, formatHours }: Aggregatio
         <div>
           <label className="block text-sm font-medium text-gray-700">ステータス</label>
           <div className="flex items-center">
-            <span
-              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                workOrder.status === 'aggregating'
-                  ? 'bg-yellow-100 text-yellow-800'
-                  : 'bg-green-100 text-green-800'
-              }`}
+            <select
+              value={workOrder.status}
+              onChange={async (e) => {
+                const newStatus = e.target.value as 'aggregating' | 'aggregated' | 'delivered';
+                if (onStatusChange && newStatus !== workOrder.status) {
+                  await onStatusChange(newStatus);
+                }
+              }}
+              className="block w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             >
-              {workOrder.status === 'aggregating' ? '集計中' : '完了'}
-            </span>
+              <option value="delivered">納品済み</option>
+              <option value="aggregating">集計中</option>
+              <option value="aggregated">完了</option>
+            </select>
           </div>
         </div>
       </div>

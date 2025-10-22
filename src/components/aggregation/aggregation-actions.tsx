@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 interface AggregationActionsProps {
-  status: 'aggregating' | 'aggregated';
+  status: 'delivered' | 'aggregating' | 'aggregated';
   isEditing: boolean;
   isSaving: boolean;
   onEditStart: () => void;
@@ -21,7 +21,8 @@ export default function AggregationActions({
   onFinalize,
   backHref = '/aggregation',
 }: AggregationActionsProps) {
-  const canEdit = status === 'aggregating';
+  // すべてのステータスで編集可能に変更
+  const canEdit = true;
 
   return (
     <div className="flex flex-wrap gap-4 justify-between items-center">
@@ -75,15 +76,17 @@ export default function AggregationActions({
             )}
           </>
         )}
-        <button
-          onClick={onFinalize}
-          className="px-6 py-2.5 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg text-sm font-medium flex items-center"
-        >
-          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          完了
-        </button>
+        {status === 'aggregating' && (
+          <button
+            onClick={onFinalize}
+            className="px-6 py-2.5 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg text-sm font-medium flex items-center"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            完了
+          </button>
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import PageLayout from '@/components/PageLayout';
 import SaveConfirmModal from './SaveConfirmModal';
@@ -21,6 +22,7 @@ interface AggregationDetailProps {
 }
 
 export default function AggregationDetail({ workOrderId }: AggregationDetailProps) {
+  const router = useRouter();
   const { showToast } = useToast();
 
   // データ取得のカスタムフック
@@ -102,6 +104,51 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
     });
   }, [getAdjustmentsForAPI, getSanitizedExpenses, saveManager]);
 
+  const handleStatusChange = useCallback(async (newStatus: 'aggregating' | 'aggregated' | 'delivered') => {
+    try {
+      // 「完了」に変更する場合は確認ダイアログを表示
+      if (newStatus === 'aggregated') {
+        if (!confirm('集計を完了しますか？完了後は編集できなくなります。')) {
+          // キャンセルされた場合は元の値に戻す必要があるので、refetchして表示を更新
+          await refetch();
+          return;
+        }
+      }
+
+      const response = await fetch(`/api/aggregation/${workOrderId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: newStatus,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || 'ステータス変更に失敗しました';
+        const errorDetails = errorData.details ? `\n詳細: ${errorData.details}` : '';
+        throw new Error(`${errorMessage}${errorDetails}`);
+      }
+
+      // 完了に変更した場合は集計一覧にリダイレクト
+      if (newStatus === 'aggregated') {
+        showToast('集計が完了されました', 'success');
+        router.push('/aggregation');
+      } else {
+        showToast('ステータスを変更しました', 'success');
+        await refetch();
+      }
+    } catch (error) {
+      console.error('Status change error:', error);
+      const message = error instanceof Error ? error.message : 'ステータス変更に失敗しました';
+      showToast(message, 'error');
+      // エラーが発生した場合も表示を更新
+      await refetch();
+    }
+  }, [workOrderId, showToast, refetch, router]);
+
   if (!isAuthenticated || loading) {
     return (
       <PageLayout title="集計詳細">
@@ -129,7 +176,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
   return (
     <PageLayout title={"集計詳細"}>
       <div className="space-y-6">
-        <AggregationHeader workOrder={workOrder} formatHours={formatHours} />
+        <AggregationHeader workOrder={workOrder} formatHours={formatHours} onStatusChange={handleStatusChange} />
         <AggregationActions
           status={workOrder.status}
           isEditing={isEditing}

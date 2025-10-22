@@ -1,27 +1,28 @@
 /**
- * Jooto 納品済みタスク一覧取得エンドポイント
+ * Jooto 集計タスク一覧取得エンドポイント
  * GET /api/jooto/delivered-tasks
+ * 3つのリスト（納品済み、集計中、Freee納品書登録済み）すべてのタスクを取得
  */
 
 import { NextResponse } from 'next/server';
-import { getDeliveredTasks } from '@/lib/jooto-api';
+import { getAllAggregationTasks } from '@/lib/jooto-api';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { ListResponse, ApiErrorResponse } from '@/types/api';
 import { calculateWorkTime, formatUTCToJSTTime } from '@/utils/timeCalculation';
 
 /**
- * 納品済みタスク一覧を取得し、日報データと紐付けて集計情報を返す
+ * 集計タスク一覧を取得し、日報データと紐付けて集計情報を返す
  */
 export async function GET() {
   try {
 
-    // Jooto APIから納品済みタスクを取得
-    const deliveredTasks = await getDeliveredTasks();
+    // Jooto APIから3つのリストすべてのタスクを取得
+    const allTasks = await getAllAggregationTasks();
 
     // 各タスクの累計時間を計算
     const aggregationItems = await Promise.all(
-      deliveredTasks.map(async (task) => {
+      allTasks.map(async (task) => {
         // 工番で既存の日報データを検索
         const workOrders = await prisma.workOrder.findMany({
           where: {
@@ -66,7 +67,7 @@ export async function GET() {
           projectName: task.workName,
           totalHours: totalHours,
           lastUpdated: lastUpdated.getTime() > 0 ? lastUpdated.toISOString().split('T')[0] : null,
-          status: 'delivered' as const, // 納品済みステータス
+          status: task.status, // Jootoリストに応じたステータス
           term: null, // Jootoタスクからは期区分を取得しない
           taskId: task.taskId, // JootoタスクID
         };

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
-import { getDeliveredTasks, moveJootoTask } from '@/lib/jooto-api';
+import { getAllAggregationTasks, moveJootoTask } from '@/lib/jooto-api';
 import { determineActivity } from '@/lib/aggregation/activity-utils';
 import { 
   calculateActivitiesForWorkOrder,
@@ -93,19 +93,19 @@ export async function GET(
           }
 
           logger.info(`Attempting to fetch Jooto tasks for task ID: ${taskId}`);
-          const deliveredTasks = await getDeliveredTasks();
-          logger.info(`Found ${deliveredTasks.length} delivered tasks`);
+          const allTasks = await getAllAggregationTasks();
+          logger.info(`Found ${allTasks.length} tasks across all lists`);
           
           // デバッグ: 取得したタスクIDをログ出力
-          if (deliveredTasks.length > 0) {
-            const taskIds = deliveredTasks.slice(0, 5).map(t => t.taskId);
+          if (allTasks.length > 0) {
+            const taskIds = allTasks.slice(0, 5).map(t => t.taskId);
             logger.info(`Sample task IDs: ${taskIds.join(', ')}`);
           }
           
-          const jootoTask = deliveredTasks.find(task => {
+          const jootoTask = allTasks.find(task => {
             const match = task.taskId.toString() === taskId;
             if (match) {
-              logger.info(`Found matching task: ${task.taskId} === ${taskId}`);
+              logger.info(`Found matching task: ${task.taskId} === ${taskId} (status: ${task.status})`);
             }
             return match;
           });
@@ -114,14 +114,14 @@ export async function GET(
             logger.warn(`Jooto task not found for ID: ${taskId}`, {
               taskId,
               searchedId: taskId,
-              deliveredTaskCount: deliveredTasks.length,
-              availableTaskIds: deliveredTasks.map(t => t.taskId)
+              totalTaskCount: allTasks.length,
+              availableTaskIds: allTasks.map(t => t.taskId)
             });
             return Response.json(
               { 
                 error: `Jootoタスクが見つかりません（ID: ${taskId}）`,
-                details: '納品済みリストに該当するタスクがありません。タスクIDが正しいか、またはタスクが既に移動されていないか確認してください。',
-                availableTaskIds: deliveredTasks.slice(0, 10).map(t => t.taskId)
+                details: '納品済み・集計中・Freee納品書登録済みリストに該当するタスクがありません。タスクIDが正しいか確認してください。',
+                availableTaskIds: allTasks.slice(0, 10).map(t => t.taskId)
               },
               { status: 404 }
             );
@@ -177,14 +177,14 @@ export async function GET(
               });
             }
 
-            // 工番データを作成
+            // 工番データを作成（Jootoのステータスをそのまま使用）
             workOrder = await prisma.workOrder.create({
               data: {
                 frontNumber: jootoTask.workNumberFront,
                 backNumber: jootoTask.workNumberBack,
                 customerId: customer.id,
                 projectName: jootoTask.workName,
-                status: 'aggregating',
+                status: jootoTask.status,
               },
               include: {
                 customer: true,
@@ -206,31 +206,34 @@ export async function GET(
                 materials: true,
               },
             });
-          } else if (workOrder.status !== 'aggregating') {
-            // ステータスを集計中に更新
-            workOrder = await prisma.workOrder.update({
-              where: { id: workOrder.id },
-              data: { status: 'aggregating' },
-              include: {
-                customer: true,
-                reportItems: {
-                  include: {
-                    report: {
-                      include: {
-                        worker: true,
+          } else {
+            // 既存の工番データがある場合、Jootoの最新ステータスで同期
+            if (workOrder.status !== jootoTask.status) {
+              logger.info(`Syncing status from Jooto: ${workOrder.status} -> ${jootoTask.status}`);
+              workOrder = await prisma.workOrder.update({
+                where: { id: workOrder.id },
+                data: { status: jootoTask.status },
+                include: {
+                  customer: true,
+                  reportItems: {
+                    include: {
+                      report: {
+                        include: {
+                          worker: true,
+                        },
                       },
+                      machine: true,
                     },
-                    machine: true,
                   },
-                },
-                adjustments: {
-                  include: {
-                    user: true,
+                  adjustments: {
+                    include: {
+                      user: true,
+                    },
                   },
+                  materials: true,
                 },
-                materials: true,
-              },
-            });
+              });
+            }
           }
         } catch (jootoError) {
           const error = jootoError instanceof Error ? jootoError : new Error(String(jootoError));
@@ -371,8 +374,8 @@ export async function PATCH(
       if (!workOrder) {
         // データベースにない場合は、Jooto APIを試行
         try {
-          const deliveredTasks = await getDeliveredTasks();
-          const jootoTask = deliveredTasks.find(task => task.taskId.toString() === taskId);
+          const allTasks = await getAllAggregationTasks();
+          const jootoTask = allTasks.find(task => task.taskId.toString() === taskId);
           
           if (!jootoTask) {
             return Response.json(
@@ -704,16 +707,35 @@ export async function PATCH(
     });
 
     // Jootoタスクの移動（トランザクション外で実行）
-    if (validatedData.status === 'aggregated' && id.startsWith('jooto-')) {
+    if (validatedData.status && id.startsWith('jooto-')) {
       try {
         const taskId = id.replace('jooto-', '');
-        const aggregatingListId = process.env.JOOTO_AGGREGATING_LIST_ID;
+        const currentStatus = workOrder.status;
+        const newStatus = validatedData.status;
         
-        if (aggregatingListId) {
-          await moveJootoTask(taskId, aggregatingListId);
-          logger.info(`Moved Jooto task ${taskId} from 納品済み to 集計中`);
+        let targetListId: string | undefined;
+        let moveDescription: string = '';
+
+        // ステータス遷移に応じた移動先を決定
+        if (currentStatus === 'delivered' && newStatus === 'aggregating') {
+          // 納品済み → 集計中
+          targetListId = process.env.JOOTO_AGGREGATING_LIST_ID;
+          moveDescription = '納品済み → 集計中';
+        } else if (currentStatus === 'aggregating' && newStatus === 'aggregated') {
+          // 集計中 → 完了（Freee納品書登録済み）
+          targetListId = process.env.JOOTO_FREEE_INVOICE_REGISTERED_LIST_ID;
+          moveDescription = '集計中 → Freee納品書登録済み';
+        } else if (currentStatus === 'aggregated' && newStatus === 'aggregating') {
+          // 完了 → 集計中（差し戻し）
+          targetListId = process.env.JOOTO_AGGREGATING_LIST_ID;
+          moveDescription = 'Freee納品書登録済み → 集計中';
+        }
+        
+        if (targetListId) {
+          await moveJootoTask(taskId, targetListId);
+          logger.info(`Moved Jooto task ${taskId}: ${moveDescription}`);
         } else {
-          logger.warn('JOOTO_AGGREGATING_LIST_ID environment variable is not set');
+          logger.warn(`Target list ID not found for status change: ${currentStatus} → ${newStatus}`);
         }
       } catch (jootoError) {
         // Jootoの移動が失敗してもデータベースの更新は成功として扱う

@@ -53,7 +53,7 @@ model WorkOrder {
   customerId            String               @map("customer_id")
   // 集計機能用の追加項目
   term                  String?              @db.VarChar(50) // 期区分（59期/59期-JFE等）
-  status                String               @default("aggregating") @db.VarChar(20) // aggregating/aggregated
+  status                String               @default("aggregating") @db.VarChar(20) // delivered/aggregating/aggregated
   projectName           String?              @map("project_name") @db.VarChar(200) // 作業名称（案件名）
   handling              String?              @db.VarChar(100) // 扱い
   quantity              Int? // 数量

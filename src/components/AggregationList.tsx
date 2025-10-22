@@ -22,6 +22,7 @@ export default function AggregationList() {
   const [items, setItems] = useState<AggregationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [activeTab, setActiveTab] = useState<'delivered' | 'aggregating' | 'aggregated'>('aggregating');
   const router = useRouter();
 
   // APIからデータを取得
@@ -107,12 +108,66 @@ export default function AggregationList() {
     );
   }
 
+  // タブごとにアイテムをフィルタリング
+  const filteredItems = items.filter(item => item.status === activeTab);
+
   return (
     <PageLayout title="集計一覧">
       <div className="space-y-6">
+        {/* タブ */}
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('delivered')}
+              className={`${
+                activeTab === 'delivered'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            >
+              納品済み
+              <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
+                activeTab === 'delivered' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
+              }`}>
+                {items.filter(item => item.status === 'delivered').length}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab('aggregating')}
+              className={`${
+                activeTab === 'aggregating'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            >
+              集計中
+              <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
+                activeTab === 'aggregating' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
+              }`}>
+                {items.filter(item => item.status === 'aggregating').length}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab('aggregated')}
+              className={`${
+                activeTab === 'aggregated'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            >
+              Freee納品書登録済み
+              <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
+                activeTab === 'aggregated' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
+              }`}>
+                {items.filter(item => item.status === 'aggregated').length}
+              </span>
+            </button>
+          </nav>
+        </div>
+
         {/* ヘッダー */}
         <div className="text-sm text-gray-600">
-          {items.length}件の集計対象案件
+          {filteredItems.length}件の集計対象案件
         </div>
 
         {/* テーブル */}
@@ -142,7 +197,7 @@ export default function AggregationList() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {items.map((item) => (
+                {filteredItems.map((item) => (
                   <tr key={item.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {item.workNumber}
@@ -190,7 +245,7 @@ export default function AggregationList() {
             </table>
           </div>
           
-          {items.length === 0 && (
+          {filteredItems.length === 0 && (
             <div className="text-center py-12">
               <div className="text-gray-500">
                 表示できる集計対象案件がありません
