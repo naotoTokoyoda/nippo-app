@@ -110,10 +110,7 @@ export async function GET(request: NextRequest) {
         }),
         ...(workNumberBack && {
           workOrder: {
-            backNumber: {
-              contains: workNumberBack,
-              mode: 'insensitive',
-            },
+            backNumber: workNumberBack,
           },
         }),
         ...(machineType && {
@@ -143,10 +140,7 @@ export async function GET(request: NextRequest) {
         }),
         ...(workNumberBack && {
           workOrder: {
-            backNumber: {
-              contains: workNumberBack,
-              mode: 'insensitive',
-            },
+            backNumber: workNumberBack,
           },
         }),
         ...(machineType && {
