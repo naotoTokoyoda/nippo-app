@@ -93,7 +93,7 @@ async function calculateActivitySummary(
   const costRate = rate?.costRate || DEFAULT_RATE;
   const billRate = rate?.billRate || DEFAULT_RATE;
   const originalBillRate = originalRate?.billRate || DEFAULT_RATE;
-  const hours = Math.round(activityData.hours * 10) / 10;
+  const hours = activityData.hours;
   const costAmount = Math.round(hours * costRate);
   const billAmount = Math.round(hours * billRate);
   

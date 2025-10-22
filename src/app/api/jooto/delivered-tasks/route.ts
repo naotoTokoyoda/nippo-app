@@ -64,7 +64,7 @@ export async function GET() {
           workNumber: task.workNumber,
           customerName: task.customerName,
           projectName: task.workName,
-          totalHours: Math.round(totalHours * 10) / 10, // 小数点第1位まで
+          totalHours: totalHours,
           lastUpdated: lastUpdated.getTime() > 0 ? lastUpdated.toISOString().split('T')[0] : null,
           status: 'delivered' as const, // 納品済みステータス
           term: null, // Jootoタスクからは期区分を取得しない

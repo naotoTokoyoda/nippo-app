@@ -321,7 +321,7 @@ export async function GET(
       projectName: workOrder.projectName || workOrder.description || '未設定',
       term: workOrder.term,
       status: workOrder.status,
-      totalHours: Math.round(totalHours * 10) / 10,
+      totalHours: totalHours,
       activities,
       adjustments,
       expenses,

@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
         workNumber: `${workOrder.frontNumber}-${workOrder.backNumber}`,
         customerName: workOrder.customer.name,
         projectName: workOrder.projectName || workOrder.description || '未設定',
-        totalHours: Math.round(totalHours * 10) / 10, // 小数点第1位まで
+        totalHours: totalHours,
         lastUpdated: lastUpdated.toISOString().split('T')[0], // YYYY-MM-DD形式
         status: workOrder.status,
         term: workOrder.term,
