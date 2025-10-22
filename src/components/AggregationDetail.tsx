@@ -56,8 +56,8 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
     return `¥${amount.toLocaleString()}`;
   }, []);
   const formatHours = useCallback((hours: number | undefined | null) => {
-    if (hours === undefined || hours === null) return '0.0h';
-    return `${hours.toFixed(1)}h`;
+    if (hours === undefined || hours === null) return '0.00時間';
+    return `${hours.toFixed(2)}時間`;
   }, []);
 
   const handleEditStart = useCallback(() => {

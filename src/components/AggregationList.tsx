@@ -76,7 +76,7 @@ export default function AggregationList() {
   }, [fetchAggregationItems, isAuthenticated]);
 
   const formatHours = (hours: number) => {
-    return `${hours.toFixed(1)}h`;
+    return `${hours.toFixed(2)}時間`;
   };
 
   const getStatusBadge = (status: string) => {
