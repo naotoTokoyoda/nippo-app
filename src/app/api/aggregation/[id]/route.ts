@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
-import { getAllAggregationTasks, moveJootoTask } from '@/lib/jooto-api';
+import { moveJootoTask } from '@/lib/jooto-api';
 import { determineActivity } from '@/lib/aggregation/activity-utils';
 import { 
   calculateActivitiesForWorkOrder,
   calculateSummary 
 } from '@/lib/aggregation/calculation-service';
 import { updateAggregationSchema } from '@/lib/aggregation/schemas';
+import { getWorkOrder } from '@/lib/aggregation/work-order-service';
 import { z } from 'zod';
 
 /**
@@ -29,254 +30,22 @@ export async function GET(
   try {
     const { id } = await params;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let workOrder: any;
+    // 工番を取得（通常IDまたはJootoタスクID）
+    const result = await getWorkOrder(id, prisma);
 
-    // JootoタスクIDの場合の処理（フォールバック機能付き）
-    if (id.startsWith('jooto-')) {
-      const taskId = id.replace('jooto-', '');
-      logger.info(`Processing Jooto task ID: ${taskId}`);
-      
-      // まずデータベースから工番を検索（Jooto APIに依存しない）
-      logger.info(`Searching database for task ID: ${taskId}`);
-      workOrder = await prisma.workOrder.findFirst({
-        where: {
-          OR: [
-            { frontNumber: { contains: taskId } },
-            { backNumber: { contains: taskId } },
-          ]
+    // エラーチェック
+    if (result.error) {
+      return Response.json(
+        {
+          error: result.error,
+          details: result.details,
+          availableTaskIds: result.availableTaskIds,
         },
-        include: {
-          customer: true,
-          reportItems: {
-            include: {
-              report: {
-                include: {
-                  worker: true,
-                },
-              },
-              machine: true,
-            },
-          },
-          adjustments: {
-            include: {
-              user: true,
-            },
-          },
-          materials: true,
-        },
-      });
-
-      // データベースに工番データがある場合は、それを返す
-      if (workOrder) {
-        logger.info(`Found work order in database for Jooto task ID: ${taskId}`, {
-          workOrderId: workOrder.id,
-          workNumber: `${workOrder.frontNumber}-${workOrder.backNumber}`
-        });
-      } else {
-        // データベースにない場合は、Jooto APIを試行
-        try {
-          // 環境変数の確認
-          if (!process.env.JOOTO_API_KEY || !process.env.JOOTO_BOARD_ID || !process.env.JOOTO_DELIVERED_LIST_ID) {
-            logger.warn('Jooto API環境変数が未設定', {
-              hasApiKey: !!process.env.JOOTO_API_KEY,
-              hasBoardId: !!process.env.JOOTO_BOARD_ID,
-              hasDeliveredListId: !!process.env.JOOTO_DELIVERED_LIST_ID,
-            });
-            return Response.json(
-              { 
-                error: `工番が見つかりません（タスクID: ${taskId}）`,
-                details: 'データベースに工番が登録されていません。Jooto APIの設定も確認できません。'
-              },
-              { status: 404 }
-            );
-          }
-
-          logger.info(`Attempting to fetch Jooto tasks for task ID: ${taskId}`);
-          const allTasks = await getAllAggregationTasks();
-          logger.info(`Found ${allTasks.length} tasks across all lists`);
-          
-          // デバッグ: 取得したタスクIDをログ出力
-          if (allTasks.length > 0) {
-            const taskIds = allTasks.slice(0, 5).map(t => t.taskId);
-            logger.info(`Sample task IDs: ${taskIds.join(', ')}`);
-          }
-          
-          const jootoTask = allTasks.find(task => {
-            const match = task.taskId.toString() === taskId;
-            if (match) {
-              logger.info(`Found matching task: ${task.taskId} === ${taskId} (status: ${task.status})`);
-            }
-            return match;
-          });
-          
-          if (!jootoTask) {
-            logger.warn(`Jooto task not found for ID: ${taskId}`, {
-              taskId,
-              searchedId: taskId,
-              totalTaskCount: allTasks.length,
-              availableTaskIds: allTasks.map(t => t.taskId)
-            });
-            return Response.json(
-              { 
-                error: `Jootoタスクが見つかりません（ID: ${taskId}）`,
-                details: '納品済み・集計中・Freee納品書登録済みリストに該当するタスクがありません。タスクIDが正しいか確認してください。',
-                availableTaskIds: allTasks.slice(0, 10).map(t => t.taskId)
-              },
-              { status: 404 }
-            );
-          }
-          
-          logger.info(`Found Jooto task: ${jootoTask.workNumberFront}-${jootoTask.workNumberBack}`);
-
-          // 既存の工番データを確認
-          workOrder = await prisma.workOrder.findUnique({
-            where: {
-              frontNumber_backNumber: {
-                frontNumber: jootoTask.workNumberFront,
-                backNumber: jootoTask.workNumberBack,
-              },
-            },
-            include: {
-              customer: true,
-              reportItems: {
-                include: {
-                  report: {
-                    include: {
-                      worker: true,
-                    },
-                  },
-                  machine: true,
-                },
-              },
-              adjustments: {
-                include: {
-                  user: true,
-                },
-              },
-              materials: true,
-            },
-          });
-
-          // 工番データが存在しない場合は作成
-          if (!workOrder) {
-            // 顧客を検索または作成
-            let customer = await prisma.customer.findFirst({
-              where: { name: jootoTask.customerName },
-            });
-
-            if (!customer) {
-              // 顧客コードを生成（顧客名の最初の3文字 + ランダム数字）
-              const customerCode = jootoTask.customerName.slice(0, 3) + Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-              
-              customer = await prisma.customer.create({
-                data: { 
-                  name: jootoTask.customerName,
-                  code: customerCode,
-                },
-              });
-            }
-
-            // 工番データを作成（Jootoのステータスをそのまま使用）
-            workOrder = await prisma.workOrder.create({
-              data: {
-                frontNumber: jootoTask.workNumberFront,
-                backNumber: jootoTask.workNumberBack,
-                customerId: customer.id,
-                projectName: jootoTask.workName,
-                status: jootoTask.status,
-              },
-              include: {
-                customer: true,
-                reportItems: {
-                  include: {
-                    report: {
-                      include: {
-                        worker: true,
-                      },
-                    },
-                    machine: true,
-                  },
-                },
-                adjustments: {
-                  include: {
-                    user: true,
-                  },
-                },
-                materials: true,
-              },
-            });
-          } else {
-            // 既存の工番データがある場合、Jootoの最新ステータスで同期
-            if (workOrder.status !== jootoTask.status) {
-              logger.info(`Syncing status from Jooto: ${workOrder.status} -> ${jootoTask.status}`);
-              workOrder = await prisma.workOrder.update({
-                where: { id: workOrder.id },
-                data: { status: jootoTask.status },
-                include: {
-                  customer: true,
-                  reportItems: {
-                    include: {
-                      report: {
-                        include: {
-                          worker: true,
-                        },
-                      },
-                      machine: true,
-                    },
-                  },
-                  adjustments: {
-                    include: {
-                      user: true,
-                    },
-                  },
-                  materials: true,
-                },
-              });
-            }
-          }
-        } catch (jootoError) {
-          const error = jootoError instanceof Error ? jootoError : new Error(String(jootoError));
-          logger.error(
-            `Jooto API取得エラー（データベース検索も失敗） - taskId: ${taskId}`, 
-            error
-          );
-          return Response.json(
-            { 
-              error: `工番が見つかりません。Jooto APIとデータベースの両方で見つかりませんでした。`,
-              details: error.message,
-              taskId: taskId
-            },
-            { status: 404 }
-          );
-        }
-      }
-    } else {
-      // 通常の工番IDの場合
-      workOrder = await prisma.workOrder.findUnique({
-        where: { id },
-        include: {
-          customer: true,
-          reportItems: {
-            include: {
-              report: {
-                include: {
-                  worker: true,
-                },
-              },
-              machine: true,
-            },
-          },
-          adjustments: {
-            include: {
-              user: true,
-            },
-          },
-          materials: true,
-        },
-      });
+        { status: result.status || 404 }
+      );
     }
 
+    const workOrder = result.workOrder;
     if (!workOrder) {
       return Response.json(
         { error: '工番が見つかりません' },
@@ -351,85 +120,21 @@ export async function PATCH(
 
     const validatedData = updateAggregationSchema.parse(body);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let workOrder: any;
+    // 工番を取得（簡易版 - customerのみinclude）
+    const result = await getWorkOrder(id, prisma);
 
-    // JootoタスクIDの場合の処理
-    if (id.startsWith('jooto-')) {
-      const taskId = id.replace('jooto-', '');
-      
-      // まずデータベースから工番を検索
-      workOrder = await prisma.workOrder.findFirst({
-        where: {
-          OR: [
-            { frontNumber: { contains: taskId } },
-            { backNumber: { contains: taskId } },
-          ]
+    // エラーチェック
+    if (result.error || !result.workOrder) {
+      return Response.json(
+        {
+          error: result.error || '工番が見つかりません',
+          details: result.details,
         },
-        include: {
-          customer: true,
-        },
-      });
-
-      if (!workOrder) {
-        // データベースにない場合は、Jooto APIを試行
-        try {
-          const allTasks = await getAllAggregationTasks();
-          const jootoTask = allTasks.find(task => task.taskId.toString() === taskId);
-          
-          if (!jootoTask) {
-            return Response.json(
-              { error: 'Jootoタスクが見つかりません' },
-              { status: 404 }
-            );
-          }
-
-          // 既存の工番データを確認
-          workOrder = await prisma.workOrder.findUnique({
-            where: {
-              frontNumber_backNumber: {
-                frontNumber: jootoTask.workNumberFront,
-                backNumber: jootoTask.workNumberBack,
-              },
-            },
-            include: {
-              customer: true,
-            },
-          });
-
-          if (!workOrder) {
-            return Response.json(
-              { error: '工番が見つかりません' },
-              { status: 404 }
-            );
-          }
-        } catch (jootoError) {
-          const errorMessage = jootoError instanceof Error ? jootoError.message : 'Unknown error';
-          logger.warn('Jooto API取得エラー', {
-            error: errorMessage
-          });
-          return Response.json(
-            { error: `Jooto APIが利用できません: ${errorMessage}` },
-            { status: 500 }
-          );
-        }
-      }
-    } else {
-      // 通常の工番IDの場合
-      workOrder = await prisma.workOrder.findUnique({
-        where: { id },
-        include: {
-          customer: true,
-        },
-      });
-
-      if (!workOrder) {
-        return NextResponse.json(
-          { error: '工番が見つかりません' },
-          { status: 404 }
-        );
-      }
+        { status: result.status || 404 }
+      );
     }
+
+    const workOrder = result.workOrder;
 
     // ステータスのみの変更かチェック（軽量化のため）
     const isOnlyStatusChange = validatedData.status && 
