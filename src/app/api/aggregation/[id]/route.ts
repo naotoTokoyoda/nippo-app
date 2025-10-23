@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
-import { moveJootoTask } from '@/lib/jooto-api';
 import { calculateActivitiesForWorkOrder } from '@/lib/aggregation/calculation-service';
 import { updateAggregationSchema } from '@/lib/aggregation/schemas';
 import { getWorkOrder } from '@/lib/aggregation/work-order-service';
 import { processRateAdjustments } from '@/lib/aggregation/adjustment-service';
 import { replaceExpenses } from '@/lib/aggregation/expense-service';
 import { createAggregationSummary } from '@/lib/aggregation/summary-service';
+import { updateWorkOrderStatus, updateStatusOnly, moveJootoTaskByStatus } from '@/lib/aggregation/status-management-service';
 import { z } from 'zod';
 
 // 集計詳細を取得
@@ -129,13 +129,9 @@ export async function PATCH(
       !validatedData.billRateAdjustments && 
       !validatedData.expenses;
 
-    if (isOnlyStatusChange) {
+    if (isOnlyStatusChange && validatedData.status) {
       // 軽量：ステータスのみ更新（Prisma API呼び出しを最小化）
-      await prisma.workOrder.update({
-        where: { id: workOrder.id },
-        data: { status: validatedData.status },
-      });
-      logger.info(`Status only update: ${workOrder.status} -> ${validatedData.status}`);
+      await updateStatusOnly(workOrder.id, workOrder.status, validatedData.status, prisma);
     } else {
       // 通常：トランザクション内で更新処理（タイムアウトを15秒に延長）
       await prisma.$transaction(async (tx) => {
@@ -156,10 +152,7 @@ export async function PATCH(
 
       // ステータス更新
       if (validatedData.status) {
-        await tx.workOrder.update({
-          where: { id: workOrder.id },
-          data: { status: validatedData.status },
-        });
+        await updateWorkOrderStatus(workOrder.id, validatedData.status, tx);
       }
       }, {
         timeout: 15000, // タイムアウトを15秒に延長
@@ -167,48 +160,8 @@ export async function PATCH(
     }
 
     // Jootoタスクの移動（トランザクション外で実行）
-    if (validatedData.status && id.startsWith('jooto-')) {
-      try {
-        const taskId = id.replace('jooto-', '');
-        const currentStatus = workOrder.status;
-        const newStatus = validatedData.status;
-        
-        let targetListId: string | undefined;
-        let moveDescription: string = '';
-
-        // ステータス遷移に応じた移動先を決定
-        if (currentStatus === 'delivered' && newStatus === 'aggregating') {
-          // 納品済み → 集計中
-          targetListId = process.env.JOOTO_AGGREGATING_LIST_ID;
-          moveDescription = '納品済み → 集計中';
-        } else if (currentStatus === 'aggregating' && newStatus === 'delivered') {
-          // 集計中 → 納品済み（差し戻し）
-          targetListId = process.env.JOOTO_DELIVERED_LIST_ID;
-          moveDescription = '集計中 → 納品済み';
-        } else if (currentStatus === 'aggregating' && newStatus === 'aggregated') {
-          // 集計中 → 完了（Freee納品書登録済み）
-          targetListId = process.env.JOOTO_FREEE_INVOICE_REGISTERED_LIST_ID;
-          moveDescription = '集計中 → Freee納品書登録済み';
-        } else if (currentStatus === 'aggregated' && newStatus === 'aggregating') {
-          // 完了 → 集計中（差し戻し）
-          targetListId = process.env.JOOTO_AGGREGATING_LIST_ID;
-          moveDescription = 'Freee納品書登録済み → 集計中';
-        } else if (currentStatus === 'aggregated' && newStatus === 'delivered') {
-          // 完了 → 納品済み（直接差し戻し）
-          targetListId = process.env.JOOTO_DELIVERED_LIST_ID;
-          moveDescription = 'Freee納品書登録済み → 納品済み';
-        }
-        
-        if (targetListId) {
-          await moveJootoTask(taskId, targetListId);
-          logger.info(`Moved Jooto task ${taskId}: ${moveDescription}`);
-        } else {
-          logger.warn(`Target list ID not found for status change: ${currentStatus} → ${newStatus}`);
-        }
-      } catch (jootoError) {
-        // Jootoの移動が失敗してもデータベースの更新は成功として扱う
-        logger.error('Jooto task move failed, but database update succeeded', jootoError instanceof Error ? jootoError : new Error('Unknown error'));
-      }
+    if (validatedData.status) {
+      await moveJootoTaskByStatus(id, workOrder.status, validatedData.status);
     }
 
     return NextResponse.json({ success: true });
