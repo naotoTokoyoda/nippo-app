@@ -2,25 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { moveJootoTask } from '@/lib/jooto-api';
-import { determineActivity } from '@/lib/aggregation/activity-utils';
 import { 
   calculateActivitiesForWorkOrder,
   calculateSummary 
 } from '@/lib/aggregation/calculation-service';
 import { updateAggregationSchema } from '@/lib/aggregation/schemas';
 import { getWorkOrder } from '@/lib/aggregation/work-order-service';
+import { processRateAdjustments } from '@/lib/aggregation/adjustment-service';
 import { z } from 'zod';
-
-/**
- * 通貨フォーマット関数
- */
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('ja-JP', {
-    style: 'currency',
-    currency: 'JPY',
-    minimumFractionDigits: 0,
-  }).format(amount);
-}
 
 // 集計詳細を取得
 export async function GET(
@@ -153,122 +142,7 @@ export async function PATCH(
       await prisma.$transaction(async (tx) => {
       // 単価調整がある場合
       if (validatedData.billRateAdjustments) {
-        for (const [activity, adjustment] of Object.entries(validatedData.billRateAdjustments)) {
-          // 既存の単価を取得
-          const currentRate = await tx.rate.findFirst({
-            where: {
-              activity,
-              effectiveFrom: { lte: new Date() },
-              OR: [
-                { effectiveTo: null },
-                { effectiveTo: { gte: new Date() } },
-              ],
-            },
-            orderBy: { effectiveFrom: 'desc' },
-          });
-
-          // 工番ごとのActivityメモを保存/更新
-          if (adjustment.memo !== undefined) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            await (tx as any).workOrderActivityMemo.upsert({
-              where: {
-                workOrderId_activity: {
-                  workOrderId: workOrder.id,
-                  activity,
-                },
-              },
-              update: {
-                memo: adjustment.memo || null,
-              },
-              create: {
-                workOrderId: workOrder.id,
-                activity,
-                memo: adjustment.memo || null,
-              },
-            });
-          }
-
-          if (currentRate && currentRate.billRate !== adjustment.billRate) {
-            // 現在の単価の有効期限を今日までに設定
-            await tx.rate.update({
-              where: { id: currentRate.id },
-              data: { effectiveTo: new Date() },
-            });
-
-            // 新しい単価を作成
-            await tx.rate.create({
-              data: {
-                activity,
-                effectiveFrom: new Date(),
-                effectiveTo: null,
-                costRate: currentRate.costRate,
-                billRate: adjustment.billRate,
-                // memo: currentRate.memo, // Rateテーブルのメモは変更しない
-              },
-            });
-
-            // 金額差を計算
-            const oldBillRate = currentRate.billRate;
-            const newBillRate = adjustment.billRate;
-            const rateDifference = newBillRate - oldBillRate;
-            
-            // 単価が変更された場合のみ調整履歴を記録
-            if (rateDifference !== 0) {
-              // 実在するユーザーIDを取得（暫定的に最初のユーザーを使用）
-              const firstUser = await tx.user.findFirst();
-              if (firstUser) {
-                // この工番のこのactivityの総時間を取得
-                const reportItems = await tx.reportItem.findMany({
-                  where: {
-                    workOrderId: workOrder.id,
-                  },
-                  include: {
-                    report: {
-                      include: {
-                        worker: true,
-                      },
-                    },
-                    machine: true,
-                  },
-                });
-                
-                // activityが一致するreportItemsのみを集計
-                const filteredItems = reportItems.filter(item => determineActivity(item) === activity);
-                const totalHours = filteredItems.reduce((sum, item) => {
-                  const hours = (item.endTime.getTime() - item.startTime.getTime()) / (1000 * 60 * 60);
-                  return sum + hours;
-                }, 0);
-                const totalAdjustment = Math.round(totalHours * rateDifference);
-
-                await tx.adjustment.create({
-                  data: {
-                    workOrderId: workOrder.id,
-                    type: 'rate_adjustment',
-                    amount: totalAdjustment,
-                    reason: `${activity}単価調整 (${formatCurrency(oldBillRate)} → ${formatCurrency(newBillRate)})`,
-                    memo: adjustment.memo || null, // 備考は任意（空の場合はnull）
-                    createdBy: firstUser.id,
-                  },
-                });
-              }
-          } else if (adjustment.memo !== undefined) {
-            // メモのみが変更された場合の調整履歴を記録
-            const firstUser = await tx.user.findFirst();
-            if (firstUser) {
-              await tx.adjustment.create({
-                data: {
-                  workOrderId: workOrder.id,
-                  type: 'memo_update',
-                  amount: 0,
-                  reason: `${activity}メモ更新`,
-                  memo: adjustment.memo || null,
-                  createdBy: firstUser.id,
-                },
-              });
-            }
-          }
-          }
-        }
+        await processRateAdjustments(workOrder.id, validatedData.billRateAdjustments, tx);
       }
 
       // 経費更新がある場合
