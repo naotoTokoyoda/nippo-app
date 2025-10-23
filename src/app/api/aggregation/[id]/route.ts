@@ -86,7 +86,7 @@ export async function GET(
     // 総時間を計算
     const totalHours = activities.reduce((sum, activity) => sum + activity.hours, 0);
 
-    const result = {
+    const responseData = {
       id: workOrder.id,
       workNumber: `${workOrder.frontNumber}-${workOrder.backNumber}`,
       customerName: workOrder.customer.name,
@@ -99,7 +99,7 @@ export async function GET(
       expenses,
     };
 
-    return NextResponse.json(result);
+    return NextResponse.json(responseData);
 
   } catch (error) {
     logger.apiError('/api/aggregation/[id]', error instanceof Error ? error : new Error('Unknown error'));
