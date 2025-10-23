@@ -431,16 +431,7 @@ export async function PATCH(
       }
     }
 
-    // 集計済みの場合は編集を禁止
-    if (workOrder.status === 'aggregated') {
-      return NextResponse.json(
-        { error: '集計済みの工番は編集できません' },
-        { status: 400 }
-      );
-    }
-
-
-    // トランザクション内で更新処理
+    // トランザクション内で更新処理（タイムアウトを15秒に延長）
     await prisma.$transaction(async (tx) => {
       // 単価調整がある場合
       if (validatedData.billRateAdjustments) {
@@ -704,6 +695,8 @@ export async function PATCH(
           data: { status: validatedData.status },
         });
       }
+    }, {
+      timeout: 15000, // タイムアウトを15秒に延長
     });
 
     // Jootoタスクの移動（トランザクション外で実行）
@@ -721,6 +714,10 @@ export async function PATCH(
           // 納品済み → 集計中
           targetListId = process.env.JOOTO_AGGREGATING_LIST_ID;
           moveDescription = '納品済み → 集計中';
+        } else if (currentStatus === 'aggregating' && newStatus === 'delivered') {
+          // 集計中 → 納品済み（差し戻し）
+          targetListId = process.env.JOOTO_DELIVERED_LIST_ID;
+          moveDescription = '集計中 → 納品済み';
         } else if (currentStatus === 'aggregating' && newStatus === 'aggregated') {
           // 集計中 → 完了（Freee納品書登録済み）
           targetListId = process.env.JOOTO_FREEE_INVOICE_REGISTERED_LIST_ID;
@@ -729,6 +726,10 @@ export async function PATCH(
           // 完了 → 集計中（差し戻し）
           targetListId = process.env.JOOTO_AGGREGATING_LIST_ID;
           moveDescription = 'Freee納品書登録済み → 集計中';
+        } else if (currentStatus === 'aggregated' && newStatus === 'delivered') {
+          // 完了 → 納品済み（直接差し戻し）
+          targetListId = process.env.JOOTO_DELIVERED_LIST_ID;
+          moveDescription = 'Freee納品書登録済み → 納品済み';
         }
         
         if (targetListId) {

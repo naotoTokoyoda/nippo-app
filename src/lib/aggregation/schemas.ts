@@ -30,7 +30,7 @@ export const updateAggregationSchema = z.object({
   ).optional(),
   
   // ステータス
-  status: z.enum(['aggregating', 'aggregated']).optional(),
+  status: z.enum(['delivered', 'aggregating', 'aggregated']).optional(),
 });
 
 /**
