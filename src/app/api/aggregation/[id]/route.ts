@@ -2,13 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { moveJootoTask } from '@/lib/jooto-api';
-import { 
-  calculateActivitiesForWorkOrder,
-  calculateSummary 
-} from '@/lib/aggregation/calculation-service';
+import { calculateActivitiesForWorkOrder } from '@/lib/aggregation/calculation-service';
 import { updateAggregationSchema } from '@/lib/aggregation/schemas';
 import { getWorkOrder } from '@/lib/aggregation/work-order-service';
 import { processRateAdjustments } from '@/lib/aggregation/adjustment-service';
+import { replaceExpenses } from '@/lib/aggregation/expense-service';
+import { createAggregationSummary } from '@/lib/aggregation/summary-service';
 import { z } from 'zod';
 
 // 集計詳細を取得
@@ -147,137 +146,12 @@ export async function PATCH(
 
       // 経費更新がある場合
       if (validatedData.expenses) {
-        // 既存の経費をすべて削除
-        await tx.material.deleteMany({
-          where: { workOrderId: workOrder.id },
-        });
-
-        // 新しい経費を作成
-        for (const expense of validatedData.expenses) {
-          const category = expense.category.trim();
-          if (!category) {
-            continue;
-          }
-
-          const safeCostUnitPrice = Number.isFinite(expense.costUnitPrice) ? Math.max(0, expense.costUnitPrice) : 0;
-          const safeCostQuantity = Number.isFinite(expense.costQuantity) ? Math.max(1, expense.costQuantity) : 1;
-          const computedCostTotal = safeCostUnitPrice * safeCostQuantity;
-          const costTotal = Number.isFinite(expense.costTotal) && expense.costTotal > 0 ? expense.costTotal : computedCostTotal;
-
-          const shouldAutoMarkup = ['materials', 'outsourcing', 'shipping'].includes(category);
-
-          let billQuantity = Number.isFinite(expense.billQuantity) && (expense.billQuantity ?? 0) > 0
-            ? Number(expense.billQuantity)
-            : safeCostQuantity;
-
-          if (billQuantity <= 0) {
-            billQuantity = safeCostQuantity;
-          }
-
-          let billTotal: number;
-          if (typeof expense.billTotal === 'number' && expense.billTotal >= 0) {
-            billTotal = expense.billTotal;
-          } else if (shouldAutoMarkup) {
-            billTotal = Math.ceil(costTotal * 1.2);
-          } else {
-            const fallbackUnitPrice = Number.isFinite(expense.billUnitPrice ?? 0) ? Math.max(0, expense.billUnitPrice ?? 0) : 0;
-            billTotal = fallbackUnitPrice * billQuantity;
-          }
-
-          const billUnitPrice = billQuantity > 0 ? Math.ceil(billTotal / billQuantity) : billTotal;
-
-          await tx.material.create({
-            data: {
-              workOrderId: workOrder.id,
-              category,
-              costUnitPrice: safeCostUnitPrice,
-              costQuantity: safeCostQuantity,
-              costTotal,
-              billUnitPrice,
-              billQuantity,
-              billTotal,
-              fileEstimate: typeof expense.fileEstimate === 'number' ? expense.fileEstimate : null,
-              memo: expense.memo || null,
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } as any,
-          });
-        }
+        await replaceExpenses(workOrder.id, validatedData.expenses, tx);
       }
 
       // 集計完了時にAggregationSummaryを作成
       if (validatedData.status === 'aggregated') {
-        // 現在の集計結果を計算
-        const currentActivities = await calculateActivitiesForWorkOrder(workOrder.id, tx);
-        const currentExpenses = await tx.material.findMany({
-          where: { workOrderId: workOrder.id },
-        });
-
-        // 合計値を計算
-        const summary = calculateSummary(currentActivities, currentExpenses);
-        const { totalHours, costTotal, billTotal, expenseBillTotal, adjustmentTotal, finalAmount } = summary;
-
-        // Activity別詳細をJSON形式で準備
-        const activityBreakdown = currentActivities.map(activity => ({
-          activity: activity.activity,
-          activityName: activity.activityName,
-          hours: activity.hours,
-          costRate: activity.costRate,
-          billRate: activity.billRate,
-          costAmount: activity.costAmount,
-          billAmount: activity.billAmount,
-          adjustment: activity.adjustment,
-        }));
-
-        // 経費詳細をJSON形式で準備
-        const materialBreakdown = currentExpenses.map(expense => ({
-          category: expense.category,
-          costUnitPrice: expense.costUnitPrice,
-          costQuantity: expense.costQuantity,
-          costTotal: expense.costTotal,
-          billUnitPrice: expense.billUnitPrice,
-          billQuantity: expense.billQuantity,
-          billTotal: expense.billTotal,
-          fileEstimate: expense.fileEstimate,
-        }));
-
-        // AggregationSummaryレコードを作成
-        // 実際のユーザーIDを取得（存在しない場合はシステムユーザーを作成）
-        let systemUserId: string;
-        const existingUser = await tx.user.findFirst({
-          where: { name: 'システム' }
-        });
-        
-        if (existingUser) {
-          systemUserId = existingUser.id;
-        } else {
-          // システムユーザーを作成
-          const systemUser = await tx.user.create({
-            data: {
-              name: 'システム',
-            },
-          });
-          systemUserId = systemUser.id;
-        }
-
-        await tx.aggregationSummary.create({
-          data: {
-            workOrderId: workOrder.id,
-            workNumber: `${workOrder.frontNumber}-${workOrder.backNumber}`,
-            customerName: workOrder.customer.name,
-            projectName: workOrder.projectName || workOrder.description || '未設定',
-            totalHours: totalHours,
-            costTotal: costTotal,
-            billTotal: billTotal,
-            materialTotal: expenseBillTotal,
-            adjustmentTotal: adjustmentTotal,
-            finalAmount: finalAmount,
-            activityBreakdown: activityBreakdown,
-            materialBreakdown: materialBreakdown,
-            aggregatedAt: new Date(),
-            aggregatedBy: systemUserId,
-            memo: '集計完了',
-          },
-        });
+        await createAggregationSummary(workOrder, tx);
       }
 
       // ステータス更新
