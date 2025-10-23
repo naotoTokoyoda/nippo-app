@@ -39,6 +39,17 @@ export async function GET() {
           },
         });
 
+        // Jootoのステータスと同期（集計一覧でも同期を保つ）
+        for (const workOrder of workOrders) {
+          if (workOrder.status !== task.status) {
+            logger.info(`Syncing status in list: ${workOrder.frontNumber}-${workOrder.backNumber}: ${workOrder.status} -> ${task.status}`);
+            await prisma.workOrder.update({
+              where: { id: workOrder.id },
+              data: { status: task.status },
+            });
+          }
+        }
+
         // 累計時間を計算
         let totalHours = 0;
         let lastUpdated = new Date(0); // デフォルトは1970年
