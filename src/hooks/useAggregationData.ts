@@ -74,11 +74,24 @@ export function useAggregationData(workOrderId: string) {
     }
   }, [fetchWorkOrderDetail, isAuthenticated]);
 
+  /**
+   * ステータスのみをローカルで更新（軽量化のため、API呼び出しなし）
+   */
+  const updateStatus = useCallback((newStatus: 'delivered' | 'aggregating' | 'aggregated') => {
+    if (workOrder) {
+      setWorkOrder({
+        ...workOrder,
+        status: newStatus,
+      });
+    }
+  }, [workOrder]);
+
   return {
     workOrder,
     loading,
     isAuthenticated,
     refetch: fetchWorkOrderDetail,
+    updateStatus,
   };
 }
 

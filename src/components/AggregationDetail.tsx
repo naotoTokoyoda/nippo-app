@@ -26,7 +26,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
   const { showToast } = useToast();
 
   // データ取得のカスタムフック
-  const { workOrder, loading, isAuthenticated, refetch } = useAggregationData(workOrderId);
+  const { workOrder, loading, isAuthenticated, refetch, updateStatus } = useAggregationData(workOrderId);
 
   // Zustandストアから状態とアクションを取得
   const isEditing = useAggregationStore((state) => state.isEditing);
@@ -137,17 +137,18 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
         showToast('集計が完了されました', 'success');
         router.push('/aggregation');
       } else {
+        // 軽量化：ローカルステートのみ更新（API呼び出しなし）
         showToast('ステータスを変更しました', 'success');
-        await refetch();
+        updateStatus(newStatus);
       }
     } catch (error) {
       console.error('Status change error:', error);
       const message = error instanceof Error ? error.message : 'ステータス変更に失敗しました';
       showToast(message, 'error');
-      // エラーが発生した場合も表示を更新
+      // エラーが発生した場合はDBから正しい状態を取得
       await refetch();
     }
-  }, [workOrderId, showToast, refetch, router]);
+  }, [workOrderId, showToast, refetch, router, updateStatus]);
 
   if (!isAuthenticated || loading) {
     return (

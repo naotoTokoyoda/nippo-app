@@ -431,8 +431,21 @@ export async function PATCH(
       }
     }
 
-    // トランザクション内で更新処理（タイムアウトを15秒に延長）
-    await prisma.$transaction(async (tx) => {
+    // ステータスのみの変更かチェック（軽量化のため）
+    const isOnlyStatusChange = validatedData.status && 
+      !validatedData.billRateAdjustments && 
+      !validatedData.expenses;
+
+    if (isOnlyStatusChange) {
+      // 軽量：ステータスのみ更新（Prisma API呼び出しを最小化）
+      await prisma.workOrder.update({
+        where: { id: workOrder.id },
+        data: { status: validatedData.status },
+      });
+      logger.info(`Status only update: ${workOrder.status} -> ${validatedData.status}`);
+    } else {
+      // 通常：トランザクション内で更新処理（タイムアウトを15秒に延長）
+      await prisma.$transaction(async (tx) => {
       // 単価調整がある場合
       if (validatedData.billRateAdjustments) {
         for (const [activity, adjustment] of Object.entries(validatedData.billRateAdjustments)) {
@@ -695,9 +708,10 @@ export async function PATCH(
           data: { status: validatedData.status },
         });
       }
-    }, {
-      timeout: 15000, // タイムアウトを15秒に延長
-    });
+      }, {
+        timeout: 15000, // タイムアウトを15秒に延長
+      });
+    }
 
     // Jootoタスクの移動（トランザクション外で実行）
     if (validatedData.status && id.startsWith('jooto-')) {
