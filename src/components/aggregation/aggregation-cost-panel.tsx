@@ -30,6 +30,13 @@ export default function AggregationCostPanel({
   const changeCostFieldAt = useAggregationStore((state) => state.changeCostFieldAt);
   const editRate = useAggregationStore((state) => state.editRate);
 
+  // 負の数の入力を防ぐハンドラー
+  const preventNegativeInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+      e.preventDefault();
+    }
+  };
+
   // 表示用データを取得
   const activities = getActivitiesForDisplay();
   const expenses = isEditing ? editedExpenses : (workOrder?.expenses || []);

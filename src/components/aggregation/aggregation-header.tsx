@@ -15,7 +15,6 @@ export default function AggregationHeader({ workOrder, formatHours, onStatusChan
         <div>
           <label className="block text-sm font-medium text-gray-700">工番</label>
           <div className="text-lg font-semibold">{workOrder.workNumber}</div>
-          <div className="text-sm text-gray-700">{workOrder.term}</div>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700">顧客</label>

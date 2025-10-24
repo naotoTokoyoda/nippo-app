@@ -32,6 +32,13 @@ export default function AggregationBillingPanel({
   const setFinalDecisionAmount = useAggregationStore((state) => state.setFinalDecisionAmount);
   const editRate = useAggregationStore((state) => state.editRate);
 
+  // 負の数の入力を防ぐハンドラー
+  const preventNegativeInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+      e.preventDefault();
+    }
+  };
+
   // 表示用データを取得
   const activities = getActivitiesForDisplay();
   const expenses = isEditing ? editedExpenses : (workOrder?.expenses || []);
@@ -299,19 +306,20 @@ export default function AggregationBillingPanel({
           
           {/* 見積もり金額 */}
           <div className="border-t border-blue-200 pt-2 flex justify-between items-center">
-            <span className="text-sm font-medium text-gray-900">見積もり金額</span>
+            <span className="font-semibold text-gray-900">見積もり金額</span>
             {isEditing ? (
               <input
                 type="number"
                 value={editedEstimateAmount}
                 onChange={(e) => setEstimateAmount(e.target.value)}
+                onKeyDown={preventNegativeInput}
                 placeholder="未入力"
-                className="w-40 px-3 py-1.5 border border-gray-300 rounded text-right text-sm"
+                className="w-40 px-3 py-1.5 border border-gray-300 rounded text-right"
                 min={0}
                 step={1000}
               />
             ) : (
-              <span className="text-sm font-medium">
+              <span className="text-lg font-bold text-gray-900">
                 {workOrder?.estimateAmount != null ? `¥${formatCurrency(workOrder.estimateAmount)}` : '—'}
               </span>
             )}
@@ -320,19 +328,20 @@ export default function AggregationBillingPanel({
           {/* 最終決定金額 */}
           <div className="bg-red-50 -mx-4 -mb-4 mt-2 p-4 rounded-b-lg">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-bold text-red-900">最終決定金額</span>
+              <span className="font-semibold text-red-900">最終決定金額</span>
               {isEditing ? (
                 <input
                   type="number"
                   value={editedFinalDecisionAmount}
                   onChange={(e) => setFinalDecisionAmount(e.target.value)}
+                  onKeyDown={preventNegativeInput}
                   placeholder="未入力"
-                  className="w-40 px-3 py-1.5 border border-red-300 rounded text-right text-sm bg-white"
+                  className="w-40 px-3 py-1.5 border border-red-300 rounded text-right bg-white"
                   min={0}
                   step={1000}
                 />
               ) : (
-                <span className="text-sm font-bold text-red-900">
+                <span className="text-lg font-bold text-red-900">
                   {workOrder?.finalDecisionAmount != null ? `¥${formatCurrency(workOrder.finalDecisionAmount)}` : '—'}
                 </span>
               )}
