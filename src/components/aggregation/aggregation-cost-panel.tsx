@@ -28,7 +28,6 @@ export default function AggregationCostPanel({
   const removeExpense = useAggregationStore((state) => state.removeExpense);
   const changeCategoryAt = useAggregationStore((state) => state.changeCategoryAt);
   const changeCostFieldAt = useAggregationStore((state) => state.changeCostFieldAt);
-  const changeFileEstimateAt = useAggregationStore((state) => state.changeFileEstimateAt);
   const editRate = useAggregationStore((state) => state.editRate);
 
   // 表示用データを取得
@@ -178,7 +177,6 @@ export default function AggregationCostPanel({
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-24">原価単価</th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-16">数量</th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-28">原価小計</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-32">ファイル見積</th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-24">メモ</th>
                   {isEditing && <th className="px-3 py-2" />}
                 </tr>
@@ -233,20 +231,6 @@ export default function AggregationCostPanel({
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-sm font-semibold text-gray-900 text-left">
                       {formatCurrency(expense.costTotal)}
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-left">
-                      {isEditing ? (
-                        <input
-                          type="number"
-                          value={expense.fileEstimate ?? ''}
-                          onChange={(event) => changeFileEstimateAt(index, event.target.value)}
-                          className="w-28 px-2 py-1 border border-gray-300 rounded text-sm text-left"
-                          min={0}
-                          step={100}
-                        />
-                      ) : (
-                        expense.fileEstimate != null ? formatCurrency(expense.fileEstimate) : '—'
-                      )}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
                       {isEditing ? (

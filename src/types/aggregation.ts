@@ -53,6 +53,8 @@ export interface WorkOrderDetail {
   activities: ActivitySummary[];
   expenses: ExpenseItem[];
   adjustments: AggregationAdjustment[];
+  estimateAmount?: number | null;
+  finalDecisionAmount?: number | null;
 }
 
 export interface EditedRate {

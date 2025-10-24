@@ -57,6 +57,8 @@ model WorkOrder {
   projectName           String?              @map("project_name") @db.VarChar(200) // 作業名称（案件名）
   handling              String?              @db.VarChar(100) // 扱い
   quantity              Int? // 数量
+  estimateAmount        Int?                 @map("estimate_amount") // 見積もり金額
+  finalDecisionAmount   Int?                 @map("final_decision_amount") // 最終決定金額
   createdAt             DateTime             @default(now()) @map("created_at")
   updatedAt             DateTime             @updatedAt @map("updated_at")
   reportItems           ReportItem[]

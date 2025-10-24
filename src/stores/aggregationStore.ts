@@ -45,6 +45,10 @@ interface AggregationState {
   originalActivities: ActivitySummary[];
   editedRates: EditedRates;
 
+  // 見積もり金額・最終決定金額編集
+  editedEstimateAmount: string;
+  editedFinalDecisionAmount: string;
+
   // ========================================
   // 計算値（getter的に使用）
   // ========================================
@@ -101,6 +105,10 @@ interface AggregationState {
   // 単価操作
   editRate: (activity: string, field: 'billRate' | 'memo', value: string) => void;
   
+  // 見積もり金額・最終決定金額操作
+  setEstimateAmount: (value: string) => void;
+  setFinalDecisionAmount: (value: string) => void;
+  
   // API送信用データ取得
   getAdjustmentsForAPI: () => Record<string, { billRate: number; memo: string }>;
 }
@@ -127,6 +135,8 @@ function createAggregationStore(
     editedExpenses: [],
     originalActivities: [],
     editedRates: {},
+    editedEstimateAmount: '',
+    editedFinalDecisionAmount: '',
 
     // ========================================
     // 計算値（getter）
@@ -275,6 +285,8 @@ function createAggregationStore(
         isEditing: true,
         editedExpenses: expenseDrafts,
         editedRates: initialRates,
+        editedEstimateAmount: workOrder.estimateAmount?.toString() ?? '',
+        editedFinalDecisionAmount: workOrder.finalDecisionAmount?.toString() ?? '',
       }));
     },
 
@@ -283,6 +295,8 @@ function createAggregationStore(
         isEditing: false,
         editedExpenses: [],
         editedRates: {},
+        editedEstimateAmount: '',
+        editedFinalDecisionAmount: '',
       }));
     },
 
@@ -441,6 +455,22 @@ function createAggregationStore(
             [field]: value,
           },
         },
+      }));
+    },
+
+    // ========================================
+    // 見積もり金額・最終決定金額操作
+    // ========================================
+
+    setEstimateAmount: (value) => {
+      set(() => ({
+        editedEstimateAmount: value,
+      }));
+    },
+
+    setFinalDecisionAmount: (value) => {
+      set(() => ({
+        editedFinalDecisionAmount: value,
       }));
     },
 

@@ -97,10 +97,18 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
   const handleSaveConfirm = useCallback(async () => {
     const adjustmentsForAPI = getAdjustmentsForAPI();
     const expensePayload = getSanitizedExpenses();
+    const editedEstimateAmount = useAggregationStore.getState().editedEstimateAmount;
+    const editedFinalDecisionAmount = useAggregationStore.getState().editedFinalDecisionAmount;
+
+    // 文字列から数値に変換（空文字列はnullに）
+    const estimateAmount = editedEstimateAmount === '' ? null : parseInt(editedEstimateAmount, 10) || null;
+    const finalDecisionAmount = editedFinalDecisionAmount === '' ? null : parseInt(editedFinalDecisionAmount, 10) || null;
 
     await saveManager.saveChanges({
       adjustmentsForAPI,
       expensePayload,
+      estimateAmount,
+      finalDecisionAmount,
     });
   }, [getAdjustmentsForAPI, getSanitizedExpenses, saveManager]);
 

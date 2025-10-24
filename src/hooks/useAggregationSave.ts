@@ -5,6 +5,8 @@ import { ExpenseItem, RateChange } from '@/types/aggregation';
 interface SaveData {
   adjustmentsForAPI: Record<string, { billRate: number; memo: string }>;
   expensePayload: ExpenseItem[];
+  estimateAmount?: number | null;
+  finalDecisionAmount?: number | null;
 }
 
 interface UseAggregationSaveProps {
@@ -64,6 +66,8 @@ export function useAggregationSave({
           body: JSON.stringify({
             billRateAdjustments: saveData.adjustmentsForAPI,
             expenses: saveData.expensePayload,
+            estimateAmount: saveData.estimateAmount,
+            finalDecisionAmount: saveData.finalDecisionAmount,
           }),
         });
 

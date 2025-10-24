@@ -85,6 +85,8 @@ export async function GET(
       activities,
       adjustments,
       expenses,
+      estimateAmount: workOrder.estimateAmount,
+      finalDecisionAmount: workOrder.finalDecisionAmount,
     };
 
     return NextResponse.json(responseData);
@@ -127,7 +129,9 @@ export async function PATCH(
     // ステータスのみの変更かチェック（軽量化のため）
     const isOnlyStatusChange = validatedData.status && 
       !validatedData.billRateAdjustments && 
-      !validatedData.expenses;
+      !validatedData.expenses &&
+      validatedData.estimateAmount === undefined &&
+      validatedData.finalDecisionAmount === undefined;
 
     if (isOnlyStatusChange && validatedData.status) {
       // 軽量：ステータスのみ更新（Prisma API呼び出しを最小化）
@@ -143,6 +147,21 @@ export async function PATCH(
       // 経費更新がある場合
       if (validatedData.expenses) {
         await replaceExpenses(workOrder.id, validatedData.expenses, tx);
+      }
+
+      // 見積もり金額・最終決定金額の更新がある場合
+      if (validatedData.estimateAmount !== undefined || validatedData.finalDecisionAmount !== undefined) {
+        const amountUpdateData: Record<string, number | null> = {};
+        if (validatedData.estimateAmount !== undefined) {
+          amountUpdateData.estimateAmount = validatedData.estimateAmount;
+        }
+        if (validatedData.finalDecisionAmount !== undefined) {
+          amountUpdateData.finalDecisionAmount = validatedData.finalDecisionAmount;
+        }
+        await tx.workOrder.update({
+          where: { id: workOrder.id },
+          data: amountUpdateData,
+        });
       }
 
       // 集計完了時にAggregationSummaryを作成

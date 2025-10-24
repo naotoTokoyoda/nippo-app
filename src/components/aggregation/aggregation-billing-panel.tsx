@@ -18,6 +18,8 @@ export default function AggregationBillingPanel({
   const isEditing = useAggregationStore((state) => state.isEditing);
   const editedRates = useAggregationStore((state) => state.editedRates);
   const editedExpenses = useAggregationStore((state) => state.editedExpenses);
+  const editedEstimateAmount = useAggregationStore((state) => state.editedEstimateAmount);
+  const editedFinalDecisionAmount = useAggregationStore((state) => state.editedFinalDecisionAmount);
   const getActivitiesForDisplay = useAggregationStore((state) => state.getActivitiesForDisplay);
   const getActivityBillAmounts = useAggregationStore((state) => state.getActivityBillAmounts);
   const getBillLaborSubtotal = useAggregationStore((state) => state.getBillLaborSubtotal);
@@ -26,7 +28,8 @@ export default function AggregationBillingPanel({
   const getBillExpenseSubtotal = useAggregationStore((state) => state.getBillExpenseSubtotal);
   const getBillGrandTotal = useAggregationStore((state) => state.getBillGrandTotal);
   const changeBillingFieldAt = useAggregationStore((state) => state.changeBillingFieldAt);
-  const changeFileEstimateAt = useAggregationStore((state) => state.changeFileEstimateAt);
+  const setEstimateAmount = useAggregationStore((state) => state.setEstimateAmount);
+  const setFinalDecisionAmount = useAggregationStore((state) => state.setFinalDecisionAmount);
   const editRate = useAggregationStore((state) => state.editRate);
 
   // 表示用データを取得
@@ -203,7 +206,6 @@ export default function AggregationBillingPanel({
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-24">請求単価</th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-16">数量</th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-28">請求小計</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-32">ファイル見積</th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-24">メモ</th>
                 </tr>
               </thead>
@@ -255,20 +257,6 @@ export default function AggregationBillingPanel({
                           formatCurrency(expense.billTotal)
                         )}
                       </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-left">
-                        {isEditing ? (
-                          <input
-                            type="number"
-                            value={expense.fileEstimate ?? ''}
-                            onChange={(event) => changeFileEstimateAt(index, event.target.value)}
-                            className="w-28 px-2 py-1 border border-gray-300 rounded text-sm text-left"
-                            min={0}
-                            step={100}
-                          />
-                        ) : (
-                          expense.fileEstimate != null ? formatCurrency(expense.fileEstimate) : '—'
-                        )}
-                      </td>
                       <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
                         {isEditing ? (
                           <input
@@ -307,6 +295,48 @@ export default function AggregationBillingPanel({
           <div className="border-t border-blue-200 pt-2 flex justify-between items-center">
             <span className="font-semibold text-blue-900">請求合計</span>
             <span className="text-lg font-bold text-blue-900">¥{formatCurrency(billTotal)}</span>
+          </div>
+          
+          {/* 見積もり金額 */}
+          <div className="border-t border-blue-200 pt-2 flex justify-between items-center">
+            <span className="text-sm font-medium text-gray-900">見積もり金額</span>
+            {isEditing ? (
+              <input
+                type="number"
+                value={editedEstimateAmount}
+                onChange={(e) => setEstimateAmount(e.target.value)}
+                placeholder="未入力"
+                className="w-40 px-3 py-1.5 border border-gray-300 rounded text-right text-sm"
+                min={0}
+                step={1000}
+              />
+            ) : (
+              <span className="text-sm font-medium">
+                {workOrder?.estimateAmount != null ? `¥${formatCurrency(workOrder.estimateAmount)}` : '—'}
+              </span>
+            )}
+          </div>
+
+          {/* 最終決定金額 */}
+          <div className="bg-red-50 -mx-4 -mb-4 mt-2 p-4 rounded-b-lg">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-bold text-red-900">最終決定金額</span>
+              {isEditing ? (
+                <input
+                  type="number"
+                  value={editedFinalDecisionAmount}
+                  onChange={(e) => setFinalDecisionAmount(e.target.value)}
+                  placeholder="未入力"
+                  className="w-40 px-3 py-1.5 border border-red-300 rounded text-right text-sm bg-white"
+                  min={0}
+                  step={1000}
+                />
+              ) : (
+                <span className="text-sm font-bold text-red-900">
+                  {workOrder?.finalDecisionAmount != null ? `¥${formatCurrency(workOrder.finalDecisionAmount)}` : '—'}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
