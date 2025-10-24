@@ -28,11 +28,7 @@ export interface RateAdjustment {
  * 通貨フォーマット関数
  */
 function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('ja-JP', {
-    style: 'currency',
-    currency: 'JPY',
-    minimumFractionDigits: 0,
-  }).format(amount);
+  return amount.toLocaleString();
 }
 
 /**

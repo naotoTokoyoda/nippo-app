@@ -158,7 +158,7 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
                 8時間労働が未完了です
               </span>
               <p className="text-xs text-red-600 mt-1">
-                現在の合計作業時間: {formatTime(todayTotalTime / 60)} ({formatDecimalTime(todayTotalTime / 60)}時間)
+                現在の合計作業時間: {formatTime(todayTotalTime / 60)} ({formatDecimalTime(todayTotalTime / 60)}H)
               </p>
             </div>
           </div>
@@ -177,7 +177,7 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
                 8時間労働が完了しています
               </span>
               <p className="text-xs text-green-600 mt-1">
-                合計作業時間: {formatTime(todayTotalTime / 60)} ({formatDecimalTime(todayTotalTime / 60)}時間)
+                合計作業時間: {formatTime(todayTotalTime / 60)} ({formatDecimalTime(todayTotalTime / 60)}H)
               </p>
             </div>
           </div>
@@ -226,7 +226,7 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
                     <div>
                       <span className="font-medium text-gray-700">作業合計時間:</span>
                       <span className="ml-2 text-gray-600">
-                        {formatTime(workTime)} ({formatDecimalTime(workTime)}時間)
+                        {formatTime(workTime)} ({formatDecimalTime(workTime)}H)
                       </span>
                     </div>
                     {item.remarks && (

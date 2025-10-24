@@ -49,11 +49,7 @@ export default function SaveConfirmModal({
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('ja-JP', {
-      style: 'currency',
-      currency: 'JPY',
-      minimumFractionDigits: 0,
-    }).format(amount);
+    return amount.toLocaleString();
   };
 
   const expenseCostTotal = expenses.reduce((sum, expense) => sum + expense.costTotal, 0);

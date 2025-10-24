@@ -54,12 +54,12 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
   });
 
   const formatCurrency = useCallback((amount: number | undefined | null) => {
-    if (amount === undefined || amount === null) return '¥0';
-    return `¥${amount.toLocaleString()}`;
+    if (amount === undefined || amount === null) return '0';
+    return amount.toLocaleString();
   }, []);
   const formatHours = useCallback((hours: number | undefined | null) => {
-    if (hours === undefined || hours === null) return '0.00時間';
-    return `${hours.toFixed(2)}時間`;
+    if (hours === undefined || hours === null) return '0.00H';
+    return `${hours.toFixed(2)}H`;
   }, []);
 
   const handleEditStart = useCallback(() => {
