@@ -1,5 +1,6 @@
 import { ExpenseCategory } from '@/types/aggregation';
 import { useAggregationStore } from '@/stores/aggregationStore';
+import { getLaborCategory, type ActivityType } from '@/lib/aggregation/activity-utils';
 
 interface AggregationCostPanelProps {
   categoryOptions: Array<{ value: ExpenseCategory; label: string }>;
@@ -19,6 +20,8 @@ export default function AggregationCostPanel({
   const editedExpenses = useAggregationStore((state) => state.editedExpenses);
   const getActivitiesForDisplay = useAggregationStore((state) => state.getActivitiesForDisplay);
   const getCostLaborSubtotal = useAggregationStore((state) => state.getCostLaborSubtotal);
+  const getCostLaborCategorySubtotal = useAggregationStore((state) => state.getCostLaborCategorySubtotal);
+  const getCostMachineCategorySubtotal = useAggregationStore((state) => state.getCostMachineCategorySubtotal);
   const getCostExpenseSubtotal = useAggregationStore((state) => state.getCostExpenseSubtotal);
   const getCostGrandTotal = useAggregationStore((state) => state.getCostGrandTotal);
   const addExpense = useAggregationStore((state) => state.addExpense);
@@ -32,8 +35,18 @@ export default function AggregationCostPanel({
   const activities = getActivitiesForDisplay();
   const expenses = isEditing ? editedExpenses : (workOrder?.expenses || []);
   const costLaborSubtotal = getCostLaborSubtotal();
+  const laborCategorySubtotal = getCostLaborCategorySubtotal();
+  const machineCategorySubtotal = getCostMachineCategorySubtotal();
   const expenseSubtotal = getCostExpenseSubtotal();
   const costTotal = getCostGrandTotal();
+
+  // アクティビティをカテゴリ別に分類
+  const laborActivities = activities.filter(
+    (activity) => getLaborCategory(activity.activity as ActivityType) === 'LABOR'
+  );
+  const machineActivities = activities.filter(
+    (activity) => getLaborCategory(activity.activity as ActivityType) === 'MACHINE'
+  );
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -43,49 +56,108 @@ export default function AggregationCostPanel({
       <div className="border-b border-gray-200 p-4">
         <h4 className="text-sm font-medium text-gray-800 mb-3">労務費詳細</h4>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">区分</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">時間</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">単価</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">小計</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">メモ</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {activities.map((activity) => (
-              <tr key={activity.activity}>
-                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {activity.activityName}
-                </td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                  {formatHours(activity.hours)}
-                </td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                  {formatCurrency(activity.costRate)}
-                </td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-semibold">
-                  {formatCurrency(activity.costAmount)}
-                </td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editedRates[activity.activity]?.memo ?? activity.memo ?? ''}
-                      onChange={(event) => editRate(activity.activity, 'memo', event.target.value)}
-                      placeholder="メモを入力..."
-                      maxLength={50}
-                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                    />
-                  ) : (
-                    activity.memo || '—'
-                  )}
-                </td>
+          <table className="min-w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-600 uppercase">区分</th>
+                <th className="px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase w-24">時間(H)</th>
+                <th className="px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase w-28">単価</th>
+                <th className="px-3 py-2 text-right text-xs font-medium text-gray-600 uppercase w-32">小計</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-600 uppercase w-40">メモ</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="bg-white">
+              {/* 人工費セクション */}
+              <tr className="border-t-2 border-gray-300 bg-blue-50">
+                <td className="px-3 py-2">
+                  <span className="text-sm font-semibold text-gray-800">人工費</span>
+                </td>
+                <td className="px-3 py-2 text-sm font-medium text-gray-800 text-right">
+                  {formatHours(laborActivities.reduce((sum, a) => sum + a.hours, 0))}
+                </td>
+                <td className="px-3 py-2"></td>
+                <td className="px-3 py-2 text-sm font-bold text-gray-900 text-right">
+                  {formatCurrency(laborCategorySubtotal)}
+                </td>
+                <td className="px-3 py-2"></td>
+              </tr>
+              {laborActivities.map((activity) => (
+                <tr key={activity.activity} className="border-t border-gray-100 hover:bg-gray-50">
+                  <td className="px-3 py-2 text-sm text-gray-700 pl-8">
+                    {activity.activityName}
+                  </td>
+                  <td className="px-3 py-2 text-sm text-gray-600 text-right">
+                    {formatHours(activity.hours)}
+                  </td>
+                  <td className="px-3 py-2 text-sm text-gray-600 text-right">
+                    {formatCurrency(activity.costRate)}
+                  </td>
+                  <td className="px-3 py-2 text-sm text-gray-700 text-right">
+                    {formatCurrency(activity.costAmount)}
+                  </td>
+                  <td className="px-3 py-2 text-sm text-gray-600">
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editedRates[activity.activity]?.memo ?? activity.memo ?? ''}
+                        onChange={(event) => editRate(activity.activity, 'memo', event.target.value)}
+                        placeholder="メモ..."
+                        maxLength={50}
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                      />
+                    ) : (
+                      activity.memo || '—'
+                    )}
+                  </td>
+                </tr>
+              ))}
+
+              {/* 機械稼働費セクション */}
+              <tr className="border-t-2 border-gray-300 bg-blue-50">
+                <td className="px-3 py-2">
+                  <span className="text-sm font-semibold text-gray-800">機械稼働費</span>
+                </td>
+                <td className="px-3 py-2 text-sm font-medium text-gray-800 text-right">
+                  {formatHours(machineActivities.reduce((sum, a) => sum + a.hours, 0))}
+                </td>
+                <td className="px-3 py-2"></td>
+                <td className="px-3 py-2 text-sm font-bold text-gray-900 text-right">
+                  {formatCurrency(machineCategorySubtotal)}
+                </td>
+                <td className="px-3 py-2"></td>
+              </tr>
+              {machineActivities.map((activity) => (
+                <tr key={activity.activity} className="border-t border-gray-100 hover:bg-gray-50">
+                  <td className="px-3 py-2 text-sm text-gray-700 pl-8">
+                    {activity.activityName}
+                  </td>
+                  <td className="px-3 py-2 text-sm text-gray-600 text-right">
+                    {formatHours(activity.hours)}
+                  </td>
+                  <td className="px-3 py-2 text-sm text-gray-600 text-right">
+                    {formatCurrency(activity.costRate)}
+                  </td>
+                  <td className="px-3 py-2 text-sm text-gray-700 text-right">
+                    {formatCurrency(activity.costAmount)}
+                  </td>
+                  <td className="px-3 py-2 text-sm text-gray-600">
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editedRates[activity.activity]?.memo ?? activity.memo ?? ''}
+                        onChange={(event) => editRate(activity.activity, 'memo', event.target.value)}
+                        placeholder="メモ..."
+                        maxLength={50}
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                      />
+                    ) : (
+                      activity.memo || '—'
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
       <div className="border-t border-gray-200 p-4 space-y-4">
@@ -215,15 +287,15 @@ export default function AggregationCostPanel({
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <span className="text-sm text-gray-900">労務費小計</span>
-            <span className="text-sm font-medium">{formatCurrency(costLaborSubtotal)}</span>
+            <span className="text-sm font-medium">¥{formatCurrency(costLaborSubtotal)}</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-sm text-gray-900">経費小計</span>
-            <span className="text-sm font-medium">{formatCurrency(expenseSubtotal)}</span>
+            <span className="text-sm font-medium">¥{formatCurrency(expenseSubtotal)}</span>
           </div>
           <div className="border-t border-gray-200 pt-2 flex justify-between items-center">
             <span className="font-semibold text-gray-900">原価合計</span>
-            <span className="text-lg font-bold text-gray-900">{formatCurrency(costTotal)}</span>
+            <span className="text-lg font-bold text-gray-900">¥{formatCurrency(costTotal)}</span>
           </div>
         </div>
       </div>
