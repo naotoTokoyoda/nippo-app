@@ -38,6 +38,31 @@ export const ACTIVITY_NAMES: Record<ActivityType, string> = {
 };
 
 /**
+ * 労務費カテゴリ
+ */
+export type LaborCategory = 'LABOR' | 'MACHINE';
+
+/**
+ * 労務費カテゴリ名のマッピング
+ */
+export const LABOR_CATEGORY_NAMES: Record<LaborCategory, string> = {
+  'LABOR': '人工費',
+  'MACHINE': '機械稼働費',
+};
+
+/**
+ * アクティビティタイプから労務費カテゴリを判定する
+ */
+export function getLaborCategory(activity: ActivityType): LaborCategory {
+  // 機械関連のアクティビティ
+  if (activity === 'M_1052' || activity === 'M_SHOMEN' || activity === 'M_12SHAKU') {
+    return 'MACHINE';
+  }
+  // それ以外（通常、実習生、検品）は人工費
+  return 'LABOR';
+}
+
+/**
  * レポートアイテムからアクティビティを判定する
  * 
  * 判定ロジック：

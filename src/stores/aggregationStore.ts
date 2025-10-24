@@ -28,6 +28,7 @@ import {
   createAdjustmentsForAPI,
   type ActivityBillAmountMap,
 } from '@/lib/aggregation/rate-utils';
+import { getLaborCategory, type ActivityType } from '@/lib/aggregation/activity-utils';
 
 interface AggregationState {
   // ========================================
@@ -64,6 +65,14 @@ interface AggregationState {
 
   // 労務費原価
   getCostLaborSubtotal: () => number;
+  
+  // カテゴリ別小計（原価）
+  getCostLaborCategorySubtotal: () => number;
+  getCostMachineCategorySubtotal: () => number;
+  
+  // カテゴリ別小計（請求）
+  getBillLaborCategorySubtotal: () => number;
+  getBillMachineCategorySubtotal: () => number;
 
   // 総合計
   getCostGrandTotal: () => number;
@@ -182,6 +191,48 @@ function createAggregationStore(
       const { workOrder } = get();
       if (!workOrder) return 0;
       return workOrder.activities.reduce((sum, activity) => sum + activity.costAmount, 0);
+    },
+
+    // カテゴリ別小計（原価）
+    getCostLaborCategorySubtotal: () => {
+      const { workOrder } = get();
+      if (!workOrder) return 0;
+      return workOrder.activities
+        .filter((activity) => getLaborCategory(activity.activity as ActivityType) === 'LABOR')
+        .reduce((sum, activity) => sum + activity.costAmount, 0);
+    },
+
+    getCostMachineCategorySubtotal: () => {
+      const { workOrder } = get();
+      if (!workOrder) return 0;
+      return workOrder.activities
+        .filter((activity) => getLaborCategory(activity.activity as ActivityType) === 'MACHINE')
+        .reduce((sum, activity) => sum + activity.costAmount, 0);
+    },
+
+    // カテゴリ別小計（請求）
+    getBillLaborCategorySubtotal: () => {
+      const activityBillAmounts = get().getActivityBillAmounts();
+      const { workOrder } = get();
+      if (!workOrder) return 0;
+      return workOrder.activities
+        .filter((activity) => getLaborCategory(activity.activity as ActivityType) === 'LABOR')
+        .reduce((sum, activity) => {
+          const billAmount = activityBillAmounts[activity.activity]?.currentBillAmount ?? 0;
+          return sum + billAmount;
+        }, 0);
+    },
+
+    getBillMachineCategorySubtotal: () => {
+      const activityBillAmounts = get().getActivityBillAmounts();
+      const { workOrder } = get();
+      if (!workOrder) return 0;
+      return workOrder.activities
+        .filter((activity) => getLaborCategory(activity.activity as ActivityType) === 'MACHINE')
+        .reduce((sum, activity) => {
+          const billAmount = activityBillAmounts[activity.activity]?.currentBillAmount ?? 0;
+          return sum + billAmount;
+        }, 0);
     },
 
     // 総合計
