@@ -36,7 +36,7 @@ export default function AggregationAdjustmentHistory({
                       second: '2-digit',
                       timeZone: 'Asia/Tokyo',
                     })}{' '}
-                    - {adjustment.createdBy}
+                    - {adjustment.user?.name || adjustment.createdBy}
                   </div>
                 </div>
                 <div

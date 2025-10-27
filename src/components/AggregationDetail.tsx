@@ -219,9 +219,10 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
           formatCurrency={formatCurrency}
           onRefresh={refetch}
           currentUser={{
-            id: 'temp-user-id',
-            name: '仮ユーザー',
-            role: 'admin', // 開発中は仮でadminに設定
+            // TODO: 本番環境ではセッションから取得する
+            id: 'cmh8ils0x0000u5shpsixbzdf', // 開発用: 常世田直人（管理者）
+            name: '常世田直人',
+            role: 'admin',
           }}
         />
         <AggregationAdjustmentHistory adjustments={workOrder.adjustments} formatCurrency={formatCurrency} />
