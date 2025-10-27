@@ -10,13 +10,16 @@ datasource db {
 model User {
   id                    String               @id @default(cuid())
   name                  String               @db.VarChar(100)
+  role                  String               @default("manager") @db.VarChar(20) // 'manager' または 'admin'
   createdAt             DateTime             @default(now()) @map("created_at")
   updatedAt             DateTime             @updatedAt @map("updated_at")
   reports               Report[]
   adjustments           Adjustment[]
+  deletedAdjustments    Adjustment[]         @relation("DeletedBy")
   aggregationSummaries  AggregationSummary[]
 
   @@index([name])
+  @@index([role])
   @@map("users")
 }
 
@@ -139,18 +142,24 @@ model Rate {
 model Adjustment {
   id          String    @id @default(cuid())
   workOrderId String    @map("work_order_id") // 対象工番
-  type        String    @db.VarChar(50) // 調整種別: price_adjustment/time_adjustment等
+  type        String    @db.VarChar(50) // 調整種別: price_adjustment/time_adjustment/final_decision_change等
   amount      Int // 調整金額（プラス・マイナス可能）
   reason      String    @db.VarChar(200) // 調整理由
   memo        String?   @db.VarChar(500) // 詳細メモ
   createdBy   String    @map("created_by") // 作業者ID
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
+  isDeleted   Boolean   @default(false) @map("is_deleted") // 論理削除フラグ
+  deletedBy   String?   @map("deleted_by") // 削除者ID
+  deletedAt   DateTime? @map("deleted_at") // 削除日時
   workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
   user        User      @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  deletedUser User?     @relation("DeletedBy", fields: [deletedBy], references: [id], onDelete: Cascade)
 
   @@index([workOrderId])
   @@index([createdBy])
+  @@index([type])
+  @@index([isDeleted])
   @@map("adjustments")
 }
 

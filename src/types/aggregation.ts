@@ -40,6 +40,20 @@ export interface AggregationAdjustment {
   memo?: string;
   createdAt: string;
   createdBy: string;
+  updatedAt?: string;
+  isDeleted?: boolean;
+  deletedBy?: string;
+  deletedAt?: string;
+  user?: {
+    id: string;
+    name: string;
+    role: string;
+  };
+  deletedUser?: {
+    id: string;
+    name: string;
+    role: string;
+  };
 }
 
 export interface WorkOrderDetail {

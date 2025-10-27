@@ -12,6 +12,7 @@ import AggregationBillingPanel from './aggregation/aggregation-billing-panel';
 import AggregationCostPanel from './aggregation/aggregation-cost-panel';
 import AggregationAdjustmentHistory from './aggregation/aggregation-adjustment-history';
 import AggregationWorkerHistory from './aggregation/aggregation-worker-history';
+import AggregationFinalDecisionHistory from './aggregation/aggregation-final-decision-history';
 import { useAggregationData } from '@/hooks/useAggregationData';
 import { useAggregationSave } from '@/hooks/useAggregationSave';
 import { useAggregationStore } from '@/stores/aggregationStore';
@@ -210,6 +211,18 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
         <AggregationWorkerHistory 
           workNumberFront={workOrder.workNumber.split('-')[0]} 
           workNumberBack={workOrder.workNumber.split('-')[1]} 
+        />
+        <AggregationFinalDecisionHistory
+          workOrderId={workOrder.id}
+          currentAmount={workOrder.finalDecisionAmount}
+          comments={workOrder.adjustments}
+          formatCurrency={formatCurrency}
+          onRefresh={refetch}
+          currentUser={{
+            id: 'temp-user-id',
+            name: '仮ユーザー',
+            role: 'admin', // 開発中は仮でadminに設定
+          }}
         />
         <AggregationAdjustmentHistory adjustments={workOrder.adjustments} formatCurrency={formatCurrency} />
       </div>

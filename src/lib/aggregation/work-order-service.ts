@@ -26,6 +26,7 @@ export const WORK_ORDER_INCLUDE = {
   adjustments: {
     include: {
       user: true,
+      deletedUser: true,
     },
   },
   materials: true,

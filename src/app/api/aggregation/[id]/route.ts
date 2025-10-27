@@ -52,8 +52,22 @@ export async function GET(
       amount: adj.amount,
       reason: adj.reason,
       memo: adj.memo,
-      createdBy: adj.user.name,
+      createdBy: adj.createdBy,
       createdAt: adj.createdAt.toISOString(),
+      updatedAt: adj.updatedAt.toISOString(),
+      isDeleted: adj.isDeleted,
+      deletedBy: adj.deletedBy,
+      deletedAt: adj.deletedAt ? adj.deletedAt.toISOString() : undefined,
+      user: {
+        id: adj.user.id,
+        name: adj.user.name,
+        role: adj.user.role,
+      },
+      deletedUser: adj.deletedUser ? {
+        id: adj.deletedUser.id,
+        name: adj.deletedUser.name,
+        role: adj.deletedUser.role,
+      } : undefined,
     }));
 
     // 材料費を整形
