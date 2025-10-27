@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       return Response.json(
         {
           error: 'バリデーションエラー',
-          details: error.errors,
+          details: error.issues,
         },
         { status: 400 }
       );

@@ -24,9 +24,10 @@ const deleteCommentSchema = z.object({
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const validated = updateCommentSchema.parse(body);
 
@@ -39,7 +40,7 @@ export async function PATCH(
 
     // コメントを取得
     const comment = await prisma.adjustment.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         user: {
           select: {
@@ -59,7 +60,15 @@ export async function PATCH(
     }
 
     // 権限チェック
-    if (!canEditComment(comment, currentUser)) {
+    const commentForCheck = {
+      ...comment,
+      memo: comment.memo || undefined,
+      createdAt: comment.createdAt.toISOString(),
+      updatedAt: comment.updatedAt ? comment.updatedAt.toISOString() : undefined,
+      deletedAt: comment.deletedAt?.toISOString(),
+      deletedBy: comment.deletedBy || undefined,
+    };
+    if (!canEditComment(commentForCheck, currentUser)) {
       return Response.json(
         { error: '編集権限がありません' },
         { status: 403 }
@@ -68,7 +77,7 @@ export async function PATCH(
 
     // コメントを更新
     const updated = await prisma.adjustment.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         memo: validated.memo,
         updatedAt: new Date(),
@@ -95,7 +104,7 @@ export async function PATCH(
       return Response.json(
         {
           error: 'バリデーションエラー',
-          details: error.errors,
+          details: error.issues,
         },
         { status: 400 }
       );
@@ -116,9 +125,10 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const validated = deleteCommentSchema.parse(body);
 
@@ -131,7 +141,7 @@ export async function DELETE(
 
     // コメントを取得
     const comment = await prisma.adjustment.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         user: {
           select: {
@@ -151,7 +161,15 @@ export async function DELETE(
     }
 
     // 権限チェック
-    if (!canDeleteComment(comment, currentUser)) {
+    const commentForCheck = {
+      ...comment,
+      memo: comment.memo || undefined,
+      createdAt: comment.createdAt.toISOString(),
+      updatedAt: comment.updatedAt ? comment.updatedAt.toISOString() : undefined,
+      deletedAt: comment.deletedAt?.toISOString(),
+      deletedBy: comment.deletedBy || undefined,
+    };
+    if (!canDeleteComment(commentForCheck, currentUser)) {
       return Response.json(
         { error: '削除権限がありません' },
         { status: 403 }
@@ -160,7 +178,7 @@ export async function DELETE(
 
     // 論理削除
     const deleted = await prisma.adjustment.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         isDeleted: true,
         deletedBy: validated.userId,
@@ -195,7 +213,7 @@ export async function DELETE(
       return Response.json(
         {
           error: 'バリデーションエラー',
-          details: error.errors,
+          details: error.issues,
         },
         { status: 400 }
       );
