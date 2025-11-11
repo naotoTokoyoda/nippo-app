@@ -101,6 +101,7 @@ export async function GET(
       expenses,
       estimateAmount: workOrder.estimateAmount,
       finalDecisionAmount: workOrder.finalDecisionAmount,
+      deliveryDate: workOrder.deliveryDate ? workOrder.deliveryDate.toISOString() : null,
     };
 
     return NextResponse.json(responseData);
@@ -145,7 +146,8 @@ export async function PATCH(
       !validatedData.billRateAdjustments && 
       !validatedData.expenses &&
       validatedData.estimateAmount === undefined &&
-      validatedData.finalDecisionAmount === undefined;
+      validatedData.finalDecisionAmount === undefined &&
+      validatedData.deliveryDate === undefined;
 
     if (isOnlyStatusChange && validatedData.status) {
       // 軽量：ステータスのみ更新（Prisma API呼び出しを最小化）
@@ -163,14 +165,17 @@ export async function PATCH(
         await replaceExpenses(workOrder.id, validatedData.expenses, tx);
       }
 
-      // 見積もり金額・最終決定金額の更新がある場合
-      if (validatedData.estimateAmount !== undefined || validatedData.finalDecisionAmount !== undefined) {
-        const amountUpdateData: Record<string, number | null> = {};
+      // 見積もり金額・最終決定金額・納品日の更新がある場合
+      if (validatedData.estimateAmount !== undefined || validatedData.finalDecisionAmount !== undefined || validatedData.deliveryDate !== undefined) {
+        const amountUpdateData: Record<string, number | Date | null> = {};
         if (validatedData.estimateAmount !== undefined) {
           amountUpdateData.estimateAmount = validatedData.estimateAmount;
         }
         if (validatedData.finalDecisionAmount !== undefined) {
           amountUpdateData.finalDecisionAmount = validatedData.finalDecisionAmount;
+        }
+        if (validatedData.deliveryDate !== undefined) {
+          amountUpdateData.deliveryDate = validatedData.deliveryDate ? new Date(validatedData.deliveryDate) : null;
         }
         await tx.workOrder.update({
           where: { id: workOrder.id },

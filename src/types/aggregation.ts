@@ -69,6 +69,7 @@ export interface WorkOrderDetail {
   adjustments: AggregationAdjustment[];
   estimateAmount?: number | null;
   finalDecisionAmount?: number | null;
+  deliveryDate?: Date | null;
 }
 
 export interface EditedRate {

@@ -62,6 +62,7 @@ model WorkOrder {
   quantity              Int? // 数量
   estimateAmount        Int?                 @map("estimate_amount") // 見積もり金額
   finalDecisionAmount   Int?                 @map("final_decision_amount") // 最終決定金額
+  deliveryDate          DateTime?            @map("delivery_date") @db.Date // 納品日
   createdAt             DateTime             @default(now()) @map("created_at")
   updatedAt             DateTime             @updatedAt @map("updated_at")
   reportItems           ReportItem[]

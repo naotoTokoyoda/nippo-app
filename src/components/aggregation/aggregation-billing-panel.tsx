@@ -20,6 +20,7 @@ export default function AggregationBillingPanel({
   const editedExpenses = useAggregationStore((state) => state.editedExpenses);
   const editedEstimateAmount = useAggregationStore((state) => state.editedEstimateAmount);
   const editedFinalDecisionAmount = useAggregationStore((state) => state.editedFinalDecisionAmount);
+  const editedDeliveryDate = useAggregationStore((state) => state.editedDeliveryDate);
   const getActivitiesForDisplay = useAggregationStore((state) => state.getActivitiesForDisplay);
   const getActivityBillAmounts = useAggregationStore((state) => state.getActivityBillAmounts);
   const getBillLaborSubtotal = useAggregationStore((state) => state.getBillLaborSubtotal);
@@ -30,6 +31,7 @@ export default function AggregationBillingPanel({
   const changeBillingFieldAt = useAggregationStore((state) => state.changeBillingFieldAt);
   const setEstimateAmount = useAggregationStore((state) => state.setEstimateAmount);
   const setFinalDecisionAmount = useAggregationStore((state) => state.setFinalDecisionAmount);
+  const setDeliveryDate = useAggregationStore((state) => state.setDeliveryDate);
   const editRate = useAggregationStore((state) => state.editRate);
 
   // 負の数の入力を防ぐハンドラー
@@ -62,10 +64,34 @@ export default function AggregationBillingPanel({
     return acc;
   }, {});
 
+  // 納品日のフォーマット（表示用）
+  const formatDeliveryDate = (date: Date | null | undefined) => {
+    if (!date) return '—';
+    const d = new Date(date);
+    return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
       <div className="bg-blue-50 px-6 py-4 border-b border-gray-200">
-        <h3 className="text-lg font-medium text-blue-900">実際請求</h3>
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-medium text-blue-900">実際請求</h3>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-700">納品日:</span>
+            {isEditing ? (
+              <input
+                type="date"
+                value={editedDeliveryDate}
+                onChange={(e) => setDeliveryDate(e.target.value)}
+                className="px-3 py-1.5 border border-gray-300 rounded text-sm"
+              />
+            ) : (
+              <span className="text-sm font-medium text-gray-900">
+                {formatDeliveryDate(workOrder?.deliveryDate)}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
       <div className="border-b border-gray-200 p-4">
         <h4 className="text-sm font-medium text-gray-800 mb-3">労務費詳細</h4>

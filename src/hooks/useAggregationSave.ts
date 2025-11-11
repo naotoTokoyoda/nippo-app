@@ -7,6 +7,7 @@ interface SaveData {
   expensePayload: ExpenseItem[];
   estimateAmount?: number | null;
   finalDecisionAmount?: number | null;
+  deliveryDate?: string | null;
 }
 
 interface UseAggregationSaveProps {
@@ -68,6 +69,7 @@ export function useAggregationSave({
             expenses: saveData.expensePayload,
             estimateAmount: saveData.estimateAmount,
             finalDecisionAmount: saveData.finalDecisionAmount,
+            deliveryDate: saveData.deliveryDate,
           }),
         });
 

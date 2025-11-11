@@ -45,9 +45,10 @@ interface AggregationState {
   originalActivities: ActivitySummary[];
   editedRates: EditedRates;
 
-  // 見積もり金額・最終決定金額編集
+  // 見積もり金額・最終決定金額・納品日編集
   editedEstimateAmount: string;
   editedFinalDecisionAmount: string;
+  editedDeliveryDate: string;
 
   // ========================================
   // 計算値（getter的に使用）
@@ -66,6 +67,9 @@ interface AggregationState {
   getAdjustmentTotal: () => number;
   getRateChanges: () => RateChange[];
   getRatesHasChanges: () => boolean;
+
+  // 見積もり金額・最終決定金額・納品日の変更チェック
+  getAmountAndDateHasChanges: () => boolean;
 
   // 労務費原価
   getCostLaborSubtotal: () => number;
@@ -105,9 +109,10 @@ interface AggregationState {
   // 単価操作
   editRate: (activity: string, field: 'billRate' | 'memo', value: string) => void;
   
-  // 見積もり金額・最終決定金額操作
+  // 見積もり金額・最終決定金額・納品日操作
   setEstimateAmount: (value: string) => void;
   setFinalDecisionAmount: (value: string) => void;
+  setDeliveryDate: (value: string) => void;
   
   // API送信用データ取得
   getAdjustmentsForAPI: () => Record<string, { billRate: number; memo: string }>;
@@ -137,6 +142,7 @@ function createAggregationStore(
     editedRates: {},
     editedEstimateAmount: '',
     editedFinalDecisionAmount: '',
+    editedDeliveryDate: '',
 
     // ========================================
     // 計算値（getter）
@@ -194,6 +200,28 @@ function createAggregationStore(
     getRatesHasChanges: () => {
       const rateChanges = get().getRateChanges();
       return rateChanges.length > 0;
+    },
+
+    // 見積もり金額・最終決定金額・納品日の変更チェック
+    getAmountAndDateHasChanges: () => {
+      const { workOrder, editedEstimateAmount, editedFinalDecisionAmount, editedDeliveryDate } = get();
+      if (!workOrder) return false;
+
+      // 見積もり金額の変更チェック
+      const originalEstimateStr = workOrder.estimateAmount?.toString() ?? '';
+      const estimateChanged = editedEstimateAmount !== originalEstimateStr;
+
+      // 最終決定金額の変更チェック
+      const originalFinalStr = workOrder.finalDecisionAmount?.toString() ?? '';
+      const finalChanged = editedFinalDecisionAmount !== originalFinalStr;
+
+      // 納品日の変更チェック
+      const originalDeliveryDateStr = workOrder.deliveryDate 
+        ? new Date(workOrder.deliveryDate).toISOString().split('T')[0]
+        : '';
+      const deliveryDateChanged = editedDeliveryDate !== originalDeliveryDateStr;
+
+      return estimateChanged || finalChanged || deliveryDateChanged;
     },
 
     // 労務費原価
@@ -281,12 +309,18 @@ function createAggregationStore(
       // 単価の編集データを準備
       const initialRates = createInitialEditedRates(workOrder.activities);
 
+      // 納品日のフォーマット（YYYY-MM-DD形式）
+      const deliveryDateStr = workOrder.deliveryDate 
+        ? new Date(workOrder.deliveryDate).toISOString().split('T')[0]
+        : '';
+
       set(() => ({
         isEditing: true,
         editedExpenses: expenseDrafts,
         editedRates: initialRates,
         editedEstimateAmount: workOrder.estimateAmount?.toString() ?? '',
         editedFinalDecisionAmount: workOrder.finalDecisionAmount?.toString() ?? '',
+        editedDeliveryDate: deliveryDateStr,
       }));
     },
 
@@ -297,6 +331,7 @@ function createAggregationStore(
         editedRates: {},
         editedEstimateAmount: '',
         editedFinalDecisionAmount: '',
+        editedDeliveryDate: '',
       }));
     },
 
@@ -459,7 +494,7 @@ function createAggregationStore(
     },
 
     // ========================================
-    // 見積もり金額・最終決定金額操作
+    // 見積もり金額・最終決定金額・納品日操作
     // ========================================
 
     setEstimateAmount: (value) => {
@@ -471,6 +506,12 @@ function createAggregationStore(
     setFinalDecisionAmount: (value) => {
       set(() => ({
         editedFinalDecisionAmount: value,
+      }));
+    },
+
+    setDeliveryDate: (value) => {
+      set(() => ({
+        editedDeliveryDate: value,
       }));
     },
 

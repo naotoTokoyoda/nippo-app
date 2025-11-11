@@ -32,9 +32,10 @@ export const updateAggregationSchema = z.object({
   // ステータス
   status: z.enum(['delivered', 'aggregating', 'aggregated']).optional(),
   
-  // 見積もり金額・最終決定金額
+  // 見積もり金額・最終決定金額・納品日
   estimateAmount: z.number().int().nonnegative().nullable().optional(),
   finalDecisionAmount: z.number().int().nonnegative().nullable().optional(),
+  deliveryDate: z.string().nullable().optional(),
 });
 
 /**

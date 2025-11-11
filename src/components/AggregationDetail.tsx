@@ -38,6 +38,7 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
   const getRateChanges = useAggregationStore((state) => state.getRateChanges);
   const getSanitizedExpenses = useAggregationStore((state) => state.getSanitizedExpenses);
   const getAdjustmentsForAPI = useAggregationStore((state) => state.getAdjustmentsForAPI);
+  const getAmountAndDateHasChanges = useAggregationStore((state) => state.getAmountAndDateHasChanges);
 
   // workOrderが変更されたらストアに反映
   useEffect(() => {
@@ -80,13 +81,14 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
     const rateChanges = getRateChanges();
     const sanitizedExpenses = getSanitizedExpenses();
     const expensesChanged = getExpensesHasChanges();
+    const amountAndDateChanged = getAmountAndDateHasChanges();
 
-    return { rateChanges, expensesChanged, sanitizedExpenses };
-  }, [getRateChanges, getSanitizedExpenses, getExpensesHasChanges]);
+    return { rateChanges, expensesChanged, sanitizedExpenses, amountAndDateChanged };
+  }, [getRateChanges, getSanitizedExpenses, getExpensesHasChanges, getAmountAndDateHasChanges]);
 
   const handleSaveClick = useCallback(() => {
-    const { rateChanges, expensesChanged, sanitizedExpenses } = calculateChanges();
-    const hasAnyChanges = rateChanges.length > 0 || expensesChanged;
+    const { rateChanges, expensesChanged, sanitizedExpenses, amountAndDateChanged } = calculateChanges();
+    const hasAnyChanges = rateChanges.length > 0 || expensesChanged || amountAndDateChanged;
 
     if (!hasAnyChanges) {
       alert('変更がありません。');
@@ -100,16 +102,19 @@ export default function AggregationDetail({ workOrderId }: AggregationDetailProp
     const expensePayload = getSanitizedExpenses();
     const editedEstimateAmount = useAggregationStore.getState().editedEstimateAmount;
     const editedFinalDecisionAmount = useAggregationStore.getState().editedFinalDecisionAmount;
+    const editedDeliveryDate = useAggregationStore.getState().editedDeliveryDate;
 
     // 文字列から数値に変換（空文字列はnullに）
     const estimateAmount = editedEstimateAmount === '' ? null : parseInt(editedEstimateAmount, 10) || null;
     const finalDecisionAmount = editedFinalDecisionAmount === '' ? null : parseInt(editedFinalDecisionAmount, 10) || null;
+    const deliveryDate = editedDeliveryDate === '' ? null : editedDeliveryDate;
 
     await saveManager.saveChanges({
       adjustmentsForAPI,
       expensePayload,
       estimateAmount,
       finalDecisionAmount,
+      deliveryDate,
     });
   }, [getAdjustmentsForAPI, getSanitizedExpenses, saveManager]);
 
