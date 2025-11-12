@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { groupByActivity, getActivityName, type ReportItemWithRelations, type ActivityGroup } from './activity-utils';
+import { formatUTCToJSTTime, calculateWorkTime } from '@/utils/timeCalculation';
 
 /**
  * アクティビティサマリー
@@ -57,9 +58,11 @@ export async function calculateActivitiesForWorkOrder(
   const activityMap = groupByActivity(
     workOrder.reportItems as ReportItemWithRelations[],
     (item) => {
-      const startTime = new Date(item.startTime);
-      const endTime = new Date(item.endTime);
-      return (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+      // UTC時間をJST時間に変換
+      const startTime = formatUTCToJSTTime(item.startTime);
+      const endTime = formatUTCToJSTTime(item.endTime);
+      // 昼休憩を考慮した正確な作業時間を計算
+      return calculateWorkTime(startTime, endTime, item.workStatus || 'normal');
     }
   );
 
