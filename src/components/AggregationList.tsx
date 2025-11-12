@@ -224,20 +224,11 @@ export default function AggregationList() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {item.totalHours === 0 ? (
-                        <button 
-                          disabled 
-                          className="text-gray-400 font-medium cursor-not-allowed opacity-50"
-                        >
+                      <Link href={`/aggregation/${item.id}`}>
+                        <button className="text-blue-600 hover:text-blue-800 font-medium cursor-pointer hover:cursor-pointer hover:bg-transparent focus:bg-transparent">
                           詳細
                         </button>
-                      ) : (
-                        <Link href={`/aggregation/${item.id}`}>
-                          <button className="text-blue-600 hover:text-blue-800 font-medium cursor-pointer hover:cursor-pointer hover:bg-transparent focus:bg-transparent">
-                            詳細
-                          </button>
-                        </Link>
-                      )}
+                      </Link>
                     </td>
                   </tr>
                 ))}
