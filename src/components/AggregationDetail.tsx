@@ -4,7 +4,6 @@ import { useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import PageLayout from "@/components/PageLayout";
-import SaveConfirmModal from "./SaveConfirmModal";
 import { useToast } from "./ToastProvider";
 import AggregationHeader from "./aggregation/aggregation-header";
 import AggregationActions from "./aggregation/aggregation-actions";
@@ -107,24 +106,21 @@ export default function AggregationDetail({
     getAmountAndDateHasChanges,
   ]);
 
-  const handleSaveClick = useCallback(() => {
+  const handleSaveClick = useCallback(async () => {
     const {
       rateChanges,
       expensesChanged,
-      sanitizedExpenses,
       amountAndDateChanged,
     } = calculateChanges();
     const hasAnyChanges =
       rateChanges.length > 0 || expensesChanged || amountAndDateChanged;
 
     if (!hasAnyChanges) {
-      alert("変更がありません。");
+      showToast("変更がありません", "info");
       return;
     }
-    saveManager.openSaveConfirm(rateChanges, sanitizedExpenses);
-  }, [calculateChanges, saveManager]);
 
-  const handleSaveConfirm = useCallback(async () => {
+    // 保存確認モーダルをスキップして直接保存
     const adjustmentsForAPI = getAdjustmentsForAPI();
     const expensePayload = getSanitizedExpenses();
     const editedEstimateAmount =
@@ -152,7 +148,7 @@ export default function AggregationDetail({
       finalDecisionAmount,
       deliveryDate,
     });
-  }, [getAdjustmentsForAPI, getSanitizedExpenses, saveManager]);
+  }, [calculateChanges, saveManager, showToast, getAdjustmentsForAPI, getSanitizedExpenses]);
 
   const handleStatusChange = useCallback(
     async (newStatus: "aggregating" | "aggregated" | "delivered") => {
@@ -288,14 +284,6 @@ export default function AggregationDetail({
           formatCurrency={formatCurrency}
         />
       </div>
-
-      <SaveConfirmModal
-        isOpen={saveManager.showSaveConfirm}
-        onClose={saveManager.closeSaveConfirm}
-        onConfirm={handleSaveConfirm}
-        rateChanges={saveManager.pendingRateChanges}
-        expenses={saveManager.pendingExpenseSnapshot}
-      />
     </PageLayout>
   );
 }

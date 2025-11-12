@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import PageLayout from '@/components/PageLayout';
+import { useToast } from '@/components/ToastProvider';
 
 // 集計一覧の型定義
 interface AggregationItem {
@@ -24,6 +25,7 @@ export default function AggregationList() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState<'delivered' | 'aggregating' | 'aggregated'>('aggregating');
   const router = useRouter();
+  const { showToast } = useToast();
 
   // APIからデータを取得
   const fetchAggregationItems = useCallback(async () => {
@@ -41,11 +43,11 @@ export default function AggregationList() {
       setItems(allItems);
     } catch (error) {
       console.error('集計一覧取得エラー:', error);
-      alert('データの取得に失敗しました。再度お試しください。');
+      showToast('データの取得に失敗しました。再度お試しください。', 'error');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showToast]);
 
   // 認証状態をチェック
   const checkAuthentication = useCallback(async () => {
@@ -96,6 +98,16 @@ export default function AggregationList() {
     return '集計済み';
   };
 
+  // タブごとにアイテムをフィルタリング
+  const filteredItems = items.filter(item => item.status === activeTab);
+
+  // タブごとのカウントをメモ化
+  const statusCounts = useMemo(() => ({
+    delivered: items.filter(item => item.status === 'delivered').length,
+    aggregating: items.filter(item => item.status === 'aggregating').length,
+    aggregated: items.filter(item => item.status === 'aggregated').length,
+  }), [items]);
+
   // 認証チェック中または未認証の場合
   if (!isAuthenticated || loading) {
     return (
@@ -107,9 +119,6 @@ export default function AggregationList() {
       </PageLayout>
     );
   }
-
-  // タブごとにアイテムをフィルタリング
-  const filteredItems = items.filter(item => item.status === activeTab);
 
   return (
     <PageLayout title="集計一覧">
@@ -129,7 +138,7 @@ export default function AggregationList() {
               <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
                 activeTab === 'delivered' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
               }`}>
-                {items.filter(item => item.status === 'delivered').length}
+                {statusCounts.delivered}
               </span>
             </button>
             <button
@@ -144,7 +153,7 @@ export default function AggregationList() {
               <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
                 activeTab === 'aggregating' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
               }`}>
-                {items.filter(item => item.status === 'aggregating').length}
+                {statusCounts.aggregating}
               </span>
             </button>
             <button
@@ -159,7 +168,7 @@ export default function AggregationList() {
               <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
                 activeTab === 'aggregated' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
               }`}>
-                {items.filter(item => item.status === 'aggregated').length}
+                {statusCounts.aggregated}
               </span>
             </button>
           </nav>
@@ -225,7 +234,7 @@ export default function AggregationList() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <Link href={`/aggregation/${item.id}`}>
-                        <button className="text-blue-600 hover:text-blue-800 font-medium cursor-pointer hover:cursor-pointer hover:bg-transparent focus:bg-transparent">
+                        <button className="text-blue-600 hover:text-blue-800 font-medium">
                           詳細
                         </button>
                       </Link>
