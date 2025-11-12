@@ -234,7 +234,7 @@ export default function AggregationList() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <Link href={`/aggregation/${item.id}`}>
-                        <button className="text-blue-600 hover:text-blue-800 font-medium">
+                        <button className="text-blue-600 hover:text-blue-800 font-medium cursor-pointer">
                           詳細
                         </button>
                       </Link>
