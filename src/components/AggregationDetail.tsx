@@ -188,7 +188,7 @@ export default function AggregationDetail({
         // 完了に変更した場合は集計一覧にリダイレクト
         if (newStatus === "aggregated") {
           showToast("集計が完了されました", "success");
-          router.push("/aggregation");
+          router.push("/aggregation/list");
         } else {
           // 軽量化：ローカルステートのみ更新（API呼び出しなし）
           showToast("ステータスを変更しました", "success");

@@ -147,7 +147,7 @@ export default function AggregationHistory() {
   // 認証チェック中または未認証の場合
   if (!isAuthenticated || loading) {
     return (
-      <PageLayout title="集計完了一覧">
+      <PageLayout title="案件履歴">
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           <span className="ml-3 text-gray-600">読み込み中...</span>
@@ -157,7 +157,7 @@ export default function AggregationHistory() {
   }
 
   return (
-    <PageLayout title="集計完了一覧">
+    <PageLayout title="案件履歴">
       <div className="space-y-6">
         {/* 戻るリンク */}
         <div>
@@ -168,7 +168,7 @@ export default function AggregationHistory() {
             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            集計一覧に戻る
+            集計メニューに戻る
           </Link>
         </div>
 
@@ -257,7 +257,7 @@ export default function AggregationHistory() {
                       {formatDate(item.completedAt)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <Link href={`/aggregation/${item.id}`}>
+                      <Link href={`/aggregation/detail/${item.id}`}>
                         <button className="text-blue-600 hover:text-blue-800 font-medium cursor-pointer">
                           詳細
                         </button>
