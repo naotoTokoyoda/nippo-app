@@ -217,9 +217,9 @@ export default function AggregationFinalDecisionHistory({
               return (
                 <div
                   key={comment.id}
-                  className="border-b border-gray-200 pb-4 last:border-b-0"
+                  className="group border-b border-gray-200 pb-4 last:border-b-0"
                 >
-                  <div className="flex justify-between items-start mb-2">
+                  <div className="mb-2">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-gray-900">
                         {comment.user?.name || '不明なユーザー'}
@@ -228,28 +228,6 @@ export default function AggregationFinalDecisionHistory({
                         {formatDateTime(comment.createdAt)}
                       </span>
                     </div>
-                    {canEdit || canDelete ? (
-                      <div className="flex gap-2">
-                        {canEdit && !isEditing && (
-                          <button
-                            onClick={() => handleEditStart(comment)}
-                            disabled={isSubmitting}
-                            className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
-                          >
-                            ✏️
-                          </button>
-                        )}
-                        {canDelete && !isEditing && (
-                          <button
-                            onClick={() => handleDelete(comment)}
-                            disabled={isSubmitting}
-                            className="text-sm text-gray-500 hover:text-red-600 disabled:opacity-50"
-                          >
-                            🗑️
-                          </button>
-                        )}
-                      </div>
-                    ) : null}
                   </div>
 
                   {isEditing ? (
@@ -280,9 +258,35 @@ export default function AggregationFinalDecisionHistory({
                       </div>
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                      {comment.memo || 'メモなし'}
-                    </p>
+                    <>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap mb-2">
+                        {comment.memo || 'メモなし'}
+                      </p>
+                      {canEdit || canDelete ? (
+                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100">
+                          {canEdit && (
+                            <button
+                              onClick={() => handleEditStart(comment)}
+                              disabled={isSubmitting}
+                              title="編集"
+                              className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                            >
+                              ✏️
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button
+                              onClick={() => handleDelete(comment)}
+                              disabled={isSubmitting}
+                              title="削除"
+                              className="text-sm text-gray-500 hover:text-red-600 disabled:opacity-50"
+                            >
+                              🗑️
+                            </button>
+                          )}
+                        </div>
+                      ) : null}
+                    </>
                   )}
                 </div>
               );
