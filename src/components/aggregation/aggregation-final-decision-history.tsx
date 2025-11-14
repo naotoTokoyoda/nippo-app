@@ -178,13 +178,36 @@ export default function AggregationFinalDecisionHistory({
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-      <div className="bg-purple-50 px-6 py-4 border-b border-gray-200">
-        <h3 className="text-lg font-medium text-purple-900">最終決定金額の変更履歴</h3>
+      <div className="px-6 py-4 border-b border-gray-200">
+        <h3 className="text-lg font-medium text-gray-900">コメント</h3>
       </div>
 
       <div className="p-6">
+        {/* コメント入力エリア */}
+        <div className="mb-6">
+          <textarea
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder="コメントを書く"
+            className="w-full px-3 py-2 border border-gray-300 rounded text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            rows={3}
+            maxLength={500}
+            disabled={isSubmitting}
+          />
+          <div className="flex justify-end">
+            <button
+              onClick={handleAddComment}
+              disabled={isSubmitting || !newComment.trim()}
+              className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? '送信中...' : 'コメントを追加'}
+            </button>
+          </div>
+        </div>
+
+        {/* コメント一覧 */}
         {finalDecisionComments.length > 0 ? (
-          <div className="space-y-4 mb-6">
+          <div className="space-y-4 border-t border-gray-200 pt-6">
             {finalDecisionComments.map((comment) => {
               const isOwnComment = comment.createdBy === currentUser.id;
               const canEdit = canEditComment(comment, currentUser);
@@ -194,36 +217,39 @@ export default function AggregationFinalDecisionHistory({
               return (
                 <div
                   key={comment.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                  className="border-b border-gray-200 pb-4 last:border-b-0"
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-gray-900">
                         {comment.user?.name || '不明なユーザー'}
                       </span>
-                      {isOwnComment && (
-                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                          あなた
-                        </span>
-                      )}
-                      {currentUser.role === 'admin' && !isOwnComment && (
-                        <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">
-                          👑 管理者として操作可能
-                        </span>
-                      )}
-                      <span className="text-xs text-gray-500">
-                        {comment.user?.role === 'admin' ? '(Admin)' : '(Manager)'}
+                      <span className="text-sm text-gray-500">
+                        {formatDateTime(comment.createdAt)}
                       </span>
                     </div>
-                    <span className="text-sm text-gray-500">
-                      {formatDateTime(comment.createdAt)}
-                    </span>
-                  </div>
-
-                  <div className="mb-2">
-                    <span className="text-sm font-medium text-gray-700">
-                      金額: ¥{formatCurrency(comment.amount)}
-                    </span>
+                    {canEdit || canDelete ? (
+                      <div className="flex gap-2">
+                        {canEdit && !isEditing && (
+                          <button
+                            onClick={() => handleEditStart(comment)}
+                            disabled={isSubmitting}
+                            className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                          >
+                            ✏️
+                          </button>
+                        )}
+                        {canDelete && !isEditing && (
+                          <button
+                            onClick={() => handleDelete(comment)}
+                            disabled={isSubmitting}
+                            className="text-sm text-gray-500 hover:text-red-600 disabled:opacity-50"
+                          >
+                            🗑️
+                          </button>
+                        )}
+                      </div>
+                    ) : null}
                   </div>
 
                   {isEditing ? (
@@ -254,78 +280,15 @@ export default function AggregationFinalDecisionHistory({
                       </div>
                     </div>
                   ) : (
-                    <>
-                      <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                        {comment.memo || 'メモなし'}
-                      </p>
-                      <div className="mt-3 flex gap-2">
-                        {canEdit && (
-                          <button
-                            onClick={() => handleEditStart(comment)}
-                            disabled={isSubmitting}
-                            className="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50"
-                          >
-                            編集
-                          </button>
-                        )}
-                        {canDelete && (
-                          <button
-                            onClick={() => handleDelete(comment)}
-                            disabled={isSubmitting}
-                            className="text-sm text-red-600 hover:text-red-800 disabled:opacity-50"
-                          >
-                            削除
-                          </button>
-                        )}
-                      </div>
-                    </>
-                  )}
-
-                  {!isOwnComment && currentUser.role === 'admin' && (
-                    <div className="mt-2 text-xs text-orange-600">
-                      ⚠️ このコメントは{comment.user?.name || '不明なユーザー'}さんが作成したものです
-                    </div>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                      {comment.memo || 'メモなし'}
+                    </p>
                   )}
                 </div>
               );
             })}
           </div>
-        ) : (
-          <div className="text-center py-8 text-gray-500 mb-6 border border-dashed border-gray-300 rounded">
-            まだコメントがありません
-          </div>
-        )}
-
-        {/* コメント追加エリア */}
-        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            コメントを追加
-          </label>
-          <textarea
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder="コメントを入力..."
-            className="w-full px-3 py-2 border border-gray-300 rounded text-sm mb-2"
-            rows={3}
-            maxLength={500}
-            disabled={isSubmitting}
-          />
-          <div className="flex justify-between items-center">
-            <div className="text-sm text-gray-500">
-              {currentUser.name}
-              <span className="text-xs ml-2">
-                ({currentUser.role === 'admin' ? 'Admin' : 'Manager'})
-              </span>
-            </div>
-            <button
-              onClick={handleAddComment}
-              disabled={isSubmitting || !newComment.trim()}
-              className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? '送信中...' : 'コメントを追加'}
-            </button>
-          </div>
-        </div>
+        ) : null}
       </div>
     </div>
   );
