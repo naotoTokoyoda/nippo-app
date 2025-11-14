@@ -71,7 +71,7 @@ export default function HomePage() {
               </svg>
             </div>
             <h2 className="text-2xl font-semibold text-gray-800 mb-2">集計</h2>
-            <p className="text-gray-600">工数集計・単価計算・請求書作成</p>
+            <p className="text-gray-600">納品済み・集計中の案件を管理します</p>
             {isClient && (
               <div className="mt-2 flex items-center justify-center">
                 {isDevelopment ? (

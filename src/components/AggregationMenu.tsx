@@ -7,7 +7,7 @@ export default function AggregationMenu() {
     <div className="max-w-4xl mx-auto p-8">
       <div className="text-center mb-12">
         <h1 className="text-5xl font-bold text-gray-800 mb-4">集計機能</h1>
-        <p className="text-xl text-gray-600">工数集計・単価計算・請求書作成</p>
+        <p className="text-xl text-gray-600">納品済み・集計中の案件を管理</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
@@ -21,7 +21,7 @@ export default function AggregationMenu() {
                 </svg>
               </div>
               <h2 className="text-2xl font-semibold text-gray-800 mb-2">集計一覧</h2>
-              <p className="text-gray-600">納品済み・集計中・Freee登録済みの案件を管理</p>
+              <p className="text-gray-600">納品済み・集計中の案件を管理</p>
             </div>
           </div>
         </Link>
@@ -36,7 +36,7 @@ export default function AggregationMenu() {
                 </svg>
               </div>
               <h2 className="text-2xl font-semibold text-gray-800 mb-2">案件履歴</h2>
-              <p className="text-gray-600">Freee納品書登録済みの完了案件を確認</p>
+              <p className="text-gray-600">完了案件を確認</p>
             </div>
           </div>
         </Link>
