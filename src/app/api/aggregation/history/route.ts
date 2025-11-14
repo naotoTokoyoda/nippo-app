@@ -117,18 +117,17 @@ export async function GET(request: NextRequest) {
     // レスポンス用にデータを整形
     const items: AggregatedWorkOrder[] = workOrders.map((workOrder) => {
       // 累計時間を計算
-      let totalMinutes = 0;
+      let totalHours = 0;
       for (const item of workOrder.reportItems) {
         const startTime = formatUTCToJSTTime(item.startTime);
         const endTime = formatUTCToJSTTime(item.endTime);
-        const workMinutes = calculateWorkTime(
+        const workHours = calculateWorkTime(
           startTime,
           endTime,
           item.workStatus || 'normal'
         );
-        totalMinutes += workMinutes;
+        totalHours += workHours;
       }
-      const totalHours = totalMinutes / 60;
 
       return {
         id: workOrder.id,
