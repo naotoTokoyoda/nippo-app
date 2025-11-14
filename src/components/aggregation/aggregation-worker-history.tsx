@@ -135,7 +135,7 @@ export default function AggregationWorkerHistory({
                       </thead>
                       <tbody>
                         {items
-                          .sort((a, b) => new Date(b.reportDate).getTime() - new Date(a.reportDate).getTime())
+                          .sort((a, b) => new Date(a.reportDate).getTime() - new Date(b.reportDate).getTime())
                           .map((item) => {
                             const workTime = calculateWorkTime(item.startTime, item.endTime, item.workStatus);
                             
