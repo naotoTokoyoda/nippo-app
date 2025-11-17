@@ -17,9 +17,12 @@ const querySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(50),
   search: z.string().optional(),
+  customerName: z.string().optional(),
   periodType: z.enum(['month', 'year', 'all', 'custom']).optional(),
   startDate: z.string().regex(/^\d{4}-\d{2}$/).optional(), // YYYY-MM形式
   endDate: z.string().regex(/^\d{4}-\d{2}$/).optional(),   // YYYY-MM形式
+  sortBy: z.enum(['workNumber', 'completedAt', 'totalHours']).optional(),
+  sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
 });
 
 // レスポンスの型定義
@@ -102,9 +105,12 @@ export async function GET(request: NextRequest) {
       page: searchParams.get('page') || '1',
       limit: searchParams.get('limit') || '50',
       search: searchParams.get('search') || undefined,
+      customerName: searchParams.get('customerName') || undefined,
       periodType: searchParams.get('periodType') || undefined,
       startDate: searchParams.get('startDate') || undefined,
       endDate: searchParams.get('endDate') || undefined,
+      sortBy: searchParams.get('sortBy') || undefined,
+      sortOrder: searchParams.get('sortOrder') || 'desc',
     });
 
     // フィルタ条件を構築
@@ -131,6 +137,16 @@ export async function GET(request: NextRequest) {
       ];
     }
 
+    // 顧客名検索
+    if (params.customerName) {
+      whereCondition.customer = {
+        name: {
+          contains: params.customerName.trim(),
+          mode: 'insensitive',
+        },
+      };
+    }
+
     // 期間フィルタ
     const dateRange = calculateDateRange(params.periodType, params.startDate, params.endDate);
     if (dateRange) {
@@ -149,6 +165,21 @@ export async function GET(request: NextRequest) {
     const totalPages = Math.ceil(totalItems / params.limit);
     const skip = (params.page - 1) * params.limit;
 
+    // ソート条件を構築
+    let orderBy: Prisma.WorkOrderOrderByWithRelationInput = {
+      updatedAt: 'desc', // デフォルト: 完了日時の新しい順
+    };
+
+    if (params.sortBy === 'workNumber') {
+      orderBy = [
+        { frontNumber: params.sortOrder },
+        { backNumber: params.sortOrder },
+      ];
+    } else if (params.sortBy === 'completedAt') {
+      orderBy = { updatedAt: params.sortOrder };
+    }
+    // totalHoursはDB上のフィールドではないので、取得後にソート
+
     // 集計完了案件を取得
     const workOrders = await prisma.workOrder.findMany({
       where: whereCondition,
@@ -166,15 +197,13 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: {
-        updatedAt: 'desc', // 完了日時の新しい順
-      },
+      orderBy,
       skip,
       take: params.limit,
     });
 
     // レスポンス用にデータを整形
-    const items: AggregatedWorkOrder[] = workOrders.map((workOrder) => {
+    let items: AggregatedWorkOrder[] = workOrders.map((workOrder) => {
       // 累計時間を計算
       let totalHours = 0;
       for (const item of workOrder.reportItems) {
@@ -198,6 +227,14 @@ export async function GET(request: NextRequest) {
         term: workOrder.term,
       };
     });
+
+    // 累計時間でソートする場合はここで実施
+    if (params.sortBy === 'totalHours') {
+      items.sort((a, b) => {
+        const diff = a.totalHours - b.totalHours;
+        return params.sortOrder === 'asc' ? diff : -diff;
+      });
+    }
 
     const response: HistoryResponse = {
       success: true,

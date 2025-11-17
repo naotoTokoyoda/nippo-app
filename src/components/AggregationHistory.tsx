@@ -31,9 +31,12 @@ const STORAGE_KEY = 'aggregation_history_search';
 // 検索条件の型
 interface SearchConditions {
   searchQuery: string;
+  customerName: string;
   periodType: PeriodType;
   startDate: string;
   endDate: string;
+  sortBy: 'workNumber' | 'completedAt' | 'totalHours';
+  sortOrder: 'asc' | 'desc';
 }
 
 // デフォルトの検索条件
@@ -45,9 +48,12 @@ const getDefaultConditions = (): SearchConditions => {
   
   return {
     searchQuery: '',
+    customerName: '',
     periodType: 'year', // デフォルトは今年度
     startDate: `${fiscalYear}-04`, // 今年度の4月
     endDate: `${fiscalYear + 1}-03`, // 今年度の3月
+    sortBy: 'completedAt',
+    sortOrder: 'desc',
   };
 };
 
@@ -61,9 +67,12 @@ export default function AggregationHistory() {
   });
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [customerName, setCustomerName] = useState('');
   const [periodType, setPeriodType] = useState<PeriodType>('year');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [sortBy, setSortBy] = useState<'workNumber' | 'completedAt' | 'totalHours'>('completedAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   const router = useRouter();
@@ -114,9 +123,12 @@ export default function AggregationHistory() {
   const fetchHistory = useCallback(async (
     page: number,
     search?: string,
+    customer?: string,
     period?: PeriodType,
     start?: string,
-    end?: string
+    end?: string,
+    sort?: 'workNumber' | 'completedAt' | 'totalHours',
+    order?: 'asc' | 'desc'
   ) => {
     try {
       setLoading(true);
@@ -130,12 +142,24 @@ export default function AggregationHistory() {
         params.append('search', search);
       }
       
+      if (customer) {
+        params.append('customerName', customer);
+      }
+      
       if (period) {
         params.append('periodType', period);
         if (period === 'custom' && start && end) {
           params.append('startDate', start);
           params.append('endDate', end);
         }
+      }
+      
+      if (sort) {
+        params.append('sortBy', sort);
+      }
+      
+      if (order) {
+        params.append('sortOrder', order);
       }
       
       const response = await fetch(`/api/aggregation/history?${params}`);
@@ -170,25 +194,34 @@ export default function AggregationHistory() {
       // URLパラメータから検索条件を取得
       const page = parseInt(searchParams.get('page') || '1', 10);
       const urlSearch = searchParams.get('search') || '';
+      const urlCustomer = searchParams.get('customerName') || '';
       const urlPeriod = (searchParams.get('periodType') as PeriodType) || '';
       const urlStart = searchParams.get('startDate') || '';
       const urlEnd = searchParams.get('endDate') || '';
+      const urlSort = (searchParams.get('sortBy') as 'workNumber' | 'completedAt' | 'totalHours') || '';
+      const urlOrder = (searchParams.get('sortOrder') as 'asc' | 'desc') || '';
 
       // URLにパラメータがある場合はそれを優先、なければLocalStorageから読み込み
-      if (urlSearch || urlPeriod) {
+      if (urlSearch || urlCustomer || urlPeriod) {
         setSearchQuery(urlSearch);
+        setCustomerName(urlCustomer);
         setPeriodType(urlPeriod || 'year');
         setStartDate(urlStart);
         setEndDate(urlEnd);
-        fetchHistory(page, urlSearch, urlPeriod || 'year', urlStart, urlEnd);
+        setSortBy(urlSort || 'completedAt');
+        setSortOrder(urlOrder || 'desc');
+        fetchHistory(page, urlSearch, urlCustomer, urlPeriod || 'year', urlStart, urlEnd, urlSort || 'completedAt', urlOrder || 'desc');
       } else {
         // LocalStorageから前回の検索条件を復元
         const saved = loadSearchConditions();
         setSearchQuery(saved.searchQuery);
+        setCustomerName(saved.customerName);
         setPeriodType(saved.periodType);
         setStartDate(saved.startDate);
         setEndDate(saved.endDate);
-        fetchHistory(page, saved.searchQuery, saved.periodType, saved.startDate, saved.endDate);
+        setSortBy(saved.sortBy);
+        setSortOrder(saved.sortOrder);
+        fetchHistory(page, saved.searchQuery, saved.customerName, saved.periodType, saved.startDate, saved.endDate, saved.sortBy, saved.sortOrder);
       }
     }
   }, [isAuthenticated, searchParams, fetchHistory, loadSearchConditions]);
@@ -198,13 +231,17 @@ export default function AggregationHistory() {
     e.preventDefault();
     
     // 検索条件を保存
-    saveSearchConditions({ searchQuery, periodType, startDate, endDate });
+    saveSearchConditions({ searchQuery, customerName, periodType, startDate, endDate, sortBy, sortOrder });
     
     const params = new URLSearchParams();
     params.set('page', '1');
     
     if (searchQuery) {
       params.set('search', searchQuery);
+    }
+    
+    if (customerName) {
+      params.set('customerName', customerName);
     }
     
     if (periodType) {
@@ -215,19 +252,64 @@ export default function AggregationHistory() {
       }
     }
     
+    if (sortBy) {
+      params.set('sortBy', sortBy);
+    }
+    
+    if (sortOrder) {
+      params.set('sortOrder', sortOrder);
+    }
+    
     router.push(`/aggregation/history?${params.toString()}`);
-  }, [searchQuery, periodType, startDate, endDate, router, saveSearchConditions]);
+  }, [searchQuery, customerName, periodType, startDate, endDate, sortBy, sortOrder, router, saveSearchConditions]);
 
   // 検索クリア
   const handleClear = useCallback(() => {
     const defaultConditions = getDefaultConditions();
     setSearchQuery(defaultConditions.searchQuery);
+    setCustomerName(defaultConditions.customerName);
     setPeriodType(defaultConditions.periodType);
     setStartDate(defaultConditions.startDate);
     setEndDate(defaultConditions.endDate);
+    setSortBy(defaultConditions.sortBy);
+    setSortOrder(defaultConditions.sortOrder);
     saveSearchConditions(defaultConditions);
     router.push('/aggregation/history?page=1');
   }, [router, saveSearchConditions]);
+
+  // ソート変更
+  const handleSort = useCallback((column: 'workNumber' | 'completedAt' | 'totalHours') => {
+    const newSortOrder = sortBy === column && sortOrder === 'desc' ? 'asc' : 'desc';
+    setSortBy(column);
+    setSortOrder(newSortOrder);
+    
+    // 検索条件を保存
+    saveSearchConditions({ searchQuery, customerName, periodType, startDate, endDate, sortBy: column, sortOrder: newSortOrder });
+    
+    const params = new URLSearchParams();
+    params.set('page', '1');
+    
+    if (searchQuery) {
+      params.set('search', searchQuery);
+    }
+    
+    if (customerName) {
+      params.set('customerName', customerName);
+    }
+    
+    if (periodType) {
+      params.set('periodType', periodType);
+      if (periodType === 'custom' && startDate && endDate) {
+        params.set('startDate', startDate);
+        params.set('endDate', endDate);
+      }
+    }
+    
+    params.set('sortBy', column);
+    params.set('sortOrder', newSortOrder);
+    
+    router.push(`/aggregation/history?${params.toString()}`);
+  }, [searchQuery, customerName, periodType, startDate, endDate, sortBy, sortOrder, router, saveSearchConditions]);
 
   // 期間タイプ変更時の処理
   const handlePeriodTypeChange = useCallback((type: PeriodType) => {
@@ -259,6 +341,10 @@ export default function AggregationHistory() {
       params.set('search', searchQuery);
     }
     
+    if (customerName) {
+      params.set('customerName', customerName);
+    }
+    
     if (periodType) {
       params.set('periodType', periodType);
       if (periodType === 'custom' && startDate && endDate) {
@@ -267,8 +353,16 @@ export default function AggregationHistory() {
       }
     }
     
+    if (sortBy) {
+      params.set('sortBy', sortBy);
+    }
+    
+    if (sortOrder) {
+      params.set('sortOrder', sortOrder);
+    }
+    
     router.push(`/aggregation/history?${params.toString()}`);
-  }, [searchQuery, periodType, startDate, endDate, router]);
+  }, [searchQuery, customerName, periodType, startDate, endDate, sortBy, sortOrder, router]);
 
   // 時間フォーマット
   const formatHours = (hours: number) => {
@@ -328,6 +422,21 @@ export default function AggregationHistory() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="例: 1234 または 1234-A"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* 顧客名検索 */}
+            <div>
+              <label htmlFor="customerName" className="block text-sm font-medium text-gray-700 mb-2">
+                顧客名
+              </label>
+              <input
+                type="text"
+                id="customerName"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="例: 神戸製鋼所"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -428,11 +537,13 @@ export default function AggregationHistory() {
         {/* ヘッダー */}
         <div className="text-sm text-gray-600">
           {pagination.totalItems}件の完了案件
-          {(searchQuery || periodType !== 'year') && (
+          {(searchQuery || customerName || periodType !== 'year') && (
             <span className="ml-2 text-gray-500">
               （
               {searchQuery && <span>工番: <span className="font-medium">{searchQuery}</span></span>}
-              {searchQuery && periodType !== 'year' && <span className="mx-1">|</span>}
+              {searchQuery && (customerName || periodType !== 'year') && <span className="mx-1">|</span>}
+              {customerName && <span>顧客: <span className="font-medium">{customerName}</span></span>}
+              {customerName && periodType !== 'year' && <span className="mx-1">|</span>}
               {periodType === 'month' && <span>期間: <span className="font-medium">今月</span></span>}
               {periodType === 'year' && <span>期間: <span className="font-medium">今年度</span></span>}
               {periodType === 'all' && <span>期間: <span className="font-medium">全期間</span></span>}
@@ -451,7 +562,17 @@ export default function AggregationHistory() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    工番
+                    <button
+                      onClick={() => handleSort('workNumber')}
+                      className="flex items-center gap-1 hover:text-gray-700 transition-colors"
+                    >
+                      工番
+                      {sortBy === 'workNumber' && (
+                        <span className="text-blue-600">
+                          {sortOrder === 'asc' ? '▲' : '▼'}
+                        </span>
+                      )}
+                    </button>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     顧客
@@ -460,10 +581,30 @@ export default function AggregationHistory() {
                     案件名
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    累計時間
+                    <button
+                      onClick={() => handleSort('totalHours')}
+                      className="flex items-center gap-1 hover:text-gray-700 transition-colors"
+                    >
+                      累計時間
+                      {sortBy === 'totalHours' && (
+                        <span className="text-blue-600">
+                          {sortOrder === 'asc' ? '▲' : '▼'}
+                        </span>
+                      )}
+                    </button>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    完了日
+                    <button
+                      onClick={() => handleSort('completedAt')}
+                      className="flex items-center gap-1 hover:text-gray-700 transition-colors"
+                    >
+                      完了日
+                      {sortBy === 'completedAt' && (
+                        <span className="text-blue-600">
+                          {sortOrder === 'asc' ? '▲' : '▼'}
+                        </span>
+                      )}
+                    </button>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     アクション
