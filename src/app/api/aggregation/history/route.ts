@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
     const skip = (params.page - 1) * params.limit;
 
     // ソート条件を構築
-    let orderBy: Prisma.WorkOrderOrderByWithRelationInput = {
+    let orderBy: Prisma.WorkOrderOrderByWithRelationInput | Prisma.WorkOrderOrderByWithRelationInput[] = {
       updatedAt: 'desc', // デフォルト: 完了日時の新しい順
     };
 
@@ -190,7 +190,7 @@ export async function GET(request: NextRequest) {
     });
 
     // レスポンス用にデータを整形
-    let items: AggregatedWorkOrder[] = workOrders.map((workOrder) => {
+    const items: AggregatedWorkOrder[] = workOrders.map((workOrder) => {
       // 累計時間を計算
       let totalHours = 0;
       for (const item of workOrder.reportItems) {
