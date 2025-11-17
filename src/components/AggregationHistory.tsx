@@ -537,19 +537,15 @@ export default function AggregationHistory() {
         {/* ヘッダー */}
         <div className="text-sm text-gray-600">
           {pagination.totalItems}件の完了案件
-          {(searchQuery || customerName || periodType !== 'year') && (
+          {(searchQuery || customerName || periodType === 'month' || periodType === 'all') && (
             <span className="ml-2 text-gray-500">
               （
               {searchQuery && <span>工番: <span className="font-medium">{searchQuery}</span></span>}
-              {searchQuery && (customerName || periodType !== 'year') && <span className="mx-1">|</span>}
+              {searchQuery && (customerName || periodType === 'month' || periodType === 'all') && <span className="mx-1">|</span>}
               {customerName && <span>顧客: <span className="font-medium">{customerName}</span></span>}
-              {customerName && periodType !== 'year' && <span className="mx-1">|</span>}
+              {customerName && (periodType === 'month' || periodType === 'all') && <span className="mx-1">|</span>}
               {periodType === 'month' && <span>期間: <span className="font-medium">今月</span></span>}
-              {periodType === 'year' && <span>期間: <span className="font-medium">今年度</span></span>}
               {periodType === 'all' && <span>期間: <span className="font-medium">全期間</span></span>}
-              {periodType === 'custom' && startDate && endDate && (
-                <span>期間: <span className="font-medium">{startDate} 〜 {endDate}</span></span>
-              )}
               ）
             </span>
           )}
