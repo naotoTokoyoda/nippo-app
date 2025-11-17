@@ -8,22 +8,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { ApiErrorResponse } from '@/types/api';
-import { z } from 'zod';
 import { calculateWorkTime, formatUTCToJSTTime } from '@/utils/timeCalculation';
 import { Prisma } from '@prisma/client';
-
-// クエリパラメータのバリデーションスキーマ
-const querySchema = z.object({
-  page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(50),
-  search: z.string().optional(),
-  customerName: z.string().optional(),
-  periodType: z.enum(['month', 'year', 'all', 'custom']).optional(),
-  startDate: z.string().regex(/^\d{4}-\d{2}$/).optional(), // YYYY-MM形式
-  endDate: z.string().regex(/^\d{4}-\d{2}$/).optional(),   // YYYY-MM形式
-  sortBy: z.enum(['workNumber', 'completedAt', 'totalHours']).optional(),
-  sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
-});
+import { aggregationHistoryQuerySchema } from '@/lib/validation/aggregation';
 
 // レスポンスの型定義
 interface AggregatedWorkOrder {
@@ -101,7 +88,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     
     // クエリパラメータのバリデーション
-    const params = querySchema.parse({
+    const params = aggregationHistoryQuerySchema.parse({
       page: searchParams.get('page') || '1',
       limit: searchParams.get('limit') || '50',
       search: searchParams.get('search') || undefined,
