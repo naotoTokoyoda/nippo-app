@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import PageLayout from '@/components/PageLayout';
 import { useToast } from '@/components/ToastProvider';
+import { PeriodType } from '@/types/aggregation';
 
 // 集計完了案件の型定義
 interface AggregatedWorkOrder {
@@ -24,6 +25,32 @@ interface PaginationInfo {
   itemsPerPage: number;
 }
 
+// LocalStorageのキー
+const STORAGE_KEY = 'aggregation_history_search';
+
+// 検索条件の型
+interface SearchConditions {
+  searchQuery: string;
+  periodType: PeriodType;
+  startDate: string;
+  endDate: string;
+}
+
+// デフォルトの検索条件
+const getDefaultConditions = (): SearchConditions => {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  const fiscalYear = currentMonth >= 3 ? currentYear : currentYear - 1;
+  
+  return {
+    searchQuery: '',
+    periodType: 'year', // デフォルトは今年度
+    startDate: `${fiscalYear}-04`, // 今年度の4月
+    endDate: `${fiscalYear + 1}-03`, // 今年度の3月
+  };
+};
+
 export default function AggregationHistory() {
   const [items, setItems] = useState<AggregatedWorkOrder[]>([]);
   const [pagination, setPagination] = useState<PaginationInfo>({
@@ -34,6 +61,9 @@ export default function AggregationHistory() {
   });
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [periodType, setPeriodType] = useState<PeriodType>('year');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   const router = useRouter();
@@ -58,8 +88,36 @@ export default function AggregationHistory() {
     }
   }, [router]);
 
+  // LocalStorageから検索条件を読み込み
+  const loadSearchConditions = useCallback((): SearchConditions => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (error) {
+      console.error('検索条件の読み込みエラー:', error);
+    }
+    return getDefaultConditions();
+  }, []);
+
+  // LocalStorageに検索条件を保存
+  const saveSearchConditions = useCallback((conditions: SearchConditions) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(conditions));
+    } catch (error) {
+      console.error('検索条件の保存エラー:', error);
+    }
+  }, []);
+
   // データを取得
-  const fetchHistory = useCallback(async (page: number, search?: string) => {
+  const fetchHistory = useCallback(async (
+    page: number,
+    search?: string,
+    period?: PeriodType,
+    start?: string,
+    end?: string
+  ) => {
     try {
       setLoading(true);
       
@@ -70,6 +128,14 @@ export default function AggregationHistory() {
       
       if (search) {
         params.append('search', search);
+      }
+      
+      if (period) {
+        params.append('periodType', period);
+        if (period === 'custom' && start && end) {
+          params.append('startDate', start);
+          params.append('endDate', end);
+        }
       }
       
       const response = await fetch(`/api/aggregation/history?${params}`);
@@ -101,33 +167,108 @@ export default function AggregationHistory() {
   // 認証後にデータ取得
   useEffect(() => {
     if (isAuthenticated) {
+      // URLパラメータから検索条件を取得
       const page = parseInt(searchParams.get('page') || '1', 10);
-      const search = searchParams.get('search') || '';
-      setSearchQuery(search);
-      fetchHistory(page, search);
+      const urlSearch = searchParams.get('search') || '';
+      const urlPeriod = (searchParams.get('periodType') as PeriodType) || '';
+      const urlStart = searchParams.get('startDate') || '';
+      const urlEnd = searchParams.get('endDate') || '';
+
+      // URLにパラメータがある場合はそれを優先、なければLocalStorageから読み込み
+      if (urlSearch || urlPeriod) {
+        setSearchQuery(urlSearch);
+        setPeriodType(urlPeriod || 'year');
+        setStartDate(urlStart);
+        setEndDate(urlEnd);
+        fetchHistory(page, urlSearch, urlPeriod || 'year', urlStart, urlEnd);
+      } else {
+        // LocalStorageから前回の検索条件を復元
+        const saved = loadSearchConditions();
+        setSearchQuery(saved.searchQuery);
+        setPeriodType(saved.periodType);
+        setStartDate(saved.startDate);
+        setEndDate(saved.endDate);
+        fetchHistory(page, saved.searchQuery, saved.periodType, saved.startDate, saved.endDate);
+      }
     }
-  }, [isAuthenticated, searchParams, fetchHistory]);
+  }, [isAuthenticated, searchParams, fetchHistory, loadSearchConditions]);
 
   // 検索実行
   const handleSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault();
+    
+    // 検索条件を保存
+    saveSearchConditions({ searchQuery, periodType, startDate, endDate });
+    
     const params = new URLSearchParams();
     params.set('page', '1');
+    
     if (searchQuery) {
       params.set('search', searchQuery);
     }
+    
+    if (periodType) {
+      params.set('periodType', periodType);
+      if (periodType === 'custom' && startDate && endDate) {
+        params.set('startDate', startDate);
+        params.set('endDate', endDate);
+      }
+    }
+    
     router.push(`/aggregation/history?${params.toString()}`);
-  }, [searchQuery, router]);
+  }, [searchQuery, periodType, startDate, endDate, router, saveSearchConditions]);
+
+  // 検索クリア
+  const handleClear = useCallback(() => {
+    const defaultConditions = getDefaultConditions();
+    setSearchQuery(defaultConditions.searchQuery);
+    setPeriodType(defaultConditions.periodType);
+    setStartDate(defaultConditions.startDate);
+    setEndDate(defaultConditions.endDate);
+    saveSearchConditions(defaultConditions);
+    router.push('/aggregation/history?page=1');
+  }, [router, saveSearchConditions]);
+
+  // 期間タイプ変更時の処理
+  const handlePeriodTypeChange = useCallback((type: PeriodType) => {
+    setPeriodType(type);
+    
+    // 今月・今年度の場合は日付を自動設定
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    
+    if (type === 'month') {
+      const start = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+      const end = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+      setStartDate(start);
+      setEndDate(end);
+    } else if (type === 'year') {
+      const fiscalYear = currentMonth >= 3 ? currentYear : currentYear - 1;
+      setStartDate(`${fiscalYear}-04`);
+      setEndDate(`${fiscalYear + 1}-03`);
+    }
+  }, []);
 
   // ページ変更
   const handlePageChange = useCallback((newPage: number) => {
     const params = new URLSearchParams();
     params.set('page', newPage.toString());
+    
     if (searchQuery) {
       params.set('search', searchQuery);
     }
+    
+    if (periodType) {
+      params.set('periodType', periodType);
+      if (periodType === 'custom' && startDate && endDate) {
+        params.set('startDate', startDate);
+        params.set('endDate', endDate);
+      }
+    }
+    
     router.push(`/aggregation/history?${params.toString()}`);
-  }, [searchQuery, router]);
+  }, [searchQuery, periodType, startDate, endDate, router]);
 
   // 時間フォーマット
   const formatHours = (hours: number) => {
@@ -173,11 +314,13 @@ export default function AggregationHistory() {
         </div>
 
         {/* 検索フォーム */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <form onSubmit={handleSearch} className="flex gap-4">
-            <div className="flex-1">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">🔍 案件検索</h3>
+          <form onSubmit={handleSearch} className="space-y-4">
+            {/* 工番検索 */}
+            <div>
               <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
-                🔍 工番検索
+                工番
               </label>
               <input
                 type="text"
@@ -188,12 +331,95 @@ export default function AggregationHistory() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
-            <div className="flex items-end">
+
+            {/* 期間選択 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                期間
+              </label>
+              <div className="flex flex-wrap gap-3 mb-3">
+                <button
+                  type="button"
+                  onClick={() => handlePeriodTypeChange('month')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    periodType === 'month'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  今月
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handlePeriodTypeChange('year')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    periodType === 'year'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  今年度
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handlePeriodTypeChange('all')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    periodType === 'all'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  全期間
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handlePeriodTypeChange('custom')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    periodType === 'custom'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  範囲指定
+                </button>
+              </div>
+
+              {/* カスタム範囲指定 */}
+              {periodType === 'custom' && (
+                <div className="flex items-center gap-3 mt-3">
+                  <input
+                    type="month"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                  <span className="text-gray-600">〜</span>
+                  <input
+                    type="month"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* 検索ボタン */}
+            <div className="flex gap-3">
               <button
                 type="submit"
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
                 検索
+              </button>
+              <button
+                type="button"
+                onClick={handleClear}
+                className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+              >
+                クリア
               </button>
             </div>
           </form>
@@ -202,9 +428,18 @@ export default function AggregationHistory() {
         {/* ヘッダー */}
         <div className="text-sm text-gray-600">
           {pagination.totalItems}件の完了案件
-          {searchQuery && (
-            <span className="ml-2">
-              （検索: <span className="font-medium">{searchQuery}</span>）
+          {(searchQuery || periodType !== 'year') && (
+            <span className="ml-2 text-gray-500">
+              （
+              {searchQuery && <span>工番: <span className="font-medium">{searchQuery}</span></span>}
+              {searchQuery && periodType !== 'year' && <span className="mx-1">|</span>}
+              {periodType === 'month' && <span>期間: <span className="font-medium">今月</span></span>}
+              {periodType === 'year' && <span>期間: <span className="font-medium">今年度</span></span>}
+              {periodType === 'all' && <span>期間: <span className="font-medium">全期間</span></span>}
+              {periodType === 'custom' && startDate && endDate && (
+                <span>期間: <span className="font-medium">{startDate} 〜 {endDate}</span></span>
+              )}
+              ）
             </span>
           )}
         </div>

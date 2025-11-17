@@ -17,6 +17,9 @@ const querySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(50),
   search: z.string().optional(),
+  periodType: z.enum(['month', 'year', 'all', 'custom']).optional(),
+  startDate: z.string().regex(/^\d{4}-\d{2}$/).optional(), // YYYY-MM形式
+  endDate: z.string().regex(/^\d{4}-\d{2}$/).optional(),   // YYYY-MM形式
 });
 
 // レスポンスの型定義
@@ -44,6 +47,50 @@ interface HistoryResponse {
 }
 
 /**
+ * 期間フィルタの日付範囲を計算
+ */
+function calculateDateRange(periodType?: string, startDate?: string, endDate?: string): { start?: Date; end?: Date } | null {
+  if (!periodType) return null;
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
+  switch (periodType) {
+    case 'month': {
+      // 今月（1日〜月末）
+      const start = new Date(currentYear, currentMonth, 1);
+      const end = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999);
+      return { start, end };
+    }
+    case 'year': {
+      // 今年度（4月1日〜3月31日）
+      const fiscalYear = currentMonth >= 3 ? currentYear : currentYear - 1;
+      const start = new Date(fiscalYear, 3, 1); // 4月1日
+      const end = new Date(fiscalYear + 1, 2, 31, 23, 59, 59, 999); // 3月31日
+      return { start, end };
+    }
+    case 'all':
+      // 全期間（フィルタなし）
+      return null;
+    case 'custom': {
+      // カスタム範囲
+      if (!startDate || !endDate) return null;
+      
+      const [startYear, startMonth] = startDate.split('-').map(Number);
+      const [endYear, endMonth] = endDate.split('-').map(Number);
+      
+      const start = new Date(startYear, startMonth - 1, 1);
+      const end = new Date(endYear, endMonth, 0, 23, 59, 59, 999);
+      
+      return { start, end };
+    }
+    default:
+      return null;
+  }
+}
+
+/**
  * 集計完了一覧を取得
  */
 export async function GET(request: NextRequest) {
@@ -55,6 +102,9 @@ export async function GET(request: NextRequest) {
       page: searchParams.get('page') || '1',
       limit: searchParams.get('limit') || '50',
       search: searchParams.get('search') || undefined,
+      periodType: searchParams.get('periodType') || undefined,
+      startDate: searchParams.get('startDate') || undefined,
+      endDate: searchParams.get('endDate') || undefined,
     });
 
     // フィルタ条件を構築
@@ -79,6 +129,15 @@ export async function GET(request: NextRequest) {
           },
         },
       ];
+    }
+
+    // 期間フィルタ
+    const dateRange = calculateDateRange(params.periodType, params.startDate, params.endDate);
+    if (dateRange) {
+      whereCondition.updatedAt = {
+        gte: dateRange.start,
+        lte: dateRange.end,
+      };
     }
 
     // 総件数を取得

@@ -107,3 +107,23 @@ export interface EditedExpense {
 }
 
 export type EditedExpenses = Record<string, EditedExpense>;
+
+/**
+ * 期間検索のタイプ
+ */
+export type PeriodType = 'month' | 'year' | 'all' | 'custom';
+
+/**
+ * 案件履歴の検索条件
+ */
+export interface HistorySearchParams {
+  workNumber?: string;
+  customerName?: string;
+  periodType: PeriodType;
+  startDate?: string; // YYYY-MM形式
+  endDate?: string;   // YYYY-MM形式
+  sortBy?: 'workNumber' | 'completedAt' | 'totalHours';
+  sortOrder?: 'asc' | 'desc';
+  page?: number;
+  limit?: number;
+}
