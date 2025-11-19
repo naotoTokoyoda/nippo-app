@@ -120,6 +120,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Prismaのユニーク制約エラーをチェック
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'このメールアドレスは既に使用されています',
+        },
+        { status: 400 }
+      );
+    }
+
     logger.apiError('/api/admin/users [POST]', error instanceof Error ? error : new Error('Unknown error'));
     return NextResponse.json(
       {
