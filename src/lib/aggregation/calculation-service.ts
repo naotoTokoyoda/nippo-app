@@ -66,6 +66,28 @@ export async function calculateActivitiesForWorkOrder(
     }
   );
 
+  // INSPECTION（検品）をNORMALに統合（廃止処理）
+  if (activityMap.has('INSPECTION')) {
+    const inspectionData = activityMap.get('INSPECTION')!;
+    
+    if (!activityMap.has('NORMAL')) {
+      // NORMALがない場合は、INSPECTIONをNORMALに変更
+      activityMap.set('NORMAL', {
+        activity: 'NORMAL',
+        hours: inspectionData.hours,
+        items: inspectionData.items,
+      });
+    } else {
+      // NORMALがある場合は、INSPECTIONをマージ
+      const normalData = activityMap.get('NORMAL')!;
+      normalData.hours += inspectionData.hours;
+      normalData.items.push(...inspectionData.items);
+    }
+    
+    // INSPECTIONを削除
+    activityMap.delete('INSPECTION');
+  }
+
   // 各Activity別の単価・金額を計算
   const activities = await Promise.all(
     Array.from(activityMap.values()).map(async (activityData: ActivityGroup) =>

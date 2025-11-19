@@ -66,37 +66,34 @@ export function getLaborCategory(activity: ActivityType): LaborCategory {
  * レポートアイテムからアクティビティを判定する
  * 
  * 判定ロジック：
- * 1. 作業者名がカタカナ → 実習生
- * 2. 作業内容に「検品」を含む → 検品
- * 3. 機械種類による判定
- * 4. デフォルト → 通常作業
+ * 1. 機械種類による判定（優先）
+ * 2. 実習生フラグ（isTrainee）→ 実習生
+ * 3. デフォルト → 通常作業
+ * 
+ * 注：検品（INSPECTION）は廃止され、通常作業（NORMAL）に統合されました
  */
 export function determineActivity(reportItem: ReportItemWithRelations): ActivityType {
-  // 1. 実習生判定（作業者名がカタカナ）
-  const workerName = reportItem.report.worker.name;
-  if (/^[\u30A0-\u30FF\s]+$/.test(workerName)) {
-    return 'TRAINEE1';
-  }
-
-  // 2. 検品判定（作業内容に「検品」が含まれる）
-  const workDescription = reportItem.workDescription || '';
-  if (workDescription.includes('検品')) {
-    return 'INSPECTION';
-  }
-
-  // 3. 機械種類による判定
+  // 1. 機械種類による判定（機械稼働費が優先）
   const machineName = reportItem.machine.name;
-  if (machineName === 'MILLAC 1052 VII') {
+  
+  // 部分一致で判定（より柔軟な判定）
+  if (machineName.includes('1052')) {
     return 'M_1052';
   }
-  if (machineName === '正面盤 : Chubu LF 500') {
+  if (machineName.includes('正面')) {
     return 'M_SHOMEN';
   }
-  if (machineName === '12尺 : 汎用旋盤') {
+  if (machineName.includes('12尺')) {
     return 'M_12SHAKU';
   }
 
-  // 4. デフォルトは通常作業
+  // 2. 実習生判定（isTraineeフラグ）
+  const worker = reportItem.report.worker;
+  if (worker.isTrainee) {
+    return 'TRAINEE1';
+  }
+
+  // 3. デフォルトは通常作業
   return 'NORMAL';
 }
 
