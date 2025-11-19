@@ -10,7 +10,12 @@ datasource db {
 model User {
   id                    String               @id @default(cuid())
   name                  String               @db.VarChar(100)
-  role                  String               @default("manager") @db.VarChar(20) // 'manager' または 'admin'
+  role                  String               @default("member") @db.VarChar(20) // 'admin' | 'manager' | 'member'
+  email                 String?              @unique @db.VarChar(255) // admin/managerのみ
+  password              String?              @db.VarChar(255) // admin/managerのみ（ハッシュ化）
+  pin                   String               @default("0000") @db.VarChar(4) // 4桁数字
+  isTrainee             Boolean              @default(false) @map("is_trainee") // 実習生フラグ
+  isActive              Boolean              @default(true) @map("is_active") // 論理削除用
   createdAt             DateTime             @default(now()) @map("created_at")
   updatedAt             DateTime             @updatedAt @map("updated_at")
   reports               Report[]
@@ -20,6 +25,8 @@ model User {
 
   @@index([name])
   @@index([role])
+  @@index([email])
+  @@index([isActive])
   @@map("users")
 }
 
@@ -39,12 +46,14 @@ model Customer {
 model Machine {
   id          String       @id @default(cuid())
   name        String       @db.VarChar(100)
-  category    String       @db.VarChar(50)
+  isActive    Boolean      @default(true) @map("is_active") // 論理削除用
+  memo        String?      @db.VarChar(200) // 機械の説明・備考
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
   reportItems ReportItem[]
 
-  @@index([category])
+  @@index([name])
+  @@index([isActive])
   @@map("machines")
 }
 
@@ -126,17 +135,20 @@ model ReportItem {
 
 model Rate {
   id            String    @id @default(cuid())
-  activity      String    @db.VarChar(20) // Activity種別: NORMAL/TRAINEE1/INSPECTION/M_1052/M_SHOMEN/M_12SHAKU
+  activity      String    @db.VarChar(50) // Activity種別: NORMAL/TRAINEE1/M_1052/M_SHOMEN/M_12SHAKU等
+  activityType  String    @default("labor") @db.VarChar(20) // 'labor' | 'machine'
+  displayName   String    @default("") @db.VarChar(100) // 表示名（例：「通常作業」「1052」）
   effectiveFrom DateTime  @map("effective_from") @db.Date // 適用開始日
   effectiveTo   DateTime? @map("effective_to") @db.Date // 適用終了日（NULLは現在有効）
   costRate      Int       @map("cost_rate") // 原価単価
   billRate      Int       @map("bill_rate") // 請求単価
-  memo          String?   @db.VarChar(50) // メモ
+  memo          String?   @db.VarChar(200) // メモ
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
   @@index([activity, effectiveFrom])
   @@index([effectiveFrom])
+  @@index([activityType])
   @@map("rates")
 }
 
@@ -239,4 +251,18 @@ model AggregationSummary {
   @@index([aggregatedAt])
   @@index([aggregatedBy])
   @@map("aggregation_summaries")
+}
+
+model ExpenseMarkupSetting {
+  id            String    @id @default(cuid())
+  category      String    @db.VarChar(50) // '材料' | '外注' | '配送' | 'その他'
+  markupRate    Decimal   @db.Decimal(5,2) // 1.20 = 20%マークアップ
+  effectiveFrom DateTime  @map("effective_from") @db.Date // 適用開始日
+  effectiveTo   DateTime? @map("effective_to") @db.Date // 適用終了日（NULLは現在有効）
+  memo          String?   @db.VarChar(200) // メモ
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  
+  @@index([category, effectiveFrom])
+  @@map("expense_markup_settings")
 }
