@@ -24,6 +24,7 @@ export default function MarkupPage() {
   const [settings, setSettings] = useState<MarkupSetting[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [categoryErrors, setCategoryErrors] = useState<Record<string, string>>({});
   
   // カテゴリ別のフォームデータ
   const [formData, setFormData] = useState<Record<string, CategoryFormData>>({
@@ -100,6 +101,19 @@ export default function MarkupPage() {
   const handleSubmit = async (category: string) => {
     const data = formData[category];
     
+    // エラーをクリア
+    setCategoryErrors(prev => ({ ...prev, [category]: '' }));
+    
+    // クライアント側バリデーション
+    const markupValue = parseFloat(data.markupRate);
+    if (isNaN(markupValue) || markupValue < 0 || markupValue > 100) {
+      setCategoryErrors(prev => ({ 
+        ...prev, 
+        [category]: 'マークアップ率は0〜100の範囲で入力してください' 
+      }));
+      return;
+    }
+    
     try {
       const response = await fetch('/api/admin/markup', {
         method: 'POST',
@@ -108,7 +122,7 @@ export default function MarkupPage() {
         },
         body: JSON.stringify({
           category,
-          markupRate: parseFloat(data.markupRate),
+          markupRate: markupValue,
           effectiveFrom: new Date(data.effectiveFrom).toISOString(),
           effectiveTo: data.effectiveTo ? new Date(data.effectiveTo).toISOString() : null,
           memo: data.memo || null,
@@ -119,12 +133,19 @@ export default function MarkupPage() {
 
       if (result.success) {
         alert('マークアップ率を保存しました');
+        setCategoryErrors(prev => ({ ...prev, [category]: '' }));
         fetchSettings();
       } else {
-        alert(result.error || 'マークアップ率の保存に失敗しました');
+        setCategoryErrors(prev => ({ 
+          ...prev, 
+          [category]: result.error || 'マークアップ率の保存に失敗しました' 
+        }));
       }
     } catch (err) {
-      alert('マークアップ率の保存に失敗しました');
+      setCategoryErrors(prev => ({ 
+        ...prev, 
+        [category]: 'マークアップ率の保存に失敗しました' 
+      }));
       console.error(err);
     }
   };
@@ -194,16 +215,27 @@ export default function MarkupPage() {
                   <input
                     type="number"
                     value={data.markupRate}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      [category]: { ...data, markupRate: e.target.value }
-                    })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        [category]: { ...data, markupRate: e.target.value }
+                      });
+                      // 入力時にエラーをクリア
+                      if (categoryErrors[category]) {
+                        setCategoryErrors(prev => ({ ...prev, [category]: '' }));
+                      }
+                    }}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      categoryErrors[category] ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     min="0"
                     max="100"
                     step="0.01"
                     required
                   />
+                  <p className="mt-1 text-xs text-gray-500">
+                    0〜100の範囲で入力してください
+                  </p>
                 </div>
 
                 <div>
@@ -254,6 +286,15 @@ export default function MarkupPage() {
                   />
                 </div>
               </div>
+
+              {/* エラーメッセージ */}
+              {categoryErrors[category] && (
+                <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-sm text-red-800">
+                    ⚠️ {categoryErrors[category]}
+                  </p>
+                </div>
+              )}
 
               <button
                 onClick={() => handleSubmit(category)}
