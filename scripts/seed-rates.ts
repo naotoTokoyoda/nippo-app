@@ -12,6 +12,8 @@ async function seedRates() {
   const rates = [
     {
       activity: 'NORMAL',
+      activityType: 'labor',
+      displayName: '通常作業',
       effectiveFrom: new Date('2024-01-01'),
       effectiveTo: null, // 現在有効
       costRate: 11000,
@@ -19,6 +21,8 @@ async function seedRates() {
     },
     {
       activity: 'TRAINEE1',
+      activityType: 'labor',
+      displayName: '実習生',
       effectiveFrom: new Date('2024-01-01'),
       effectiveTo: null,
       costRate: 11000,
@@ -26,13 +30,17 @@ async function seedRates() {
     },
     {
       activity: 'INSPECTION',
+      activityType: 'labor',
+      displayName: '検品（廃止）',
       effectiveFrom: new Date('2024-01-01'),
-      effectiveTo: null,
+      effectiveTo: new Date('2025-01-01'), // 廃止済み
       costRate: 11000,
       billRate: 11000,
     },
     {
       activity: 'M_1052',
+      activityType: 'machine',
+      displayName: '1052',
       effectiveFrom: new Date('2024-01-01'),
       effectiveTo: null,
       costRate: 13000,
@@ -40,6 +48,8 @@ async function seedRates() {
     },
     {
       activity: 'M_SHOMEN',
+      activityType: 'machine',
+      displayName: '正面',
       effectiveFrom: new Date('2024-01-01'),
       effectiveTo: null,
       costRate: 13000,
@@ -47,6 +57,8 @@ async function seedRates() {
     },
     {
       activity: 'M_12SHAKU',
+      activityType: 'machine',
+      displayName: '12尺',
       effectiveFrom: new Date('2024-01-01'),
       effectiveTo: null,
       costRate: 13000,
@@ -58,7 +70,7 @@ async function seedRates() {
     await prisma.rate.create({
       data: rate,
     });
-    console.log(`✅ ${rate.activity}: 原価${rate.costRate}円, 請求${rate.billRate}円`);
+    console.log(`✅ ${rate.displayName} (${rate.activity}): 原価${rate.costRate}円, 請求${rate.billRate}円`);
   }
 
   console.log('🎉 基本単価データのシードが完了しました');

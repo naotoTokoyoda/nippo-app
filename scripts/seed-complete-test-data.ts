@@ -58,7 +58,7 @@ async function seedCompleteTestData() {
         prisma.machine.create({
           data: {
             name,
-            category: 'NC旋盤', // デフォルトカテゴリ
+            isActive: true,
           }
         })
       )

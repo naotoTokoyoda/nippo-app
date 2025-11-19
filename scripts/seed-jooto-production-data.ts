@@ -84,19 +84,19 @@ async function seedJootoProductionData() {
     console.log('🔧 機械データを作成中...');
     const machines = await Promise.all([
       prisma.machine.create({
-        data: { name: 'MILLAC 1052 VII', category: 'NC旋盤' }
+        data: { name: 'MILLAC 1052 VII', isActive: true }
       }),
       prisma.machine.create({
-        data: { name: '正面盤 : Chubu LF 500', category: '正面盤' }
+        data: { name: '正面盤 : Chubu LF 500', isActive: true }
       }),
       prisma.machine.create({
-        data: { name: '12尺 : 汎用旋盤', category: '汎用旋盤' }
+        data: { name: '12尺 : 汎用旋盤', isActive: true }
       }),
       prisma.machine.create({
-        data: { name: '汎用旋盤', category: '汎用' }
+        data: { name: '汎用旋盤', isActive: true }
       }),
       prisma.machine.create({
-        data: { name: '溶接機', category: '溶接' }
+        data: { name: '溶接機', isActive: true }
       }),
     ]);
     console.log(`✅ 機械 ${machines.length}台を作成しました`);
