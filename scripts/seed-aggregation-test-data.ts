@@ -68,7 +68,7 @@ async function seedAggregationTestData() {
       machine1052 = await prisma.machine.create({
         data: {
           name: 'MILLAC 1052 VII',
-          category: 'NC旋盤',
+          isActive: true,
         }
       });
     }
@@ -80,7 +80,7 @@ async function seedAggregationTestData() {
       machineShomen = await prisma.machine.create({
         data: {
           name: '正面盤 : Chubu LF 500',
-          category: '正面盤',
+          isActive: true,
         }
       });
     }
@@ -92,7 +92,7 @@ async function seedAggregationTestData() {
       machineNormal = await prisma.machine.create({
         data: {
           name: '汎用旋盤',
-          category: '汎用',
+          isActive: true,
         }
       });
     }

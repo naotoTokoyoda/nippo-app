@@ -17,7 +17,9 @@
     "clear-test-data": "tsx scripts/clear-test-data.ts",
     "performance-test": "tsx scripts/performance-test.ts",
     "migrate-work-descriptions": "tsx scripts/migrate-work-descriptions.ts",
-    "seed-jooto-production": "tsx scripts/seed-jooto-production-data.ts"
+    "seed-jooto-production": "tsx scripts/seed-jooto-production-data.ts",
+    "seed:rates": "tsx scripts/seed-rates.ts",
+    "seed:initial": "tsx scripts/seed-initial-data.ts"
   },
   "dependencies": {
     "@faker-js/faker": "^9.9.0",
@@ -25,6 +27,8 @@
     "@prisma/client": "^6.13.0",
     "@react-email/components": "^0.5.0",
     "@react-email/render": "^1.2.0",
+    "@types/bcryptjs": "^3.0.0",
+    "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.13",
     "next": "15.4.1",

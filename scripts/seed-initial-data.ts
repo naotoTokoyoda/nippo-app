@@ -1,0 +1,89 @@
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+
+const prisma = new PrismaClient();
+
+async function seedInitialData() {
+  console.log('🌱 初期データをシードしています...');
+
+  // 1. 初期Admin作成
+  console.log('\n📌 初期Adminユーザーを作成...');
+  
+  const hashedPassword = await bcrypt.hash('Letmein2025', 10);
+  
+  const admin = await prisma.user.upsert({
+    where: { email: 'ntokoyoda@sevenstars-ltd.com' },
+    update: {},
+    create: {
+      name: '常世田',
+      role: 'admin',
+      email: 'ntokoyoda@sevenstars-ltd.com',
+      password: hashedPassword,
+      pin: '0000',
+      isTrainee: false,
+      isActive: true,
+    },
+  });
+  
+  console.log(`✅ Admin作成: ${admin.name} (${admin.email})`);
+
+  // 2. ExpenseMarkupSetting初期データ作成
+  console.log('\n📌 経費マークアップ率設定を作成...');
+  
+  // 既存データを削除
+  await prisma.expenseMarkupSetting.deleteMany();
+  
+  const markupSettings = [
+    {
+      category: '材料',
+      markupRate: 1.20, // 20%マークアップ
+      effectiveFrom: new Date('2024-01-01'),
+      effectiveTo: null,
+      memo: '初期設定（20%マークアップ）',
+    },
+    {
+      category: '外注',
+      markupRate: 1.20,
+      effectiveFrom: new Date('2024-01-01'),
+      effectiveTo: null,
+      memo: '初期設定（20%マークアップ）',
+    },
+    {
+      category: '配送',
+      markupRate: 1.20,
+      effectiveFrom: new Date('2024-01-01'),
+      effectiveTo: null,
+      memo: '初期設定（20%マークアップ）',
+    },
+    {
+      category: 'その他',
+      markupRate: 1.20,
+      effectiveFrom: new Date('2024-01-01'),
+      effectiveTo: null,
+      memo: '初期設定（20%マークアップ）',
+    },
+  ];
+
+  for (const setting of markupSettings) {
+    await prisma.expenseMarkupSetting.create({
+      data: setting,
+    });
+    console.log(`✅ ${setting.category}: ${setting.markupRate}倍（${(setting.markupRate - 1) * 100}%）`);
+  }
+
+  console.log('\n🎉 初期データのシードが完了しました');
+}
+
+async function main() {
+  try {
+    await seedInitialData();
+  } catch (error) {
+    console.error('❌ シードエラー:', error);
+    process.exit(1);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+main();
+
