@@ -47,14 +47,14 @@ export async function PUT(
 
     // 機械を取得または作成
     let machine = await prisma.machine.findFirst({
-      where: { category: machineType }
+      where: { name: machineType }
     });
 
     if (!machine) {
       machine = await prisma.machine.create({
         data: {
           name: machineType,
-          category: machineType,
+          isActive: true,
         }
       });
     }
@@ -115,7 +115,7 @@ export async function PUT(
         name: updatedItem.workDescription || updatedItem.workOrder.description || '未入力', // workDescriptionを優先
         startTime: formatUTCToJSTTime(updatedItem.startTime),
         endTime: formatUTCToJSTTime(updatedItem.endTime),
-        machineType: updatedItem.machine.category,
+        machineType: updatedItem.machine.name,
         remarks: updatedItem.remarks || '',
         workStatus: updatedItem.workStatus || 'completed',
       },

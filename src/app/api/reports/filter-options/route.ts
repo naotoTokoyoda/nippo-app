@@ -66,13 +66,16 @@ export async function GET() {
       // ユニークな機械種類を取得
       prisma.machine.findMany({
         select: {
-          category: true,
+          name: true,
         },
-        distinct: ['category'],
+        distinct: ['name'],
+        where: {
+          isActive: true,
+        },
         orderBy: {
-          category: 'asc',
+          name: 'asc',
         },
-      }).then(machines => machines.map(machine => machine.category)),
+      }).then(machines => machines.map(machine => machine.name)),
     ]);
 
     type FilterOptions = {
