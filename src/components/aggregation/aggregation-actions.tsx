@@ -19,7 +19,7 @@ export default function AggregationActions({
   onCancelEdit,
   onSaveClick,
   onFinalize,
-  backHref = '/aggregation',
+  backHref = '/aggregation/list',
 }: AggregationActionsProps) {
   // すべてのステータスで編集可能に変更
   const canEdit = true;

@@ -120,9 +120,31 @@ export default function AggregationList() {
     );
   }
 
-  return (
+    return (
     <PageLayout title="集計一覧">
       <div className="space-y-6">
+        {/* 集計メニューと案件履歴へのリンク */}
+        <div className="flex justify-between items-center">
+          <Link
+            href="/aggregation"
+            className="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium"
+          >
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            集計メニューに戻る
+          </Link>
+          <Link
+            href="/aggregation/history"
+            className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+            </svg>
+            案件履歴を見る
+          </Link>
+        </div>
+
         {/* タブ */}
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
@@ -233,7 +255,7 @@ export default function AggregationList() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <Link href={`/aggregation/${item.id}`}>
+                      <Link href={`/aggregation/detail/${item.id}`}>
                         <button className="text-blue-600 hover:text-blue-800 font-medium cursor-pointer">
                           詳細
                         </button>

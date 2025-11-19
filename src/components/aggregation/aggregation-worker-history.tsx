@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { calculateWorkTime, formatDecimalTime } from '@/utils/timeCalculation';
+import { calculateWorkTime, formatDecimalTime, getWorkStatusLabel } from '@/utils/timeCalculation';
 import { DatabaseWorkItem } from '@/types/database';
 
 interface AggregationWorkerHistoryProps {
@@ -126,15 +126,16 @@ export default function AggregationWorkerHistory({
                     <table className="w-full text-sm table-fixed">
                       <thead>
                         <tr className="bg-gray-50 border-b border-gray-200">
-                          <th className="w-1/4 px-3 py-2 text-left font-medium text-gray-700">作業日</th>
+                          <th className="w-1/5 px-3 py-2 text-left font-medium text-gray-700">作業日</th>
                           <th className="w-1/4 px-3 py-2 text-left font-medium text-gray-700">時間</th>
-                          <th className="w-1/4 px-3 py-2 text-left font-medium text-gray-700">機械</th>
-                          <th className="w-1/4 px-3 py-2 text-left font-medium text-gray-700">備考</th>
+                          <th className="w-[15%] px-3 py-2 text-left font-medium text-gray-700">勤務状況</th>
+                          <th className="w-1/5 px-3 py-2 text-left font-medium text-gray-700">機械</th>
+                          <th className="w-1/5 px-3 py-2 text-left font-medium text-gray-700">備考</th>
                         </tr>
                       </thead>
                       <tbody>
                         {items
-                          .sort((a, b) => new Date(b.reportDate).getTime() - new Date(a.reportDate).getTime())
+                          .sort((a, b) => new Date(a.reportDate).getTime() - new Date(b.reportDate).getTime())
                           .map((item) => {
                             const workTime = calculateWorkTime(item.startTime, item.endTime, item.workStatus);
                             
@@ -149,6 +150,9 @@ export default function AggregationWorkerHistory({
                                 </td>
                                 <td className="px-3 py-2 text-gray-600">
                                   {item.startTime} - {item.endTime} ({formatDecimalTime(workTime)}時間)
+                                </td>
+                                <td className="px-3 py-2 text-gray-600">
+                                  {getWorkStatusLabel(item.workStatus)}
                                 </td>
                                 <td className="px-3 py-2 text-gray-600">{item.machineType}</td>
                                 <td className="px-3 py-2 text-gray-600">

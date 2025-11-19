@@ -19,7 +19,7 @@ export default function AggregationFinalDecisionHistory({
   workOrderId,
   currentAmount,
   comments,
-  formatCurrency,
+  formatCurrency, // eslint-disable-line @typescript-eslint/no-unused-vars
   onRefresh,
   currentUser,
 }: AggregationFinalDecisionHistoryProps) {
@@ -28,6 +28,8 @@ export default function AggregationFinalDecisionHistory({
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingMemo, setEditingMemo] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState<AggregationAdjustment | null>(null);
 
   // 最終決定金額関連のコメントのみフィルタリング（削除されていないもの）
   const finalDecisionComments = comments.filter(
@@ -133,22 +135,19 @@ export default function AggregationFinalDecisionHistory({
     }
   };
 
-  // コメント削除
-  const handleDelete = async (comment: AggregationAdjustment) => {
-    const isOwnComment = comment.createdBy === currentUser.id;
-    const userName = comment.user?.name || '不明なユーザー';
+  // コメント削除モーダルを開く
+  const handleDeleteClick = (comment: AggregationAdjustment) => {
+    setCommentToDelete(comment);
+    setDeleteModalOpen(true);
+  };
 
-    const message = isOwnComment
-      ? 'このコメントを削除しますか？'
-      : `${userName}さんのコメントを削除しますか？\n※管理者権限での削除操作です`;
-
-    if (!confirm(message)) {
-      return;
-    }
+  // コメント削除を実行
+  const handleDeleteConfirm = async () => {
+    if (!commentToDelete) return;
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`/api/aggregation/comment/${comment.id}`, {
+      const response = await fetch(`/api/aggregation/comment/${commentToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -166,6 +165,8 @@ export default function AggregationFinalDecisionHistory({
       }
 
       showToast('コメントを削除しました', 'success');
+      setDeleteModalOpen(false);
+      setCommentToDelete(null);
       await onRefresh();
     } catch (error) {
       console.error('Error deleting comment:', error);
@@ -176,17 +177,45 @@ export default function AggregationFinalDecisionHistory({
     }
   };
 
+  // 削除モーダルをキャンセル
+  const handleDeleteCancel = () => {
+    setDeleteModalOpen(false);
+    setCommentToDelete(null);
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-      <div className="bg-purple-50 px-6 py-4 border-b border-gray-200">
-        <h3 className="text-lg font-medium text-purple-900">最終決定金額の変更履歴</h3>
+      <div className="px-6 py-4 border-b border-gray-200">
+        <h3 className="text-lg font-medium text-gray-900">コメント</h3>
       </div>
 
       <div className="p-6">
+        {/* コメント入力エリア */}
+        <div className="mb-6">
+          <textarea
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder="コメントを書く"
+            className="w-full px-3 py-2 border border-gray-300 rounded text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            rows={3}
+            maxLength={500}
+            disabled={isSubmitting}
+          />
+          <div className="flex justify-end">
+            <button
+              onClick={handleAddComment}
+              disabled={isSubmitting || !newComment.trim()}
+              className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? '送信中...' : 'コメントを追加'}
+            </button>
+          </div>
+        </div>
+
+        {/* コメント一覧 */}
         {finalDecisionComments.length > 0 ? (
-          <div className="space-y-4 mb-6">
+          <div className="space-y-4 border-t border-gray-200 pt-6">
             {finalDecisionComments.map((comment) => {
-              const isOwnComment = comment.createdBy === currentUser.id;
               const canEdit = canEditComment(comment, currentUser);
               const canDelete = canDeleteComment(comment, currentUser);
               const isEditing = editingCommentId === comment.id;
@@ -194,36 +223,17 @@ export default function AggregationFinalDecisionHistory({
               return (
                 <div
                   key={comment.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                  className="group border-b border-gray-200 pb-4 last:border-b-0"
                 >
-                  <div className="flex justify-between items-start mb-2">
+                  <div className="mb-2">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-gray-900">
                         {comment.user?.name || '不明なユーザー'}
                       </span>
-                      {isOwnComment && (
-                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                          あなた
-                        </span>
-                      )}
-                      {currentUser.role === 'admin' && !isOwnComment && (
-                        <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">
-                          👑 管理者として操作可能
-                        </span>
-                      )}
-                      <span className="text-xs text-gray-500">
-                        {comment.user?.role === 'admin' ? '(Admin)' : '(Manager)'}
+                      <span className="text-sm text-gray-500">
+                        {formatDateTime(comment.createdAt)}
                       </span>
                     </div>
-                    <span className="text-sm text-gray-500">
-                      {formatDateTime(comment.createdAt)}
-                    </span>
-                  </div>
-
-                  <div className="mb-2">
-                    <span className="text-sm font-medium text-gray-700">
-                      金額: ¥{formatCurrency(comment.amount)}
-                    </span>
                   </div>
 
                   {isEditing ? (
@@ -255,78 +265,71 @@ export default function AggregationFinalDecisionHistory({
                     </div>
                   ) : (
                     <>
-                      <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap mb-2">
                         {comment.memo || 'メモなし'}
                       </p>
-                      <div className="mt-3 flex gap-2">
-                        {canEdit && (
-                          <button
-                            onClick={() => handleEditStart(comment)}
-                            disabled={isSubmitting}
-                            className="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50"
-                          >
-                            編集
-                          </button>
-                        )}
-                        {canDelete && (
-                          <button
-                            onClick={() => handleDelete(comment)}
-                            disabled={isSubmitting}
-                            className="text-sm text-red-600 hover:text-red-800 disabled:opacity-50"
-                          >
-                            削除
-                          </button>
-                        )}
-                      </div>
+                      {canEdit || canDelete ? (
+                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100">
+                          {canEdit && (
+                            <button
+                              onClick={() => handleEditStart(comment)}
+                              disabled={isSubmitting}
+                              title="編集"
+                              className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                            >
+                              ✏️
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button
+                              onClick={() => handleDeleteClick(comment)}
+                              disabled={isSubmitting}
+                              title="削除"
+                              className="text-sm text-gray-500 hover:text-red-600 disabled:opacity-50"
+                            >
+                              🗑️
+                            </button>
+                          )}
+                        </div>
+                      ) : null}
                     </>
-                  )}
-
-                  {!isOwnComment && currentUser.role === 'admin' && (
-                    <div className="mt-2 text-xs text-orange-600">
-                      ⚠️ このコメントは{comment.user?.name || '不明なユーザー'}さんが作成したものです
-                    </div>
                   )}
                 </div>
               );
             })}
           </div>
-        ) : (
-          <div className="text-center py-8 text-gray-500 mb-6 border border-dashed border-gray-300 rounded">
-            まだコメントがありません
-          </div>
-        )}
+        ) : null}
+      </div>
 
-        {/* コメント追加エリア */}
-        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            コメントを追加
-          </label>
-          <textarea
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder="コメントを入力..."
-            className="w-full px-3 py-2 border border-gray-300 rounded text-sm mb-2"
-            rows={3}
-            maxLength={500}
-            disabled={isSubmitting}
-          />
-          <div className="flex justify-between items-center">
-            <div className="text-sm text-gray-500">
-              {currentUser.name}
-              <span className="text-xs ml-2">
-                ({currentUser.role === 'admin' ? 'Admin' : 'Manager'})
-              </span>
+      {/* 削除確認モーダル */}
+      {deleteModalOpen && (
+        <div className="fixed inset-0 backdrop-brightness-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900 text-center">コメント削除</h3>
             </div>
-            <button
-              onClick={handleAddComment}
-              disabled={isSubmitting || !newComment.trim()}
-              className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? '送信中...' : 'コメントを追加'}
-            </button>
+            <div className="px-6 py-4">
+              <p className="text-sm text-gray-700 text-center">コメントを削除しますか？</p>
+            </div>
+            <div className="px-6 py-4 flex justify-center gap-3">
+              <button
+                onClick={handleDeleteCancel}
+                disabled={isSubmitting}
+                className="w-32 py-2 bg-blue-50 text-blue-600 text-sm rounded hover:bg-blue-100 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={isSubmitting}
+                className="w-32 py-2 bg-red-50 text-red-600 text-sm rounded hover:bg-red-100 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+              >
+                削除
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

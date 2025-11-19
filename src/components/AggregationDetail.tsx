@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import PageLayout from "@/components/PageLayout";
@@ -26,6 +26,7 @@ export default function AggregationDetail({
 }: AggregationDetailProps) {
   const router = useRouter();
   const { showToast } = useToast();
+  const [isStatusChanging, setIsStatusChanging] = useState(false);
 
   // データ取得のカスタムフック
   const { workOrder, loading, isAuthenticated, refetch, updateStatus } =
@@ -162,6 +163,8 @@ export default function AggregationDetail({
           }
         }
 
+        setIsStatusChanging(true);
+
         const response = await fetch(`/api/aggregation/${workOrderId}`, {
           method: "PATCH",
           headers: {
@@ -185,7 +188,7 @@ export default function AggregationDetail({
         // 完了に変更した場合は集計一覧にリダイレクト
         if (newStatus === "aggregated") {
           showToast("集計が完了されました", "success");
-          router.push("/aggregation");
+          router.push("/aggregation/list");
         } else {
           // 軽量化：ローカルステートのみ更新（API呼び出しなし）
           showToast("ステータスを変更しました", "success");
@@ -200,6 +203,8 @@ export default function AggregationDetail({
         showToast(message, "error");
         // エラーが発生した場合はDBから正しい状態を取得
         await refetch();
+      } finally {
+        setIsStatusChanging(false);
       }
     },
     [workOrderId, showToast, refetch, router, updateStatus]
@@ -239,6 +244,7 @@ export default function AggregationDetail({
           workOrder={workOrder}
           formatHours={formatHours}
           onStatusChange={handleStatusChange}
+          isStatusChanging={isStatusChanging}
         />
         <AggregationActions
           status={workOrder.status}

@@ -327,14 +327,14 @@ export async function POST(request: NextRequest) {
 
       // 機械を取得または作成
       let machine = await prisma.machine.findFirst({
-        where: { category: workItem.machineType }
+        where: { name: workItem.machineType }
       });
 
       if (!machine) {
         machine = await prisma.machine.create({
           data: {
             name: workItem.machineType,
-            category: workItem.machineType,
+            isActive: true,
           }
         });
       }
