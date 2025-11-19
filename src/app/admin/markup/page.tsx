@@ -79,8 +79,10 @@ export default function MarkupPage() {
 
         const newFormData = { ...formData };
         Object.entries(latestSettings).forEach(([category, setting]) => {
+          // 倍率 → パーセントに変換（1.20 → 20）
+          const percentValue = (Number(setting.markupRate) - 1) * 100;
           newFormData[category] = {
-            markupRate: String(setting.markupRate),
+            markupRate: String(percentValue),
             effectiveFrom: new Date(setting.effectiveFrom).toISOString().split('T')[0],
             effectiveTo: setting.effectiveTo ? new Date(setting.effectiveTo).toISOString().split('T')[0] : '',
             memo: setting.memo || '',
@@ -115,6 +117,9 @@ export default function MarkupPage() {
     }
     
     try {
+      // パーセント → 倍率に変換（20% → 1.20）
+      const rateMultiplier = 1 + (markupValue / 100);
+      
       const response = await fetch('/api/admin/markup', {
         method: 'POST',
         headers: {
@@ -122,7 +127,7 @@ export default function MarkupPage() {
         },
         body: JSON.stringify({
           category,
-          markupRate: markupValue,
+          markupRate: rateMultiplier,
           effectiveFrom: new Date(data.effectiveFrom).toISOString(),
           effectiveTo: data.effectiveTo ? new Date(data.effectiveTo).toISOString() : null,
           memo: data.memo || null,
@@ -323,20 +328,24 @@ export default function MarkupPage() {
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {categorySettings.map((setting) => (
-                          <tr key={setting.id}>
-                            <td className="px-4 py-2 text-sm text-gray-900">
-                              {Number(setting.markupRate)}%
-                            </td>
-                            <td className="px-4 py-2 text-sm text-gray-500">
-                              {formatDate(setting.effectiveFrom)}
-                              {setting.effectiveTo && ` 〜 ${formatDate(setting.effectiveTo)}`}
-                            </td>
-                            <td className="px-4 py-2 text-sm text-gray-500">
-                              {setting.memo || '-'}
-                            </td>
-                          </tr>
-                        ))}
+                        {categorySettings.map((setting) => {
+                          // 倍率 → パーセントに変換（1.20 → 20%）
+                          const percentValue = ((Number(setting.markupRate) - 1) * 100).toFixed(2);
+                          return (
+                            <tr key={setting.id}>
+                              <td className="px-4 py-2 text-sm text-gray-900">
+                                {percentValue}%
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">
+                                {formatDate(setting.effectiveFrom)}
+                                {setting.effectiveTo && ` 〜 ${formatDate(setting.effectiveTo)}`}
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">
+                                {setting.memo || '-'}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

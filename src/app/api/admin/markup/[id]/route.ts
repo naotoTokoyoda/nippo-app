@@ -3,9 +3,10 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 
 // マークアップ率更新用スキーマ
+// markupRateは倍率として受け取る（例: 1.20 = 20%マークアップ）
 const updateMarkupSchema = z.object({
   category: z.enum(['materials', 'outsourcing', 'shipping', 'other']).optional(),
-  markupRate: z.number().min(0).max(100).optional(),
+  markupRate: z.number().min(1).max(2).optional(), // 1.00（0%）から2.00（100%）まで
   effectiveFrom: z.string().datetime().optional(),
   effectiveTo: z.string().datetime().optional().nullable(),
   memo: z.string().max(200).optional().nullable(),
