@@ -21,11 +21,9 @@ export default function RatesPage() {
   const [rates, setRates] = useState<Rate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filterType] = useState<'labor'>('labor');
 
   useEffect(() => {
     fetchRates();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchRates = async () => {
