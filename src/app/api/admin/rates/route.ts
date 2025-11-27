@@ -7,6 +7,7 @@ const createRateSchema = z.object({
   activity: z.string().min(1).max(50),
   activityType: z.enum(['labor', 'machine']),
   displayName: z.string().min(1).max(100),
+  machineId: z.string().optional().nullable(), // 機械単価の場合は機械IDを指定
   costRate: z.number().positive(),
   billRate: z.number().positive(),
   effectiveFrom: z.string().datetime(),
@@ -23,6 +24,9 @@ export async function GET(request: NextRequest) {
     const rates = await prisma.rate.findMany({
       where: {
         ...(activityType && { activityType }),
+      },
+      include: {
+        machine: true, // 機械情報を含める
       },
       orderBy: [
         { activityType: 'asc' },
@@ -57,11 +61,15 @@ export async function POST(request: NextRequest) {
         activity: validatedData.activity,
         activityType: validatedData.activityType,
         displayName: validatedData.displayName,
+        machineId: validatedData.machineId || null,
         costRate: Math.round(validatedData.costRate),
         billRate: Math.round(validatedData.billRate),
         effectiveFrom: new Date(validatedData.effectiveFrom),
         effectiveTo: validatedData.effectiveTo ? new Date(validatedData.effectiveTo) : null,
         memo: validatedData.memo || null,
+      },
+      include: {
+        machine: true, // 機械情報を含めて返す
       },
     });
 

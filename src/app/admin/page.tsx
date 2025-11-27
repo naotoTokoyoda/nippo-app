@@ -11,7 +11,7 @@ export default function AdminDashboard() {
     },
     {
       title: '単価管理',
-      description: 'Activity別の原価・請求単価の設定と履歴管理',
+      description: '人工費・機械単価の設定と履歴管理',
       icon: '💰',
       href: '/admin/rates',
       color: 'bg-green-50 hover:bg-green-100 border-green-200',
