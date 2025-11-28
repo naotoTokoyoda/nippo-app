@@ -51,6 +51,7 @@ model Machine {
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
   reportItems ReportItem[]
+  rates       Rate[]       // 機械に紐づく単価
 
   @@index([name])
   @@index([isActive])
@@ -138,6 +139,7 @@ model Rate {
   activity      String    @db.VarChar(50) // Activity種別: NORMAL/TRAINEE1/M_1052/M_SHOMEN/M_12SHAKU等
   activityType  String    @default("labor") @db.VarChar(20) // 'labor' | 'machine'
   displayName   String    @default("") @db.VarChar(100) // 表示名（例：「通常作業」「1052」）
+  machineId     String?   @map("machine_id") // 機械単価の場合は機械マスタと関連付け
   effectiveFrom DateTime  @map("effective_from") @db.Date // 適用開始日
   effectiveTo   DateTime? @map("effective_to") @db.Date // 適用終了日（NULLは現在有効）
   costRate      Int       @map("cost_rate") // 原価単価
@@ -145,10 +147,12 @@ model Rate {
   memo          String?   @db.VarChar(200) // メモ
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
+  machine       Machine?  @relation(fields: [machineId], references: [id], onDelete: Cascade)
 
   @@index([activity, effectiveFrom])
   @@index([effectiveFrom])
   @@index([activityType])
+  @@index([machineId])
   @@map("rates")
 }
 
