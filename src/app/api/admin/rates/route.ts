@@ -21,7 +21,23 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const activityType = searchParams.get('activityType');
 
-    let rates: any[] = [];
+    interface RateResponse {
+      id: string;
+      activity: string;
+      activityType: 'labor' | 'machine';
+      displayName: string;
+      machineId: string | null;
+      costRate: number;
+      billRate: number;
+      effectiveFrom: Date;
+      effectiveTo: Date | null;
+      memo: string | null;
+      createdAt: Date;
+      updatedAt: Date;
+      machine?: { id: string; name: string; } | null;
+    }
+
+    let rates: RateResponse[] = [];
 
     if (activityType === 'labor') {
       // 人工費単価を取得
