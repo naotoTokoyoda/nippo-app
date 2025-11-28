@@ -11,6 +11,9 @@ export async function GET() {
     const users = await prisma.user.findMany({
       where: {
         isActive: true,
+        role: {
+          not: 'admin', // Admin権限のユーザーは作業者として表示しない
+        },
       },
       select: {
         id: true,
