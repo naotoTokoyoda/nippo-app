@@ -72,10 +72,6 @@ export default function RatesPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ja-JP');
-  };
-
   const formatCurrency = (value: number) => {
     return `¥${value.toLocaleString()}`;
   };

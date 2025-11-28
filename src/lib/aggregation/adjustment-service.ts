@@ -213,58 +213,21 @@ async function updateRate(
   const isMachine = activity.startsWith('M_');
   
   if (isMachine) {
-    // 機械単価の更新
-    // 現在の単価の有効期限を今日までに設定
+    // 機械単価の更新（単純にUPDATE）
     await tx.machineRate.update({
       where: { id: currentRateId },
-      data: { effectiveTo: new Date() },
-    });
-
-    // 既存の機械単価から情報を取得
-    const existingRate = await tx.machineRate.findUnique({
-      where: { id: currentRateId },
-    });
-
-    if (!existingRate) {
-      throw new Error('Existing machine rate not found');
-    }
-
-    // 新しい単価を作成
-    await tx.machineRate.create({
       data: {
-        machineId: existingRate.machineId,
-        machineName: existingRate.machineName,
-        effectiveFrom: new Date(),
-        effectiveTo: null,
-        costRate: currentCostRate,
         billRate: newBillRate,
+        costRate: currentCostRate,
       },
     });
   } else {
-    // 人工費単価の更新
-    // 現在の単価の有効期限を今日までに設定
+    // 人工費単価の更新（単純にUPDATE）
     await tx.laborRate.update({
       where: { id: currentRateId },
-      data: { effectiveTo: new Date() },
-    });
-
-    // 既存の人工費単価から情報を取得
-    const existingRate = await tx.laborRate.findUnique({
-      where: { id: currentRateId },
-    });
-
-    if (!existingRate) {
-      throw new Error('Existing labor rate not found');
-    }
-
-    // 新しい単価を作成
-    await tx.laborRate.create({
       data: {
-        laborName: existingRate.laborName,
-        effectiveFrom: new Date(),
-        effectiveTo: null,
-        costRate: currentCostRate,
         billRate: newBillRate,
+        costRate: currentCostRate,
       },
     });
   }
