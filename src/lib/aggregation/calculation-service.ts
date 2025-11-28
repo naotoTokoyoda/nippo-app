@@ -140,38 +140,107 @@ async function calculateActivitySummary(
 }
 
 /**
- * 現在有効な単価を取得する
+ * 現在有効な単価を取得する（新しいテーブルから）
  */
 async function getCurrentRate(activity: string, tx: Prisma.TransactionClient) {
-  return await tx.rate.findFirst({
-    where: {
-      activity,
-      effectiveFrom: {
-        lte: new Date(),
+  // 人工費か機械費かを判定
+  if (activity.startsWith('M_')) {
+    // 機械費：旧Rateテーブルからmachineを取得して、新しいMachineRateテーブルから検索
+    const oldRate = await tx.rate.findFirst({
+      where: { activity },
+      include: { machine: true },
+    });
+    
+    if (!oldRate?.machineId) {
+      return null;
+    }
+
+    return await tx.machineRate.findFirst({
+      where: {
+        machineId: oldRate.machineId,
+        effectiveFrom: {
+          lte: new Date(),
+        },
+        OR: [
+          { effectiveTo: null },
+          { effectiveTo: { gte: new Date() } },
+        ],
       },
-      OR: [
-        { effectiveTo: null },
-        { effectiveTo: { gte: new Date() } },
-      ],
-    },
-    orderBy: {
-      effectiveFrom: 'desc',
-    },
-  });
+      orderBy: {
+        effectiveFrom: 'desc',
+      },
+    });
+  } else {
+    // 人工費：旧RateテーブルからdisplayNameを取得して、新しいLaborRateテーブルから検索
+    const oldRate = await tx.rate.findFirst({
+      where: { activity },
+    });
+    
+    if (!oldRate) {
+      return null;
+    }
+
+    return await tx.laborRate.findFirst({
+      where: {
+        laborName: oldRate.displayName,
+        effectiveFrom: {
+          lte: new Date(),
+        },
+        OR: [
+          { effectiveTo: null },
+          { effectiveTo: { gte: new Date() } },
+        ],
+      },
+      orderBy: {
+        effectiveFrom: 'desc',
+      },
+    });
+  }
 }
 
 /**
- * 元の（最初の）単価を取得する
+ * 元の（最初の）単価を取得する（新しいテーブルから）
  */
 async function getOriginalRate(activity: string, tx: Prisma.TransactionClient) {
-  return await tx.rate.findFirst({
-    where: {
-      activity,
-    },
-    orderBy: {
-      effectiveFrom: 'asc',
-    },
-  });
+  // 人工費か機械費かを判定
+  if (activity.startsWith('M_')) {
+    // 機械費
+    const oldRate = await tx.rate.findFirst({
+      where: { activity },
+      include: { machine: true },
+    });
+    
+    if (!oldRate?.machineId) {
+      return null;
+    }
+
+    return await tx.machineRate.findFirst({
+      where: {
+        machineId: oldRate.machineId,
+      },
+      orderBy: {
+        effectiveFrom: 'asc',
+      },
+    });
+  } else {
+    // 人工費
+    const oldRate = await tx.rate.findFirst({
+      where: { activity },
+    });
+    
+    if (!oldRate) {
+      return null;
+    }
+
+    return await tx.laborRate.findFirst({
+      where: {
+        laborName: oldRate.displayName,
+      },
+      orderBy: {
+        effectiveFrom: 'asc',
+      },
+    });
+  }
 }
 
 /**

@@ -44,14 +44,15 @@ model Customer {
 }
 
 model Machine {
-  id          String       @id @default(cuid())
-  name        String       @db.VarChar(100)
-  isActive    Boolean      @default(true) @map("is_active") // 論理削除用
-  memo        String?      @db.VarChar(200) // 機械の説明・備考
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
-  reportItems ReportItem[]
-  rates       Rate[]       // 機械に紐づく単価
+  id           String        @id @default(cuid())
+  name         String        @db.VarChar(100)
+  isActive     Boolean       @default(true) @map("is_active") // 論理削除用
+  memo         String?       @db.VarChar(200) // 機械の説明・備考
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  reportItems  ReportItem[]
+  rates        Rate[]        // 旧単価（後で削除予定）
+  machineRates MachineRate[] // 新しい機械単価
 
   @@index([name])
   @@index([isActive])
@@ -134,6 +135,7 @@ model ReportItem {
   @@map("report_items")
 }
 
+// 旧Rateモデル（後で削除予定）
 model Rate {
   id            String    @id @default(cuid())
   activity      String    @db.VarChar(50) // Activity種別: NORMAL/TRAINEE1/M_1052/M_SHOMEN/M_12SHAKU等
@@ -154,6 +156,44 @@ model Rate {
   @@index([activityType])
   @@index([machineId])
   @@map("rates")
+}
+
+// 人工費単価テーブル
+model LaborRate {
+  id            String    @id @default(cuid())
+  laborName     String    @map("labor_name") @db.VarChar(100) // 単価名（例：「通常作業」「実習生」）
+  effectiveFrom DateTime  @map("effective_from") @db.Date // 適用開始日
+  effectiveTo   DateTime? @map("effective_to") @db.Date // 適用終了日（NULLは現在有効）
+  costRate      Int       @map("cost_rate") // 原価単価（円/時間）
+  billRate      Int       @map("bill_rate") // 請求単価（円/時間）
+  memo          String?   @db.VarChar(200) // メモ
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([laborName, effectiveFrom])
+  @@index([effectiveFrom])
+  @@map("labor_rates")
+}
+
+// 機械単価テーブル
+model MachineRate {
+  id            String    @id @default(cuid())
+  machineId     String    @map("machine_id") // 機械マスタとの紐付け
+  machineName   String    @map("machine_name") @db.VarChar(100) // 機械名（参照用・履歴保存）
+  effectiveFrom DateTime  @map("effective_from") @db.Date // 適用開始日
+  effectiveTo   DateTime? @map("effective_to") @db.Date // 適用終了日（NULLは現在有効）
+  costRate      Int       @map("cost_rate") // 原価単価（円/時間）
+  billRate      Int       @map("bill_rate") // 請求単価（円/時間）
+  memo          String?   @db.VarChar(200) // メモ
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  machine       Machine   @relation(fields: [machineId], references: [id], onDelete: Cascade)
+
+  @@index([machineId, effectiveFrom])
+  @@index([effectiveFrom])
+  @@unique([machineId, effectiveFrom])
+  @@map("machine_rates")
 }
 
 model Adjustment {

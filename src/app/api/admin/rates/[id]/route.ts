@@ -18,7 +18,7 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-// GET: 単価詳細取得
+// GET: 単価詳細取得（新しいテーブルから）
 export async function GET(
   request: NextRequest,
   { params }: RouteParams
@@ -26,24 +26,65 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const rate = await prisma.rate.findUnique({
+    // 人工費単価を検索
+    const laborRate = await prisma.laborRate.findUnique({
       where: { id },
     });
 
-    if (!rate) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: '単価が見つかりません',
+    if (laborRate) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          id: laborRate.id,
+          activity: `LABOR_${laborRate.id}`,
+          activityType: 'labor',
+          displayName: laborRate.laborName,
+          machineId: null,
+          costRate: laborRate.costRate,
+          billRate: laborRate.billRate,
+          effectiveFrom: laborRate.effectiveFrom,
+          effectiveTo: laborRate.effectiveTo,
+          memo: laborRate.memo,
+          createdAt: laborRate.createdAt,
+          updatedAt: laborRate.updatedAt,
         },
-        { status: 404 }
-      );
+      });
     }
 
-    return NextResponse.json({
-      success: true,
-      data: rate,
+    // 機械単価を検索
+    const machineRate = await prisma.machineRate.findUnique({
+      where: { id },
+      include: { machine: true },
     });
+
+    if (machineRate) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          id: machineRate.id,
+          activity: `M_${machineRate.machineId}`,
+          activityType: 'machine',
+          displayName: machineRate.machineName,
+          machineId: machineRate.machineId,
+          costRate: machineRate.costRate,
+          billRate: machineRate.billRate,
+          effectiveFrom: machineRate.effectiveFrom,
+          effectiveTo: machineRate.effectiveTo,
+          memo: machineRate.memo,
+          createdAt: machineRate.createdAt,
+          updatedAt: machineRate.updatedAt,
+          machine: machineRate.machine,
+        },
+      });
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: '単価が見つかりません',
+      },
+      { status: 404 }
+    );
   } catch (error) {
     console.error('Failed to fetch rate:', error);
     return NextResponse.json(
@@ -56,7 +97,7 @@ export async function GET(
   }
 }
 
-// PUT: 単価更新
+// PUT: 単価更新（新しいテーブルに）
 export async function PUT(
   request: NextRequest,
   { params }: RouteParams
@@ -66,26 +107,91 @@ export async function PUT(
     const body = await request.json();
     const validatedData = updateRateSchema.parse(body);
 
-    const rate = await prisma.rate.update({
-      where: { id },
-      data: {
-        ...(validatedData.activity && { activity: validatedData.activity }),
-        ...(validatedData.activityType && { activityType: validatedData.activityType }),
-        ...(validatedData.displayName && { displayName: validatedData.displayName }),
-        ...(validatedData.costRate !== undefined && { costRate: Math.round(validatedData.costRate) }),
-        ...(validatedData.billRate !== undefined && { billRate: Math.round(validatedData.billRate) }),
-        ...(validatedData.effectiveFrom && { effectiveFrom: new Date(validatedData.effectiveFrom) }),
-        ...(validatedData.effectiveTo !== undefined && { 
-          effectiveTo: validatedData.effectiveTo ? new Date(validatedData.effectiveTo) : null 
-        }),
-        ...(validatedData.memo !== undefined && { memo: validatedData.memo || null }),
-      },
-    });
+    // 人工費単価を検索
+    const laborRate = await prisma.laborRate.findUnique({ where: { id } });
+    
+    if (laborRate) {
+      const updated = await prisma.laborRate.update({
+        where: { id },
+        data: {
+          ...(validatedData.displayName && { laborName: validatedData.displayName }),
+          ...(validatedData.costRate !== undefined && { costRate: Math.round(validatedData.costRate) }),
+          ...(validatedData.billRate !== undefined && { billRate: Math.round(validatedData.billRate) }),
+          ...(validatedData.effectiveFrom && { effectiveFrom: new Date(validatedData.effectiveFrom) }),
+          ...(validatedData.effectiveTo !== undefined && { 
+            effectiveTo: validatedData.effectiveTo ? new Date(validatedData.effectiveTo) : null 
+          }),
+          ...(validatedData.memo !== undefined && { memo: validatedData.memo || null }),
+        },
+      });
 
-    return NextResponse.json({
-      success: true,
-      data: rate,
+      return NextResponse.json({
+        success: true,
+        data: {
+          id: updated.id,
+          activity: `LABOR_${updated.id}`,
+          activityType: 'labor',
+          displayName: updated.laborName,
+          machineId: null,
+          costRate: updated.costRate,
+          billRate: updated.billRate,
+          effectiveFrom: updated.effectiveFrom,
+          effectiveTo: updated.effectiveTo,
+          memo: updated.memo,
+          createdAt: updated.createdAt,
+          updatedAt: updated.updatedAt,
+        },
+      });
+    }
+
+    // 機械単価を検索
+    const machineRate = await prisma.machineRate.findUnique({ 
+      where: { id },
+      include: { machine: true },
     });
+    
+    if (machineRate) {
+      const updated = await prisma.machineRate.update({
+        where: { id },
+        data: {
+          ...(validatedData.costRate !== undefined && { costRate: Math.round(validatedData.costRate) }),
+          ...(validatedData.billRate !== undefined && { billRate: Math.round(validatedData.billRate) }),
+          ...(validatedData.effectiveFrom && { effectiveFrom: new Date(validatedData.effectiveFrom) }),
+          ...(validatedData.effectiveTo !== undefined && { 
+            effectiveTo: validatedData.effectiveTo ? new Date(validatedData.effectiveTo) : null 
+          }),
+          ...(validatedData.memo !== undefined && { memo: validatedData.memo || null }),
+        },
+        include: { machine: true },
+      });
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          id: updated.id,
+          activity: `M_${updated.machineId}`,
+          activityType: 'machine',
+          displayName: updated.machineName,
+          machineId: updated.machineId,
+          costRate: updated.costRate,
+          billRate: updated.billRate,
+          effectiveFrom: updated.effectiveFrom,
+          effectiveTo: updated.effectiveTo,
+          memo: updated.memo,
+          createdAt: updated.createdAt,
+          updatedAt: updated.updatedAt,
+          machine: updated.machine,
+        },
+      });
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: '単価が見つかりません',
+      },
+      { status: 404 }
+    );
   } catch (error) {
     console.error('Failed to update rate:', error);
 
@@ -110,7 +216,7 @@ export async function PUT(
   }
 }
 
-// DELETE: 単価削除（物理削除）
+// DELETE: 単価削除（物理削除、新しいテーブルから）
 export async function DELETE(
   request: NextRequest,
   { params }: RouteParams
@@ -118,14 +224,35 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    const rate = await prisma.rate.delete({
-      where: { id },
-    });
+    // 人工費単価を検索
+    const laborRate = await prisma.laborRate.findUnique({ where: { id } });
+    
+    if (laborRate) {
+      await prisma.laborRate.delete({ where: { id } });
+      return NextResponse.json({
+        success: true,
+        data: { id },
+      });
+    }
 
-    return NextResponse.json({
-      success: true,
-      data: rate,
-    });
+    // 機械単価を検索
+    const machineRate = await prisma.machineRate.findUnique({ where: { id } });
+    
+    if (machineRate) {
+      await prisma.machineRate.delete({ where: { id } });
+      return NextResponse.json({
+        success: true,
+        data: { id },
+      });
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: '単価が見つかりません',
+      },
+      { status: 404 }
+    );
   } catch (error) {
     console.error('Failed to delete rate:', error);
     return NextResponse.json(

@@ -15,24 +15,103 @@ const createRateSchema = z.object({
   memo: z.string().max(200).optional().nullable(),
 });
 
-// GET: 単価一覧取得
+// GET: 単価一覧取得（新しいテーブルから）
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const activityType = searchParams.get('activityType');
 
-    const rates = await prisma.rate.findMany({
-      where: {
-        ...(activityType && { activityType }),
-      },
-      include: {
-        machine: true, // 機械情報を含める
-      },
-      orderBy: [
-        { activityType: 'asc' },
-        { effectiveFrom: 'desc' },
-      ],
-    });
+    let rates: any[] = [];
+
+    if (activityType === 'labor') {
+      // 人工費単価を取得
+      const laborRates = await prisma.laborRate.findMany({
+        orderBy: {
+          effectiveFrom: 'desc',
+        },
+      });
+      
+      // 旧形式に変換
+      rates = laborRates.map(rate => ({
+        id: rate.id,
+        activity: `LABOR_${rate.id}`, // 仮のactivityコード
+        activityType: 'labor',
+        displayName: rate.laborName,
+        machineId: null,
+        costRate: rate.costRate,
+        billRate: rate.billRate,
+        effectiveFrom: rate.effectiveFrom,
+        effectiveTo: rate.effectiveTo,
+        memo: rate.memo,
+        createdAt: rate.createdAt,
+        updatedAt: rate.updatedAt,
+        machine: null,
+      }));
+    } else if (activityType === 'machine') {
+      // 機械単価を取得
+      const machineRates = await prisma.machineRate.findMany({
+        include: {
+          machine: true,
+        },
+        orderBy: {
+          effectiveFrom: 'desc',
+        },
+      });
+      
+      // 旧形式に変換
+      rates = machineRates.map(rate => ({
+        id: rate.id,
+        activity: `M_${rate.machineId}`, // 仮のactivityコード
+        activityType: 'machine',
+        displayName: rate.machineName,
+        machineId: rate.machineId,
+        costRate: rate.costRate,
+        billRate: rate.billRate,
+        effectiveFrom: rate.effectiveFrom,
+        effectiveTo: rate.effectiveTo,
+        memo: rate.memo,
+        createdAt: rate.createdAt,
+        updatedAt: rate.updatedAt,
+        machine: rate.machine,
+      }));
+    } else {
+      // 両方取得
+      const laborRates = await prisma.laborRate.findMany();
+      const machineRates = await prisma.machineRate.findMany({ include: { machine: true } });
+      
+      rates = [
+        ...laborRates.map(rate => ({
+          id: rate.id,
+          activity: `LABOR_${rate.id}`,
+          activityType: 'labor' as const,
+          displayName: rate.laborName,
+          machineId: null,
+          costRate: rate.costRate,
+          billRate: rate.billRate,
+          effectiveFrom: rate.effectiveFrom,
+          effectiveTo: rate.effectiveTo,
+          memo: rate.memo,
+          createdAt: rate.createdAt,
+          updatedAt: rate.updatedAt,
+          machine: null,
+        })),
+        ...machineRates.map(rate => ({
+          id: rate.id,
+          activity: `M_${rate.machineId}`,
+          activityType: 'machine' as const,
+          displayName: rate.machineName,
+          machineId: rate.machineId,
+          costRate: rate.costRate,
+          billRate: rate.billRate,
+          effectiveFrom: rate.effectiveFrom,
+          effectiveTo: rate.effectiveTo,
+          memo: rate.memo,
+          createdAt: rate.createdAt,
+          updatedAt: rate.updatedAt,
+          machine: rate.machine,
+        })),
+      ];
+    }
 
     return NextResponse.json({
       success: true,
@@ -50,33 +129,104 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST: 新規単価作成
+// POST: 新規単価作成（新しいテーブルに）
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const validatedData = createRateSchema.parse(body);
 
-    const rate = await prisma.rate.create({
-      data: {
-        activity: validatedData.activity,
-        activityType: validatedData.activityType,
-        displayName: validatedData.displayName,
-        machineId: validatedData.machineId || null,
-        costRate: Math.round(validatedData.costRate),
-        billRate: Math.round(validatedData.billRate),
-        effectiveFrom: new Date(validatedData.effectiveFrom),
-        effectiveTo: validatedData.effectiveTo ? new Date(validatedData.effectiveTo) : null,
-        memo: validatedData.memo || null,
-      },
-      include: {
-        machine: true, // 機械情報を含めて返す
-      },
-    });
+    if (validatedData.activityType === 'labor') {
+      // 人工費単価を作成
+      const rate = await prisma.laborRate.create({
+        data: {
+          laborName: validatedData.displayName,
+          costRate: Math.round(validatedData.costRate),
+          billRate: Math.round(validatedData.billRate),
+          effectiveFrom: new Date(validatedData.effectiveFrom),
+          effectiveTo: validatedData.effectiveTo ? new Date(validatedData.effectiveTo) : null,
+          memo: validatedData.memo || null,
+        },
+      });
 
-    return NextResponse.json({
-      success: true,
-      data: rate,
-    });
+      return NextResponse.json({
+        success: true,
+        data: {
+          id: rate.id,
+          activity: `LABOR_${rate.id}`,
+          activityType: 'labor',
+          displayName: rate.laborName,
+          machineId: null,
+          costRate: rate.costRate,
+          billRate: rate.billRate,
+          effectiveFrom: rate.effectiveFrom,
+          effectiveTo: rate.effectiveTo,
+          memo: rate.memo,
+          createdAt: rate.createdAt,
+          updatedAt: rate.updatedAt,
+          machine: null,
+        },
+      });
+    } else {
+      // 機械単価を作成
+      if (!validatedData.machineId) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: '機械単価には機械IDが必要です',
+          },
+          { status: 400 }
+        );
+      }
+
+      // 機械情報を取得
+      const machine = await prisma.machine.findUnique({
+        where: { id: validatedData.machineId },
+      });
+
+      if (!machine) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: '機械が見つかりません',
+          },
+          { status: 404 }
+        );
+      }
+
+      const rate = await prisma.machineRate.create({
+        data: {
+          machineId: validatedData.machineId,
+          machineName: machine.name,
+          costRate: Math.round(validatedData.costRate),
+          billRate: Math.round(validatedData.billRate),
+          effectiveFrom: new Date(validatedData.effectiveFrom),
+          effectiveTo: validatedData.effectiveTo ? new Date(validatedData.effectiveTo) : null,
+          memo: validatedData.memo || null,
+        },
+        include: {
+          machine: true,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          id: rate.id,
+          activity: `M_${rate.machineId}`,
+          activityType: 'machine',
+          displayName: rate.machineName,
+          machineId: rate.machineId,
+          costRate: rate.costRate,
+          billRate: rate.billRate,
+          effectiveFrom: rate.effectiveFrom,
+          effectiveTo: rate.effectiveTo,
+          memo: rate.memo,
+          createdAt: rate.createdAt,
+          updatedAt: rate.updatedAt,
+          machine: rate.machine,
+        },
+      });
+    }
   } catch (error) {
     console.error('Failed to create rate:', error);
     
