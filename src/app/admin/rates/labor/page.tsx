@@ -72,17 +72,6 @@ export default function RatesPage() {
     }
   };
 
-  const getActivityTypeLabel = (type: string) => {
-    switch (type) {
-      case 'labor':
-        return '人工費';
-      case 'machine':
-        return '機械稼働費';
-      default:
-        return type;
-    }
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ja-JP');
   };
