@@ -64,8 +64,8 @@ export async function GET(request: NextRequest) {
         machine: null,
       }));
     } else if (activityType === 'machine') {
-      // 機械単価を取得
-      const machineRates = await prisma.machineRate.findMany({
+      // 機械単価を取得（全履歴）
+      const allMachineRates = await prisma.machineRate.findMany({
         include: {
           machine: true,
         },
@@ -73,6 +73,16 @@ export async function GET(request: NextRequest) {
           effectiveFrom: 'desc',
         },
       });
+      
+      // 機械ごとに最新の単価のみを抽出
+      const latestRatesMap = allMachineRates.reduce((acc, rate) => {
+        if (!acc[rate.machineId] || rate.effectiveFrom > acc[rate.machineId].effectiveFrom) {
+          acc[rate.machineId] = rate;
+        }
+        return acc;
+      }, {} as Record<string, typeof allMachineRates[0]>);
+      
+      const machineRates = Object.values(latestRatesMap);
       
       // 旧形式に変換
       rates = machineRates.map(rate => ({
@@ -93,7 +103,20 @@ export async function GET(request: NextRequest) {
     } else {
       // 両方取得
       const laborRates = await prisma.laborRate.findMany();
-      const machineRates = await prisma.machineRate.findMany({ include: { machine: true } });
+      const allMachineRates = await prisma.machineRate.findMany({ 
+        include: { machine: true },
+        orderBy: { effectiveFrom: 'desc' },
+      });
+      
+      // 機械ごとに最新の単価のみを抽出
+      const latestRatesMap = allMachineRates.reduce((acc, rate) => {
+        if (!acc[rate.machineId] || rate.effectiveFrom > acc[rate.machineId].effectiveFrom) {
+          acc[rate.machineId] = rate;
+        }
+        return acc;
+      }, {} as Record<string, typeof allMachineRates[0]>);
+      
+      const machineRates = Object.values(latestRatesMap);
       
       rates = [
         ...laborRates.map(rate => ({
