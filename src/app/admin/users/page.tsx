@@ -124,6 +124,9 @@ export default function UsersPage() {
                 PIN
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                タグ
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 状態
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -135,17 +138,8 @@ export default function UsersPage() {
             {users.map((user) => (
               <tr key={user.id} className={!user.isActive ? 'bg-gray-50 opacity-60' : ''}>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {user.name}
-                        {user.isTrainee && (
-                          <span className="ml-2 px-2 py-0.5 text-xs font-semibold rounded bg-yellow-100 text-yellow-800">
-                            実習生
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                  <div className="text-sm font-medium text-gray-900">
+                    {user.name}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -156,6 +150,15 @@ export default function UsersPage() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-500 font-mono">{user.pin}</div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {user.isTrainee ? (
+                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                      実習生
+                    </span>
+                  ) : (
+                    <span className="text-sm text-gray-400">-</span>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {user.isActive ? (

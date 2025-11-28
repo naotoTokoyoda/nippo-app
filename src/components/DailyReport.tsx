@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import WorkItem from '@/components/WorkItem';
 import WorkerHistory from '@/components/WorkerHistory';
 import WorkNumberSearchModal from '@/components/WorkNumberSearchModal';
@@ -9,8 +9,13 @@ import { useRouter } from 'next/navigation';
 import { validateDailyReport, validateBasicInfo } from '@/utils/validation';
 import { getTodayInJST } from '@/utils/timeCalculation';
 
-import { DailyReportData, WorkItemData, WORKER_OPTIONS, ValidationError } from '@/types/daily-report';
+import { DailyReportData, WorkItemData, ValidationError } from '@/types/daily-report';
 import React from 'react'; // Added missing import for React
+
+interface User {
+  id: string;
+  name: string;
+}
 
 export default function DailyReport() {
   const router = useRouter();
@@ -19,6 +24,9 @@ export default function DailyReport() {
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [basicInfoErrors, setBasicInfoErrors] = useState<ValidationError[]>([]);
   const [isWorkNumberModalOpen, setIsWorkNumberModalOpen] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  
   // 既存日報の状態管理
   const [, setExistingReport] = useState<{
     exists: boolean;
@@ -45,6 +53,29 @@ export default function DailyReport() {
       remarks: ''
     }]
   });
+
+  // ユーザー一覧を取得
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoadingUsers(true);
+        const response = await fetch('/api/users');
+        const data = await response.json();
+        
+        if (data.success) {
+          setUsers(data.data);
+        } else {
+          console.error('ユーザー一覧の取得に失敗しました:', data.error);
+        }
+      } catch (error) {
+        console.error('ユーザー一覧の取得に失敗しました:', error);
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
 
 
 
@@ -283,15 +314,18 @@ export default function DailyReport() {
               value={reportData.workerName}
               onChange={(e) => setReportData(prev => ({ ...prev, workerName: e.target.value }))}
               data-field="workerName"
+              disabled={loadingUsers}
               className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 h-10 ${
                 basicInfoErrors.some(err => err.field === 'workerName')
                   ? 'border-red-500 focus:ring-red-500'
                   : ''
-              }`}
+              } ${loadingUsers ? 'bg-gray-100 cursor-not-allowed' : ''}`}
             >
-              <option value=""></option>
-              {WORKER_OPTIONS.map(worker => (
-                <option key={worker} value={worker}>{worker}</option>
+              <option value="">
+                {loadingUsers ? '読み込み中...' : ''}
+              </option>
+              {users.map(user => (
+                <option key={user.id} value={user.name}>{user.name}</option>
               ))}
             </select>
             {basicInfoErrors.some(err => err.field === 'workerName') && (
