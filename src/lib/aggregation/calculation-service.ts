@@ -106,11 +106,14 @@ async function calculateActivitySummary(
   activityData: ActivityGroup,
   tx: Prisma.TransactionClient
 ): Promise<ActivitySummary> {
+  // activityDataから最初のアイテムを取得（machineIdやworker情報を取得するため）
+  const firstItem = activityData.items[0];
+  
   // 現在有効な単価を取得
-  const rate = await getCurrentRate(activityData.activity, tx);
+  const rate = await getCurrentRate(activityData.activity, firstItem, tx);
   
   // 最初（デフォルト）の単価を取得
-  const originalRate = await getOriginalRate(activityData.activity, tx);
+  const originalRate = await getOriginalRate(activityData.activity, firstItem, tx);
 
   // 工番ごとのActivityメモを取得
   const activityMemo = await getActivityMemo(workOrderId, activityData.activity, tx);
@@ -142,22 +145,17 @@ async function calculateActivitySummary(
 /**
  * 現在有効な単価を取得する（新しいテーブルから）
  */
-async function getCurrentRate(activity: string, tx: Prisma.TransactionClient) {
+async function getCurrentRate(
+  activity: string, 
+  reportItem: ReportItemWithRelations,
+  tx: Prisma.TransactionClient
+) {
   // 人工費か機械費かを判定
   if (activity.startsWith('M_')) {
-    // 機械費：旧Rateテーブルからmachineを取得して、新しいMachineRateテーブルから検索
-    const oldRate = await tx.rate.findFirst({
-      where: { activity },
-      include: { machine: true },
-    });
-    
-    if (!oldRate?.machineId) {
-      return null;
-    }
-
+    // 機械費：reportItemからmachineIdを取得して、MachineRateから検索
     return await tx.machineRate.findFirst({
       where: {
-        machineId: oldRate.machineId,
+        machineId: reportItem.machineId,
         effectiveFrom: {
           lte: new Date(),
         },
@@ -171,18 +169,12 @@ async function getCurrentRate(activity: string, tx: Prisma.TransactionClient) {
       },
     });
   } else {
-    // 人工費：旧RateテーブルからdisplayNameを取得して、新しいLaborRateテーブルから検索
-    const oldRate = await tx.rate.findFirst({
-      where: { activity },
-    });
+    // 人工費：activityから判定してLaborRateから検索
+    const laborName = getActivityName(activity); // '通常'、'1号実習生'など
     
-    if (!oldRate) {
-      return null;
-    }
-
     return await tx.laborRate.findFirst({
       where: {
-        laborName: oldRate.displayName,
+        laborName: laborName,
         effectiveFrom: {
           lte: new Date(),
         },
@@ -201,22 +193,17 @@ async function getCurrentRate(activity: string, tx: Prisma.TransactionClient) {
 /**
  * 元の（最初の）単価を取得する（新しいテーブルから）
  */
-async function getOriginalRate(activity: string, tx: Prisma.TransactionClient) {
+async function getOriginalRate(
+  activity: string,
+  reportItem: ReportItemWithRelations,
+  tx: Prisma.TransactionClient
+) {
   // 人工費か機械費かを判定
   if (activity.startsWith('M_')) {
     // 機械費
-    const oldRate = await tx.rate.findFirst({
-      where: { activity },
-      include: { machine: true },
-    });
-    
-    if (!oldRate?.machineId) {
-      return null;
-    }
-
     return await tx.machineRate.findFirst({
       where: {
-        machineId: oldRate.machineId,
+        machineId: reportItem.machineId,
       },
       orderBy: {
         effectiveFrom: 'asc',
@@ -224,17 +211,11 @@ async function getOriginalRate(activity: string, tx: Prisma.TransactionClient) {
     });
   } else {
     // 人工費
-    const oldRate = await tx.rate.findFirst({
-      where: { activity },
-    });
+    const laborName = getActivityName(activity);
     
-    if (!oldRate) {
-      return null;
-    }
-
     return await tx.laborRate.findFirst({
       where: {
-        laborName: oldRate.displayName,
+        laborName: laborName,
       },
       orderBy: {
         effectiveFrom: 'asc',
