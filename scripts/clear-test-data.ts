@@ -58,9 +58,12 @@ async function clearTestData() {
     const deletedWorkOrders = await prisma.workOrder.deleteMany();
     console.log(`✅ 工番を削除しました: ${deletedWorkOrders.count}件`);
 
-    // Rateを削除（独立テーブル）
-    const deletedRates = await prisma.rate.deleteMany();
-    console.log(`✅ 単価履歴を削除しました: ${deletedRates.count}件`);
+    // 単価を削除（新しいテーブル）
+    const deletedLaborRates = await prisma.laborRate.deleteMany();
+    console.log(`✅ 人工費単価を削除しました: ${deletedLaborRates.count}件`);
+    
+    const deletedMachineRates = await prisma.machineRate.deleteMany();
+    console.log(`✅ 機械単価を削除しました: ${deletedMachineRates.count}件`);
 
     // Customerを削除
     const deletedCustomers = await prisma.customer.deleteMany();
