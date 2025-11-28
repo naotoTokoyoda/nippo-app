@@ -46,11 +46,13 @@ export default function EditMachineRatePage({ params }: EditMachineRatePageProps
   });
 
   useEffect(() => {
-    fetchMachines();
-    params.then(p => {
+    const loadData = async () => {
+      await fetchMachines();
+      const p = await params;
       setId(p.id);
-      fetchRate(p.id);
-    });
+      await fetchRate(p.id);
+    };
+    loadData();
   }, [params]);
 
   const fetchMachines = async () => {
@@ -73,14 +75,21 @@ export default function EditMachineRatePage({ params }: EditMachineRatePageProps
 
       if (data.success) {
         setRate(data.data);
+        const rateData = data.data;
+        
+        // 機械IDを確実に文字列として設定
+        const machineId = rateData.machineId ? String(rateData.machineId) : '';
+        
         setFormData({
-          machineId: data.data.machineId || '',
-          costRate: String(data.data.costRate),
-          billRate: String(data.data.billRate),
-          effectiveFrom: new Date(data.data.effectiveFrom).toISOString().split('T')[0],
-          effectiveTo: data.data.effectiveTo ? new Date(data.data.effectiveTo).toISOString().split('T')[0] : '',
-          memo: data.data.memo || '',
+          machineId: machineId,
+          costRate: String(rateData.costRate),
+          billRate: String(rateData.billRate),
+          effectiveFrom: new Date(rateData.effectiveFrom).toISOString().split('T')[0],
+          effectiveTo: rateData.effectiveTo ? new Date(rateData.effectiveTo).toISOString().split('T')[0] : '',
+          memo: rateData.memo || '',
         });
+
+        console.log('機械ID設定:', machineId); // デバッグ用
       } else {
         setError(data.error || '単価の取得に失敗しました');
       }
@@ -183,7 +192,10 @@ export default function EditMachineRatePage({ params }: EditMachineRatePageProps
             </label>
             <select
               value={formData.machineId}
-              onChange={(e) => setFormData({ ...formData, machineId: e.target.value })}
+              onChange={(e) => {
+                console.log('機械変更:', e.target.value); // デバッグ用
+                setFormData({ ...formData, machineId: e.target.value });
+              }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               required
             >
@@ -194,6 +206,10 @@ export default function EditMachineRatePage({ params }: EditMachineRatePageProps
                 </option>
               ))}
             </select>
+            {/* デバッグ情報 */}
+            <p className="mt-1 text-xs text-gray-500">
+              現在の機械ID: {formData.machineId || '（未選択）'}
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
