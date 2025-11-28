@@ -11,7 +11,7 @@ export const CATEGORY_NAME_MAPPING: Record<string, string> = {
 };
 
 /**
- * 現在有効な経費マークアップ率を取得する
+ * 経費マークアップ率を取得する
  * 
  * @param category 経費カテゴリ（日本語または英語）
  * @param tx Prismaトランザクションクライアント
@@ -25,19 +25,9 @@ export async function getCurrentMarkupRate(
   const japaneseName = CATEGORY_NAME_MAPPING[category] || category;
   
   try {
-    const setting = await tx.expenseMarkupSetting.findFirst({
+    const setting = await tx.expenseMarkupSetting.findUnique({
       where: {
         category: japaneseName,
-        effectiveFrom: {
-          lte: new Date(),
-        },
-        OR: [
-          { effectiveTo: null },
-          { effectiveTo: { gte: new Date() } },
-        ],
-      },
-      orderBy: {
-        effectiveFrom: 'desc',
       },
     });
 

@@ -45,8 +45,6 @@ export interface AdminRate {
   activity: string;
   activityType: ActivityType;
   displayName: string;
-  effectiveFrom: Date;
-  effectiveTo: Date | null;
   costRate: number;
   billRate: number;
   memo: string | null;
@@ -58,15 +56,12 @@ export interface CreateRateInput {
   activity: string;
   activityType: ActivityType;
   displayName: string;
-  effectiveFrom: Date;
-  effectiveTo?: Date | null;
   costRate: number;
   billRate: number;
   memo?: string;
 }
 
 export interface UpdateRateInput {
-  effectiveTo?: Date | null;
   costRate?: number;
   billRate?: number;
   memo?: string;
@@ -99,8 +94,6 @@ export interface AdminMarkupSetting {
   id: string;
   category: string;
   markupRate: number;
-  effectiveFrom: Date;
-  effectiveTo: Date | null;
   memo: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -109,13 +102,10 @@ export interface AdminMarkupSetting {
 export interface CreateMarkupSettingInput {
   category: string;
   markupRate: number;
-  effectiveFrom: Date;
-  effectiveTo?: Date | null;
   memo?: string;
 }
 
 export interface UpdateMarkupSettingInput {
-  effectiveTo?: Date | null;
   markupRate?: number;
   memo?: string;
 }

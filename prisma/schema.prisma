@@ -137,27 +137,22 @@ model ReportItem {
 // 人工費単価テーブル
 model LaborRate {
   id            String    @id @default(cuid())
-  laborName     String    @map("labor_name") @db.VarChar(100) // 単価名（例：「通常作業」「実習生」）
-  effectiveFrom DateTime  @map("effective_from") @db.Date // 適用開始日
-  effectiveTo   DateTime? @map("effective_to") @db.Date // 適用終了日（NULLは現在有効）
+  laborName     String    @unique @map("labor_name") @db.VarChar(100) // 単価名（例：「通常作業」「実習生」）
   costRate      Int       @map("cost_rate") // 原価単価（円/時間）
   billRate      Int       @map("bill_rate") // 請求単価（円/時間）
   memo          String?   @db.VarChar(200) // メモ
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  @@index([laborName, effectiveFrom])
-  @@index([effectiveFrom])
+  @@index([laborName])
   @@map("labor_rates")
 }
 
 // 機械単価テーブル
 model MachineRate {
   id            String    @id @default(cuid())
-  machineId     String    @map("machine_id") // 機械マスタとの紐付け
-  machineName   String    @map("machine_name") @db.VarChar(100) // 機械名（参照用・履歴保存）
-  effectiveFrom DateTime  @map("effective_from") @db.Date // 適用開始日
-  effectiveTo   DateTime? @map("effective_to") @db.Date // 適用終了日（NULLは現在有効）
+  machineId     String    @unique @map("machine_id") // 機械マスタとの紐付け
+  machineName   String    @map("machine_name") @db.VarChar(100) // 機械名（参照用）
   costRate      Int       @map("cost_rate") // 原価単価（円/時間）
   billRate      Int       @map("bill_rate") // 請求単価（円/時間）
   memo          String?   @db.VarChar(200) // メモ
@@ -166,9 +161,7 @@ model MachineRate {
 
   machine       Machine   @relation(fields: [machineId], references: [id], onDelete: Cascade)
 
-  @@index([machineId, effectiveFrom])
-  @@index([effectiveFrom])
-  @@unique([machineId, effectiveFrom])
+  @@index([machineId])
   @@map("machine_rates")
 }
 
@@ -275,14 +268,12 @@ model AggregationSummary {
 
 model ExpenseMarkupSetting {
   id            String    @id @default(cuid())
-  category      String    @db.VarChar(50) // '材料' | '外注' | '配送' | 'その他'
+  category      String    @unique @db.VarChar(50) // '材料' | '外注' | '配送' | 'その他'
   markupRate    Decimal   @db.Decimal(5,2) // 1.20 = 20%マークアップ
-  effectiveFrom DateTime  @map("effective_from") @db.Date // 適用開始日
-  effectiveTo   DateTime? @map("effective_to") @db.Date // 適用終了日（NULLは現在有効）
   memo          String?   @db.VarChar(200) // メモ
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
   
-  @@index([category, effectiveFrom])
+  @@index([category])
   @@map("expense_markup_settings")
 }

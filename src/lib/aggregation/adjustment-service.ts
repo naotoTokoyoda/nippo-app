@@ -300,16 +300,10 @@ export async function processRateAdjustments(
     } else {
       // 人工費単価を取得
       const laborName = adjustment.memo || activity; // activityから名前を取得（仮実装）
-      currentRate = await tx.laborRate.findFirst({
+      currentRate = await tx.laborRate.findUnique({
         where: {
           laborName,
-          effectiveFrom: { lte: new Date() },
-          OR: [
-            { effectiveTo: null },
-            { effectiveTo: { gte: new Date() } },
-          ],
         },
-        orderBy: { effectiveFrom: 'desc' },
       }) as { id: string; billRate: number; costRate: number } | null;
     }
 

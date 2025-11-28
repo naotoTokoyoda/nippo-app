@@ -10,8 +10,6 @@ const createRateSchema = z.object({
   machineId: z.string().optional().nullable(), // 機械単価の場合は機械IDを指定
   costRate: z.number().positive(),
   billRate: z.number().positive(),
-  effectiveFrom: z.string().datetime(),
-  effectiveTo: z.string().datetime().optional().nullable(),
   memo: z.string().max(200).optional().nullable(),
 });
 
@@ -29,8 +27,6 @@ export async function GET(request: NextRequest) {
       machineId: string | null;
       costRate: number;
       billRate: number;
-      effectiveFrom: Date;
-      effectiveTo: Date | null;
       memo: string | null;
       createdAt: Date;
       updatedAt: Date;
@@ -43,11 +39,11 @@ export async function GET(request: NextRequest) {
       // 人工費単価を取得
       const laborRates = await prisma.laborRate.findMany({
         orderBy: {
-          effectiveFrom: 'desc',
+          laborName: 'asc',
         },
       });
       
-      // 旧形式に変換
+      // 形式に変換
       rates = laborRates.map(rate => ({
         id: rate.id,
         activity: `LABOR_${rate.id}`, // 仮のactivityコード
@@ -56,35 +52,23 @@ export async function GET(request: NextRequest) {
         machineId: null,
         costRate: rate.costRate,
         billRate: rate.billRate,
-        effectiveFrom: rate.effectiveFrom,
-        effectiveTo: rate.effectiveTo,
         memo: rate.memo,
         createdAt: rate.createdAt,
         updatedAt: rate.updatedAt,
         machine: null,
       }));
     } else if (activityType === 'machine') {
-      // 機械単価を取得（全履歴）
-      const allMachineRates = await prisma.machineRate.findMany({
+      // 機械単価を取得
+      const machineRates = await prisma.machineRate.findMany({
         include: {
           machine: true,
         },
         orderBy: {
-          effectiveFrom: 'desc',
+          machineName: 'asc',
         },
       });
       
-      // 機械ごとに最新の単価のみを抽出
-      const latestRatesMap = allMachineRates.reduce((acc, rate) => {
-        if (!acc[rate.machineId] || rate.effectiveFrom > acc[rate.machineId].effectiveFrom) {
-          acc[rate.machineId] = rate;
-        }
-        return acc;
-      }, {} as Record<string, typeof allMachineRates[0]>);
-      
-      const machineRates = Object.values(latestRatesMap);
-      
-      // 旧形式に変換
+      // 形式に変換
       rates = machineRates.map(rate => ({
         id: rate.id,
         activity: `M_${rate.machineId}`, // 仮のactivityコード
@@ -93,8 +77,6 @@ export async function GET(request: NextRequest) {
         machineId: rate.machineId,
         costRate: rate.costRate,
         billRate: rate.billRate,
-        effectiveFrom: rate.effectiveFrom,
-        effectiveTo: rate.effectiveTo,
         memo: rate.memo,
         createdAt: rate.createdAt,
         updatedAt: rate.updatedAt,
@@ -103,20 +85,9 @@ export async function GET(request: NextRequest) {
     } else {
       // 両方取得
       const laborRates = await prisma.laborRate.findMany();
-      const allMachineRates = await prisma.machineRate.findMany({ 
+      const machineRates = await prisma.machineRate.findMany({ 
         include: { machine: true },
-        orderBy: { effectiveFrom: 'desc' },
       });
-      
-      // 機械ごとに最新の単価のみを抽出
-      const latestRatesMap = allMachineRates.reduce((acc, rate) => {
-        if (!acc[rate.machineId] || rate.effectiveFrom > acc[rate.machineId].effectiveFrom) {
-          acc[rate.machineId] = rate;
-        }
-        return acc;
-      }, {} as Record<string, typeof allMachineRates[0]>);
-      
-      const machineRates = Object.values(latestRatesMap);
       
       rates = [
         ...laborRates.map(rate => ({
@@ -127,8 +98,6 @@ export async function GET(request: NextRequest) {
           machineId: null,
           costRate: rate.costRate,
           billRate: rate.billRate,
-          effectiveFrom: rate.effectiveFrom,
-          effectiveTo: rate.effectiveTo,
           memo: rate.memo,
           createdAt: rate.createdAt,
           updatedAt: rate.updatedAt,
@@ -142,8 +111,6 @@ export async function GET(request: NextRequest) {
           machineId: rate.machineId,
           costRate: rate.costRate,
           billRate: rate.billRate,
-          effectiveFrom: rate.effectiveFrom,
-          effectiveTo: rate.effectiveTo,
           memo: rate.memo,
           createdAt: rate.createdAt,
           updatedAt: rate.updatedAt,
@@ -181,8 +148,6 @@ export async function POST(request: NextRequest) {
           laborName: validatedData.displayName,
           costRate: Math.round(validatedData.costRate),
           billRate: Math.round(validatedData.billRate),
-          effectiveFrom: new Date(validatedData.effectiveFrom),
-          effectiveTo: validatedData.effectiveTo ? new Date(validatedData.effectiveTo) : null,
           memo: validatedData.memo || null,
         },
       });
@@ -197,8 +162,6 @@ export async function POST(request: NextRequest) {
           machineId: null,
           costRate: rate.costRate,
           billRate: rate.billRate,
-          effectiveFrom: rate.effectiveFrom,
-          effectiveTo: rate.effectiveTo,
           memo: rate.memo,
           createdAt: rate.createdAt,
           updatedAt: rate.updatedAt,
@@ -238,8 +201,6 @@ export async function POST(request: NextRequest) {
           machineName: machine.name,
           costRate: Math.round(validatedData.costRate),
           billRate: Math.round(validatedData.billRate),
-          effectiveFrom: new Date(validatedData.effectiveFrom),
-          effectiveTo: validatedData.effectiveTo ? new Date(validatedData.effectiveTo) : null,
           memo: validatedData.memo || null,
         },
         include: {
@@ -257,8 +218,6 @@ export async function POST(request: NextRequest) {
           machineId: rate.machineId,
           costRate: rate.costRate,
           billRate: rate.billRate,
-          effectiveFrom: rate.effectiveFrom,
-          effectiveTo: rate.effectiveTo,
           memo: rate.memo,
           createdAt: rate.createdAt,
           updatedAt: rate.updatedAt,

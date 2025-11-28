@@ -7,8 +7,6 @@ import { prisma } from '@/lib/prisma';
 const createMarkupSchema = z.object({
   category: z.enum(['materials', 'outsourcing', 'shipping', 'other']),
   markupRate: z.number().min(1).max(2), // 1.00（0%）から2.00（100%）まで
-  effectiveFrom: z.string().datetime(),
-  effectiveTo: z.string().datetime().optional().nullable(),
   memo: z.string().max(200).optional().nullable(),
 });
 
@@ -16,10 +14,9 @@ const createMarkupSchema = z.object({
 export async function GET() {
   try {
     const settings = await prisma.expenseMarkupSetting.findMany({
-      orderBy: [
-        { category: 'asc' },
-        { effectiveFrom: 'desc' },
-      ],
+      orderBy: {
+        category: 'asc',
+      },
     });
 
     return NextResponse.json({
@@ -48,8 +45,6 @@ export async function POST(request: NextRequest) {
       data: {
         category: validatedData.category,
         markupRate: validatedData.markupRate,
-        effectiveFrom: new Date(validatedData.effectiveFrom),
-        effectiveTo: validatedData.effectiveTo ? new Date(validatedData.effectiveTo) : null,
         memo: validatedData.memo || null,
       },
     });

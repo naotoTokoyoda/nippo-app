@@ -9,8 +9,6 @@ const updateRateSchema = z.object({
   displayName: z.string().min(1).max(100).optional(),
   costRate: z.number().positive().optional(),
   billRate: z.number().positive().optional(),
-  effectiveFrom: z.string().datetime().optional(),
-  effectiveTo: z.string().datetime().optional().nullable(),
   memo: z.string().max(200).optional().nullable(),
 });
 
@@ -42,8 +40,6 @@ export async function GET(
           machineId: null,
           costRate: laborRate.costRate,
           billRate: laborRate.billRate,
-          effectiveFrom: laborRate.effectiveFrom,
-          effectiveTo: laborRate.effectiveTo,
           memo: laborRate.memo,
           createdAt: laborRate.createdAt,
           updatedAt: laborRate.updatedAt,
@@ -68,8 +64,6 @@ export async function GET(
           machineId: machineRate.machineId,
           costRate: machineRate.costRate,
           billRate: machineRate.billRate,
-          effectiveFrom: machineRate.effectiveFrom,
-          effectiveTo: machineRate.effectiveTo,
           memo: machineRate.memo,
           createdAt: machineRate.createdAt,
           updatedAt: machineRate.updatedAt,
@@ -117,10 +111,6 @@ export async function PUT(
           ...(validatedData.displayName && { laborName: validatedData.displayName }),
           ...(validatedData.costRate !== undefined && { costRate: Math.round(validatedData.costRate) }),
           ...(validatedData.billRate !== undefined && { billRate: Math.round(validatedData.billRate) }),
-          ...(validatedData.effectiveFrom && { effectiveFrom: new Date(validatedData.effectiveFrom) }),
-          ...(validatedData.effectiveTo !== undefined && { 
-            effectiveTo: validatedData.effectiveTo ? new Date(validatedData.effectiveTo) : null 
-          }),
           ...(validatedData.memo !== undefined && { memo: validatedData.memo || null }),
         },
       });
@@ -135,8 +125,6 @@ export async function PUT(
           machineId: null,
           costRate: updated.costRate,
           billRate: updated.billRate,
-          effectiveFrom: updated.effectiveFrom,
-          effectiveTo: updated.effectiveTo,
           memo: updated.memo,
           createdAt: updated.createdAt,
           updatedAt: updated.updatedAt,
@@ -156,10 +144,6 @@ export async function PUT(
         data: {
           ...(validatedData.costRate !== undefined && { costRate: Math.round(validatedData.costRate) }),
           ...(validatedData.billRate !== undefined && { billRate: Math.round(validatedData.billRate) }),
-          ...(validatedData.effectiveFrom && { effectiveFrom: new Date(validatedData.effectiveFrom) }),
-          ...(validatedData.effectiveTo !== undefined && { 
-            effectiveTo: validatedData.effectiveTo ? new Date(validatedData.effectiveTo) : null 
-          }),
           ...(validatedData.memo !== undefined && { memo: validatedData.memo || null }),
         },
         include: { machine: true },
@@ -175,8 +159,6 @@ export async function PUT(
           machineId: updated.machineId,
           costRate: updated.costRate,
           billRate: updated.billRate,
-          effectiveFrom: updated.effectiveFrom,
-          effectiveTo: updated.effectiveTo,
           memo: updated.memo,
           createdAt: updated.createdAt,
           updatedAt: updated.updatedAt,

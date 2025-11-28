@@ -19,8 +19,6 @@ export default function NewMachineRatePage() {
     machineId: '',
     costRate: '',
     billRate: '',
-    effectiveFrom: new Date().toISOString().split('T')[0],
-    effectiveTo: '',
     memo: '',
   });
 
@@ -61,8 +59,6 @@ export default function NewMachineRatePage() {
           machineId: formData.machineId,
           costRate: Number(formData.costRate),
           billRate: Number(formData.billRate),
-          effectiveFrom: new Date(formData.effectiveFrom).toISOString(),
-          effectiveTo: formData.effectiveTo ? new Date(formData.effectiveTo).toISOString() : null,
           memo: formData.memo || null,
         }),
       });
@@ -143,33 +139,6 @@ export default function NewMachineRatePage() {
                 onChange={(e) => setFormData({ ...formData, billRate: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 required
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                適用開始日 <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                value={formData.effectiveFrom}
-                onChange={(e) => setFormData({ ...formData, effectiveFrom: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                適用終了日（省略可）
-              </label>
-              <input
-                type="date"
-                value={formData.effectiveTo}
-                onChange={(e) => setFormData({ ...formData, effectiveTo: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>

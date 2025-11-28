@@ -13,8 +13,6 @@ export default function NewLaborRatePage() {
     displayName: '',
     costRate: '',
     billRate: '',
-    effectiveFrom: new Date().toISOString().split('T')[0],
-    effectiveTo: '',
     memo: '',
   });
 
@@ -38,8 +36,6 @@ export default function NewLaborRatePage() {
           activityType: 'labor',
           costRate: parseFloat(formData.costRate),
           billRate: parseFloat(formData.billRate),
-          effectiveFrom: new Date(formData.effectiveFrom).toISOString(),
-          effectiveTo: formData.effectiveTo ? new Date(formData.effectiveTo).toISOString() : null,
           memo: formData.memo || null,
         }),
       });
@@ -136,38 +132,6 @@ export default function NewLaborRatePage() {
               step="0.01"
               placeholder="11000"
             />
-          </div>
-
-          {/* 有効開始日 */}
-          <div>
-            <label htmlFor="effectiveFrom" className="block text-sm font-medium text-gray-700 mb-2">
-              有効開始日 <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="date"
-              id="effectiveFrom"
-              value={formData.effectiveFrom}
-              onChange={(e) => setFormData({ ...formData, effectiveFrom: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
-            />
-          </div>
-
-          {/* 有効終了日 */}
-          <div>
-            <label htmlFor="effectiveTo" className="block text-sm font-medium text-gray-700 mb-2">
-              有効終了日（任意）
-            </label>
-            <input
-              type="date"
-              id="effectiveTo"
-              value={formData.effectiveTo}
-              onChange={(e) => setFormData({ ...formData, effectiveTo: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              空欄の場合は無期限で有効です
-            </p>
           </div>
 
           {/* メモ */}

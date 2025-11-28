@@ -143,7 +143,7 @@ async function calculateActivitySummary(
 }
 
 /**
- * 現在有効な単価を取得する（新しいテーブルから）
+ * 現在の単価を取得する
  */
 async function getCurrentRate(
   activity: string, 
@@ -153,75 +153,34 @@ async function getCurrentRate(
   // 人工費か機械費かを判定
   if (activity.startsWith('M_')) {
     // 機械費：reportItemからmachineIdを取得して、MachineRateから検索
-    return await tx.machineRate.findFirst({
+    return await tx.machineRate.findUnique({
       where: {
         machineId: reportItem.machineId,
-        effectiveFrom: {
-          lte: new Date(),
-        },
-        OR: [
-          { effectiveTo: null },
-          { effectiveTo: { gte: new Date() } },
-        ],
-      },
-      orderBy: {
-        effectiveFrom: 'desc',
       },
     });
   } else {
     // 人工費：activityから判定してLaborRateから検索
     const laborName = getActivityName(activity); // '通常'、'1号実習生'など
     
-    return await tx.laborRate.findFirst({
+    return await tx.laborRate.findUnique({
       where: {
         laborName: laborName,
-        effectiveFrom: {
-          lte: new Date(),
-        },
-        OR: [
-          { effectiveTo: null },
-          { effectiveTo: { gte: new Date() } },
-        ],
-      },
-      orderBy: {
-        effectiveFrom: 'desc',
       },
     });
   }
 }
 
 /**
- * 元の（最初の）単価を取得する（新しいテーブルから）
+ * 元の（最初の）単価を取得する
+ * ※履歴機能廃止により、getCurrentRateと同じ動作
  */
 async function getOriginalRate(
   activity: string,
   reportItem: ReportItemWithRelations,
   tx: Prisma.TransactionClient
 ) {
-  // 人工費か機械費かを判定
-  if (activity.startsWith('M_')) {
-    // 機械費
-    return await tx.machineRate.findFirst({
-      where: {
-        machineId: reportItem.machineId,
-      },
-      orderBy: {
-        effectiveFrom: 'asc',
-      },
-    });
-  } else {
-    // 人工費
-    const laborName = getActivityName(activity);
-    
-    return await tx.laborRate.findFirst({
-      where: {
-        laborName: laborName,
-      },
-      orderBy: {
-        effectiveFrom: 'asc',
-      },
-    });
-  }
+  // 履歴機能廃止により、現在の単価と同じ
+  return await getCurrentRate(activity, reportItem, tx);
 }
 
 /**

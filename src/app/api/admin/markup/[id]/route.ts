@@ -7,8 +7,6 @@ import { prisma } from '@/lib/prisma';
 const updateMarkupSchema = z.object({
   category: z.enum(['materials', 'outsourcing', 'shipping', 'other']).optional(),
   markupRate: z.number().min(1).max(2).optional(), // 1.00（0%）から2.00（100%）まで
-  effectiveFrom: z.string().datetime().optional(),
-  effectiveTo: z.string().datetime().optional().nullable(),
   memo: z.string().max(200).optional().nullable(),
 });
 
@@ -69,10 +67,6 @@ export async function PUT(
       data: {
         ...(validatedData.category && { category: validatedData.category }),
         ...(validatedData.markupRate !== undefined && { markupRate: validatedData.markupRate }),
-        ...(validatedData.effectiveFrom && { effectiveFrom: new Date(validatedData.effectiveFrom) }),
-        ...(validatedData.effectiveTo !== undefined && { 
-          effectiveTo: validatedData.effectiveTo ? new Date(validatedData.effectiveTo) : null 
-        }),
         ...(validatedData.memo !== undefined && { memo: validatedData.memo || null }),
       },
     });
