@@ -138,13 +138,7 @@ export default function RatesPage() {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                種別
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                表示名
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Activity
+                単価名
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 原価単価
@@ -163,21 +157,15 @@ export default function RatesPage() {
           <tbody className="bg-white divide-y divide-gray-200">
             {rates.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
                   単価が登録されていません
                 </td>
               </tr>
             ) : (
               rates.map((rate) => (
                 <tr key={rate.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {getActivityTypeLabel(rate.activityType)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {rate.displayName}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
-                    {rate.activity}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {formatCurrency(Number(rate.costRate))}

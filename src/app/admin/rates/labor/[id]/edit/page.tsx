@@ -151,10 +151,10 @@ export default function EditLaborRatePage({ params }: EditLaborRatePageProps) {
 
       <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="space-y-6">
-          {/* 表示名 */}
+          {/* 単価名 */}
           <div>
             <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-2">
-              表示名 <span className="text-red-500">*</span>
+              単価名 <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -167,23 +167,24 @@ export default function EditLaborRatePage({ params }: EditLaborRatePageProps) {
             />
           </div>
 
-          {/* Activity */}
-          <div>
-            <label htmlFor="activity" className="block text-sm font-medium text-gray-700 mb-2">
-              Activity <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              id="activity"
-              value={formData.activity}
-              onChange={(e) => setFormData({ ...formData, activity: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono"
-              required
-              maxLength={50}
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              集計システムで使用される内部識別子です
-            </p>
+          {/* システム情報（Activity） */}
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <h3 className="text-sm font-medium text-gray-700 mb-3">💡 システム情報</h3>
+            <div>
+              <label htmlFor="activity" className="block text-xs font-medium text-gray-600 mb-1">
+                内部コード（読み取り専用）
+              </label>
+              <input
+                type="text"
+                id="activity"
+                value={formData.activity}
+                disabled
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-100 text-gray-600 font-mono text-sm cursor-not-allowed"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                ⚠️ この値はシステムが使用するため変更できません
+              </p>
+            </div>
           </div>
 
           {/* 原価単価 */}

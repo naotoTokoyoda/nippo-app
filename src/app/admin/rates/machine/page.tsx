@@ -136,9 +136,6 @@ export default function MachineRatesPage() {
                 機械名
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Activity
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 原価単価
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -158,7 +155,7 @@ export default function MachineRatesPage() {
           <tbody className="bg-white divide-y divide-gray-200">
             {rates.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                   機械単価が登録されていません
                 </td>
               </tr>
@@ -167,9 +164,6 @@ export default function MachineRatesPage() {
                 <tr key={rate.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {rate.machine?.name || rate.displayName}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
-                    {rate.activity}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {formatCurrency(Number(rate.costRate))}

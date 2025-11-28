@@ -10,7 +10,6 @@ export default function NewLaborRatePage() {
   const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    activity: '',
     displayName: '',
     costRate: '',
     billRate: '',
@@ -25,6 +24,9 @@ export default function NewLaborRatePage() {
     setError(null);
 
     try {
+      // ACTIVITYを自動生成（LABOR_ + タイムスタンプ + ランダム文字列）
+      const activity = `LABOR_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      
       const response = await fetch('/api/admin/rates', {
         method: 'POST',
         headers: {
@@ -32,6 +34,7 @@ export default function NewLaborRatePage() {
         },
         body: JSON.stringify({
           ...formData,
+          activity,
           activityType: 'labor',
           costRate: parseFloat(formData.costRate),
           billRate: parseFloat(formData.billRate),
@@ -79,10 +82,10 @@ export default function NewLaborRatePage() {
 
       <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="space-y-6">
-          {/* 表示名 */}
+          {/* 単価名 */}
           <div>
             <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-2">
-              表示名 <span className="text-red-500">*</span>
+              単価名 <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -92,27 +95,10 @@ export default function NewLaborRatePage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
               maxLength={100}
-              placeholder="例: 通常作業、実習生"
-            />
-          </div>
-
-          {/* Activity */}
-          <div>
-            <label htmlFor="activity" className="block text-sm font-medium text-gray-700 mb-2">
-              Activity <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              id="activity"
-              value={formData.activity}
-              onChange={(e) => setFormData({ ...formData, activity: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono"
-              required
-              maxLength={50}
-              placeholder="例: NORMAL、TRAINEE1、INSPECTION"
+              placeholder="例: 通常作業、実習生、ベテラン作業、夜間作業"
             />
             <p className="mt-1 text-xs text-gray-500">
-              集計システムで使用される内部識別子です
+              この名前で単価一覧に表示されます
             </p>
           </div>
 

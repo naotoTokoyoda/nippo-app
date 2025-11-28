@@ -89,7 +89,6 @@ export default function EditMachineRatePage({ params }: EditMachineRatePageProps
           memo: rateData.memo || '',
         });
 
-        console.log('機械ID設定:', machineId); // デバッグ用
       } else {
         setError(data.error || '単価の取得に失敗しました');
       }
@@ -192,10 +191,7 @@ export default function EditMachineRatePage({ params }: EditMachineRatePageProps
             </label>
             <select
               value={formData.machineId}
-              onChange={(e) => {
-                console.log('機械変更:', e.target.value); // デバッグ用
-                setFormData({ ...formData, machineId: e.target.value });
-              }}
+              onChange={(e) => setFormData({ ...formData, machineId: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               required
             >
@@ -206,10 +202,25 @@ export default function EditMachineRatePage({ params }: EditMachineRatePageProps
                 </option>
               ))}
             </select>
-            {/* デバッグ情報 */}
-            <p className="mt-1 text-xs text-gray-500">
-              現在の機械ID: {formData.machineId || '（未選択）'}
-            </p>
+          </div>
+
+          {/* システム情報（Activity） */}
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <h3 className="text-sm font-medium text-gray-700 mb-3">💡 システム情報</h3>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                内部コード（読み取り専用）
+              </label>
+              <input
+                type="text"
+                value={rate.activity}
+                disabled
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-100 text-gray-600 font-mono text-sm cursor-not-allowed"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                ⚠️ この値はシステムが使用するため変更できません
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
