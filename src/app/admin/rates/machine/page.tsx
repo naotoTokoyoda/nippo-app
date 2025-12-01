@@ -121,6 +121,18 @@ export default function MachineRatesPage() {
         </div>
       )}
 
+      {/* 補足情報 */}
+      <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h3 className="text-sm font-semibold text-blue-900 mb-2">
+          💡 機械単価について
+        </h3>
+        <ul className="text-xs text-blue-800 space-y-1">
+          <li>• 機械単価は機械マスタと連携しています</li>
+          <li>• 機械名は機械マスタから自動取得されます</li>
+          <li>• 機械マスタで機械名を変更すると、単価にも反映されます</li>
+        </ul>
+      </div>
+
       {/* 機械単価一覧テーブル */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
@@ -186,18 +198,6 @@ export default function MachineRatesPage() {
             )}
           </tbody>
         </table>
-      </div>
-
-      {/* 補足情報 */}
-      <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-blue-900 mb-2">
-          💡 機械単価について
-        </h3>
-        <ul className="text-xs text-blue-800 space-y-1">
-          <li>• 機械単価は機械マスタと連携しています</li>
-          <li>• 機械名は機械マスタから自動取得されます</li>
-          <li>• 機械マスタで機械名を変更すると、単価にも反映されます</li>
-        </ul>
       </div>
     </div>
   );

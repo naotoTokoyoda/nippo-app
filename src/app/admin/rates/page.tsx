@@ -27,6 +27,18 @@ export default function RatesPage() {
         </p>
       </div>
 
+      {/* 補足情報 */}
+      <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h3 className="text-sm font-semibold text-blue-900 mb-2">
+          💡 単価管理について
+        </h3>
+        <ul className="text-xs text-blue-800 space-y-1">
+          <li>• 人工費単価: 作業者の労働時間に対する単価（Activity別）</li>
+          <li>• 機械単価: 機械稼働時間に対する単価（機械マスタと連携）</li>
+          <li>• 各単価は必要に応じて更新できます</li>
+        </ul>
+      </div>
+
       {/* 単価種別選択カード */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {rateTypes.map((type) => (
@@ -63,18 +75,6 @@ export default function RatesPage() {
             </div>
           </Link>
         ))}
-      </div>
-
-      {/* 補足情報 */}
-      <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-blue-900 mb-2">
-          💡 単価管理について
-        </h3>
-        <ul className="text-xs text-blue-800 space-y-1">
-          <li>• 人工費単価: 作業者の労働時間に対する単価（Activity別）</li>
-          <li>• 機械単価: 機械稼働時間に対する単価（機械マスタと連携）</li>
-          <li>• 履歴管理により、過去の単価も保持されます</li>
-        </ul>
       </div>
     </div>
   );

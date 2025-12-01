@@ -110,6 +110,14 @@ export default function MachinesPage() {
         </label>
       </div>
 
+      {/* 注意事項 */}
+      <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p className="text-sm text-blue-800">
+          <strong className="font-semibold">💡 ヒント</strong><br />
+          機械を登録後、「単価管理」画面で各機械の単価を設定してください。
+        </p>
+      </div>
+
       {/* 機械一覧テーブル */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
@@ -185,14 +193,6 @@ export default function MachinesPage() {
             )}
           </tbody>
         </table>
-      </div>
-
-      {/* 注意事項 */}
-      <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p className="text-sm text-blue-800">
-          <strong className="font-semibold">💡 ヒント</strong><br />
-          機械を登録後、「単価管理」画面で各機械の単価を設定してください。
-        </p>
       </div>
     </div>
   );
