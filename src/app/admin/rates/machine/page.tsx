@@ -17,8 +17,6 @@ interface Rate {
   machineId: string | null;
   costRate: number;
   billRate: number;
-  effectiveFrom: string;
-  effectiveTo: string | null;
   memo: string | null;
   machine?: Machine;
 }
@@ -76,10 +74,6 @@ export default function MachineRatesPage() {
       alert('単価の削除に失敗しました');
       console.error(err);
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ja-JP');
   };
 
   const formatCurrency = (value: number) => {
@@ -142,9 +136,6 @@ export default function MachineRatesPage() {
                 請求単価
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                有効期間
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 メモ
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -155,7 +146,7 @@ export default function MachineRatesPage() {
           <tbody className="bg-white divide-y divide-gray-200">
             {rates.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
                   機械単価が登録されていません
                 </td>
               </tr>
@@ -170,10 +161,6 @@ export default function MachineRatesPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {formatCurrency(Number(rate.billRate))}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(rate.effectiveFrom)}
-                    {rate.effectiveTo && ` 〜 ${formatDate(rate.effectiveTo)}`}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
                     {rate.memo || '-'}

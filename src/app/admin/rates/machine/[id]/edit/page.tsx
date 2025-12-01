@@ -17,8 +17,6 @@ interface Rate {
   machineId: string | null;
   costRate: number;
   billRate: number;
-  effectiveFrom: string;
-  effectiveTo: string | null;
   memo: string | null;
   machine?: Machine;
 }
@@ -40,8 +38,6 @@ export default function EditMachineRatePage({ params }: EditMachineRatePageProps
     machineId: '',
     costRate: '',
     billRate: '',
-    effectiveFrom: '',
-    effectiveTo: '',
     memo: '',
   });
 
@@ -84,8 +80,6 @@ export default function EditMachineRatePage({ params }: EditMachineRatePageProps
           machineId: machineId,
           costRate: String(rateData.costRate),
           billRate: String(rateData.billRate),
-          effectiveFrom: new Date(rateData.effectiveFrom).toISOString().split('T')[0],
-          effectiveTo: rateData.effectiveTo ? new Date(rateData.effectiveTo).toISOString().split('T')[0] : '',
           memo: rateData.memo || '',
         });
 
@@ -125,8 +119,6 @@ export default function EditMachineRatePage({ params }: EditMachineRatePageProps
           machineId: formData.machineId,
           costRate: parseFloat(formData.costRate),
           billRate: parseFloat(formData.billRate),
-          effectiveFrom: new Date(formData.effectiveFrom).toISOString(),
-          effectiveTo: formData.effectiveTo ? new Date(formData.effectiveTo).toISOString() : null,
           memo: formData.memo || null,
         }),
       });
@@ -247,33 +239,6 @@ export default function EditMachineRatePage({ params }: EditMachineRatePageProps
                 onChange={(e) => setFormData({ ...formData, billRate: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 required
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                適用開始日 <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                value={formData.effectiveFrom}
-                onChange={(e) => setFormData({ ...formData, effectiveFrom: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                適用終了日（省略可）
-              </label>
-              <input
-                type="date"
-                value={formData.effectiveTo}
-                onChange={(e) => setFormData({ ...formData, effectiveTo: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>

@@ -10,8 +10,6 @@ interface Rate {
   displayName: string;
   costRate: number;
   billRate: number;
-  effectiveFrom: string;
-  effectiveTo: string | null;
   memo: string | null;
   createdAt: string;
   updatedAt: string;
@@ -139,7 +137,7 @@ export default function RatesPage() {
           <tbody className="bg-white divide-y divide-gray-200">
             {rates.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
                   単価が登録されていません
                 </td>
               </tr>
