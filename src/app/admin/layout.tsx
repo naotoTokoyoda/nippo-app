@@ -84,12 +84,12 @@ export default function AdminLayout({
                 </li>
                 <li>
                   <Link
-                    href="/admin/markup"
+                    href="/admin/expense-rates"
                     className="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
                   >
                     <div className="flex items-center">
                       <span className="text-lg mr-3">📊</span>
-                      <span className="font-medium">経費マークアップ率</span>
+                      <span className="font-medium">経費率管理</span>
                     </div>
                   </Link>
                 </li>

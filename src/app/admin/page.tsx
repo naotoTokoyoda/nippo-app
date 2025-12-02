@@ -24,10 +24,10 @@ export default function AdminDashboard() {
       color: 'bg-orange-50 hover:bg-orange-100 border-orange-200',
     },
     {
-      title: '経費マークアップ率管理',
-      description: 'カテゴリ別のマークアップ率設定と履歴管理',
+      title: '経費率管理',
+      description: '経費カテゴリごとの上乗せ率設定と履歴管理',
       icon: '📊',
-      href: '/admin/markup',
+      href: '/admin/expense-rates',
       color: 'bg-purple-50 hover:bg-purple-100 border-purple-200',
     },
   ];
