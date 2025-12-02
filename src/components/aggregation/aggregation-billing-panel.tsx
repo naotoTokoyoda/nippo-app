@@ -1,6 +1,7 @@
 import { ExpenseCategory } from '@/types/aggregation';
 import { useAggregationStore } from '@/stores/aggregationStore';
 import { getLaborCategory, type ActivityType } from '@/lib/aggregation/activity-utils';
+import { EXPENSE_CATEGORY_OPTIONS } from '@/lib/aggregation/expense-utils';
 
 interface AggregationBillingPanelProps {
   categoryOptions: Array<{ value: ExpenseCategory; label: string }>;
@@ -35,9 +36,19 @@ export default function AggregationBillingPanel({
   const setDeliveryDate = useAggregationStore((state) => state.setDeliveryDate);
   const editRate = useAggregationStore((state) => state.editRate);
   
+  // カテゴリ名を日本語に変換（英語→日本語のマッピング）
+  const getCategoryLabel = (category: string): string => {
+    const option = EXPENSE_CATEGORY_OPTIONS.find(opt => opt.value === category);
+    if (option) return option.label;
+    // APIから日本語で返ってきている場合はそのまま使用
+    return categoryOptions.find(opt => opt.value === category)?.label ?? category;
+  };
+
   // 経費率を表示用にフォーマット
   const formatExpenseRate = (category: string): string => {
-    const rate = expenseRateMap[category];
+    // 英語のカテゴリの場合は日本語に変換してから経費率を取得
+    const categoryLabel = getCategoryLabel(category);
+    const rate = expenseRateMap[category] ?? expenseRateMap[categoryLabel];
     if (rate === undefined) return '-';
     const percentage = ((rate - 1) * 100).toFixed(2);
     return `${percentage}%`;
@@ -67,11 +78,6 @@ export default function AggregationBillingPanel({
   const machineActivities = activities.filter(
     (activity) => getLaborCategory(activity.activity as ActivityType) === 'MACHINE'
   );
-
-  const categoryLabelMap = categoryOptions.reduce<Record<string, string>>((acc, option) => {
-    acc[option.value] = option.label;
-    return acc;
-  }, {});
 
   // 納品日のフォーマット（表示用）
   const formatDeliveryDate = (date: Date | null | undefined) => {
@@ -256,7 +262,7 @@ export default function AggregationBillingPanel({
                 {expenses.map((expense, index) => (
                     <tr key={expense.id || index}>
                       <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                        {categoryLabelMap[expense.category] ?? expense.category}
+                        {getCategoryLabel(expense.category)}
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-left">
                         {isEditing ? (
@@ -301,9 +307,7 @@ export default function AggregationBillingPanel({
                         )}
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-center">
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {formatExpenseRate(expense.category)}
-                        </span>
+                        {formatExpenseRate(expense.category)}
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
                         {isEditing ? (

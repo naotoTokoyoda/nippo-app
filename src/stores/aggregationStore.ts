@@ -352,8 +352,14 @@ function createAggregationStore(
 
     addExpense: () => {
       const { expenseRateMap } = get();
+      // 経費率マップから最初のカテゴリを取得（日本語のカテゴリ名）
+      const defaultCategory = Object.keys(expenseRateMap).find(key => !key.match(/^[a-z]+$/)) || Object.keys(expenseRateMap)[0] || 'materials';
+      const newExpense = normalizeExpense({
+        ...createEmptyExpense(),
+        category: defaultCategory,
+      }, expenseRateMap);
       set((state) => ({
-        editedExpenses: [...state.editedExpenses, normalizeExpense(createEmptyExpense(), expenseRateMap)],
+        editedExpenses: [...state.editedExpenses, newExpense],
       }));
     },
 
