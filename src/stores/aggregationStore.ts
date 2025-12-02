@@ -40,6 +40,7 @@ interface AggregationState {
   // 経費編集
   originalExpenses: ExpenseItem[];
   editedExpenses: EditableExpense[];
+  expenseRateMap: Record<string, number>; // カテゴリ名 → マークアップ率（例：{ "テスト": 2.0, "その他": 1.5 }）
 
   // 単価編集
   originalActivities: ActivitySummary[];
@@ -92,6 +93,7 @@ interface AggregationState {
 
   // データ初期化
   setWorkOrder: (workOrder: WorkOrderDetail | null) => void;
+  setExpenseRateMap: (rateMap: Record<string, number>) => void;
   
   // 編集モード
   startEditing: () => void;
@@ -138,6 +140,7 @@ function createAggregationStore(
     isEditing: false,
     originalExpenses: [],
     editedExpenses: [],
+    expenseRateMap: {},
     originalActivities: [],
     editedRates: {},
     editedEstimateAmount: '',
@@ -162,13 +165,13 @@ function createAggregationStore(
     },
 
     getExpensesHasChanges: () => {
-      const { editedExpenses, originalExpenses } = get();
-      return areExpensesChanged(editedExpenses, originalExpenses);
+      const { editedExpenses, originalExpenses, expenseRateMap } = get();
+      return areExpensesChanged(editedExpenses, originalExpenses, expenseRateMap);
     },
 
     getSanitizedExpenses: () => {
-      const { editedExpenses } = get();
-      return sanitizeExpensesForSave(editedExpenses);
+      const { editedExpenses, expenseRateMap } = get();
+      return sanitizeExpensesForSave(editedExpenses, expenseRateMap);
     },
 
     // 単価の計算値
@@ -294,17 +297,26 @@ function createAggregationStore(
       }));
     },
 
+    setExpenseRateMap: (rateMap) => {
+      set(() => ({ expenseRateMap: rateMap }));
+    },
+
     startEditing: () => {
-      const { workOrder } = get();
+      const { workOrder, expenseRateMap } = get();
       if (!workOrder) return;
+
+      console.log('📝 編集モード開始 - 経費率マップ:', expenseRateMap);
+      console.log('📝 元の経費データ:', workOrder.expenses);
 
       // 経費の編集データを準備
       const expenseDrafts = workOrder.expenses.map(expense =>
         normalizeExpense({
           ...expense,
           manualBillOverride: determineManualOverride(expense),
-        })
+        }, expenseRateMap)
       );
+      
+      console.log('📝 正規化後の経費データ:', expenseDrafts);
 
       // 単価の編集データを準備
       const initialRates = createInitialEditedRates(workOrder.activities);
@@ -340,8 +352,9 @@ function createAggregationStore(
     // ========================================
 
     addExpense: () => {
+      const { expenseRateMap } = get();
       set((state) => ({
-        editedExpenses: [...state.editedExpenses, normalizeExpense(createEmptyExpense())],
+        editedExpenses: [...state.editedExpenses, normalizeExpense(createEmptyExpense(), expenseRateMap)],
       }));
     },
 
@@ -352,26 +365,29 @@ function createAggregationStore(
     },
 
     changeCategoryAt: (index, category) => {
+      const { expenseRateMap } = get();
       set((state) => {
         const updated = [...state.editedExpenses];
         const target = updated[index];
         if (!target) return {};
 
-        const manualBillOverride = AUTO_MARKUP_CATEGORIES.includes(category)
-          ? target.manualBillOverride ?? determineManualOverride(target)
-          : true;
+        // カテゴリ変更時は、自動マークアップをリセット（falseにして再計算）
+        const manualBillOverride = expenseRateMap[category] !== undefined
+          ? false  // 経費率が登録されているカテゴリは自動計算
+          : true;  // 未登録のカテゴリは手動設定
 
         updated[index] = normalizeExpense({
           ...target,
           category,
           manualBillOverride,
-        });
+        }, expenseRateMap);
 
         return { editedExpenses: updated };
       });
     },
 
     changeCostFieldAt: (index, field, value) => {
+      const { expenseRateMap } = get();
       set((state) => {
         const updated = [...state.editedExpenses];
         const target = updated[index];
@@ -387,7 +403,7 @@ function createAggregationStore(
           updated[index] = normalizeExpense({
             ...target,
             [field]: field === 'costQuantity' ? Math.max(1, numericValue) : Math.max(0, numericValue),
-          });
+          }, expenseRateMap);
         }
 
         return { editedExpenses: updated };
@@ -395,6 +411,7 @@ function createAggregationStore(
     },
 
     changeBillingFieldAt: (index, field, value) => {
+      const { expenseRateMap } = get();
       set((state) => {
         const updated = [...state.editedExpenses];
         const target = updated[index];
@@ -418,7 +435,7 @@ function createAggregationStore(
             billQuantity,
             billTotal,
             manualBillOverride: true,
-          });
+          }, expenseRateMap);
         } else if (field === 'billUnitPrice') {
           const billUnitPrice = Math.max(0, numericValue);
           const billTotal = billUnitPrice * (target.billQuantity > 0 ? target.billQuantity : 1);
@@ -427,7 +444,7 @@ function createAggregationStore(
             billUnitPrice,
             billTotal,
             manualBillOverride: true,
-          });
+          }, expenseRateMap);
         } else {
           // billTotal
           const billTotal = Math.max(0, numericValue);
@@ -438,7 +455,7 @@ function createAggregationStore(
             billUnitPrice,
             billTotal,
             manualBillOverride: true,
-          });
+          }, expenseRateMap);
         }
 
         return { editedExpenses: updated };
@@ -446,6 +463,7 @@ function createAggregationStore(
     },
 
     resetBillingAt: (index) => {
+      const { expenseRateMap } = get();
       set((state) => {
         const updated = [...state.editedExpenses];
         const target = updated[index];
@@ -454,7 +472,7 @@ function createAggregationStore(
         updated[index] = normalizeExpense({
           ...target,
           manualBillOverride: false,
-        });
+        }, expenseRateMap);
 
         return { editedExpenses: updated };
       });

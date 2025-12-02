@@ -15,7 +15,6 @@ import AggregationFinalDecisionHistory from "./aggregation/aggregation-final-dec
 import { useAggregationData } from "@/hooks/useAggregationData";
 import { useAggregationSave } from "@/hooks/useAggregationSave";
 import { useAggregationStore } from "@/stores/aggregationStore";
-import { EXPENSE_CATEGORY_OPTIONS } from "@/lib/aggregation/expense-utils";
 
 interface AggregationDetailProps {
   workOrderId: string;
@@ -27,6 +26,10 @@ export default function AggregationDetail({
   const router = useRouter();
   const { showToast } = useToast();
   const [isStatusChanging, setIsStatusChanging] = useState(false);
+  const [categoryOptions, setCategoryOptions] = useState<Array<{ value: string; label: string }>>([]);
+  
+  // Zustandストアのアクションを取得
+  const setExpenseRateMap = useAggregationStore((state) => state.setExpenseRateMap);
 
   // データ取得のカスタムフック
   const { workOrder, loading, isAuthenticated, refetch, updateStatus } =
@@ -55,6 +58,41 @@ export default function AggregationDetail({
   useEffect(() => {
     setWorkOrder(workOrder);
   }, [workOrder, setWorkOrder]);
+
+  // 経費カテゴリと経費率を取得
+  useEffect(() => {
+    const fetchExpenseCategories = async () => {
+      try {
+        const response = await fetch('/api/admin/expense-rates');
+        const data = await response.json();
+        
+        console.log('📊 経費率API応答:', data);
+        
+        if (data.success) {
+          // カテゴリオプションを設定
+          const options = data.data.map((rate: { categoryName: string }) => ({
+            value: rate.categoryName,
+            label: rate.categoryName,
+          }));
+          setCategoryOptions(options);
+          
+          // 経費率マップを設定（カテゴリ名 → マークアップ率）
+          const rateMap: Record<string, number> = {};
+          data.data.forEach((rate: { categoryName: string; markupRate: number }) => {
+            rateMap[rate.categoryName] = Number(rate.markupRate);
+          });
+          
+          console.log('📊 経費率マップを設定:', rateMap);
+          setExpenseRateMap(rateMap);
+        }
+      } catch (error) {
+        console.error('Failed to fetch expense categories:', error);
+        // エラー時は空配列のまま
+      }
+    };
+
+    fetchExpenseCategories();
+  }, [setExpenseRateMap]);
 
   // 保存・API通信のカスタムフック
   const saveManager = useAggregationSave({
@@ -257,12 +295,12 @@ export default function AggregationDetail({
         />
         <div className="grid grid-cols-1 gap-6">
           <AggregationCostPanel
-            categoryOptions={EXPENSE_CATEGORY_OPTIONS}
+            categoryOptions={categoryOptions}
             formatCurrency={formatCurrency}
             formatHours={formatHours}
           />
           <AggregationBillingPanel
-            categoryOptions={EXPENSE_CATEGORY_OPTIONS}
+            categoryOptions={categoryOptions}
             formatCurrency={formatCurrency}
             formatHours={formatHours}
           />

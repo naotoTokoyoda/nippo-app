@@ -18,6 +18,7 @@ export default function AggregationCostPanel({
   const isEditing = useAggregationStore((state) => state.isEditing);
   const editedRates = useAggregationStore((state) => state.editedRates);
   const editedExpenses = useAggregationStore((state) => state.editedExpenses);
+  const expenseRateMap = useAggregationStore((state) => state.expenseRateMap);
   const getActivitiesForDisplay = useAggregationStore((state) => state.getActivitiesForDisplay);
   const getCostLaborSubtotal = useAggregationStore((state) => state.getCostLaborSubtotal);
   const getCostLaborCategorySubtotal = useAggregationStore((state) => state.getCostLaborCategorySubtotal);
@@ -29,6 +30,14 @@ export default function AggregationCostPanel({
   const changeCategoryAt = useAggregationStore((state) => state.changeCategoryAt);
   const changeCostFieldAt = useAggregationStore((state) => state.changeCostFieldAt);
   const editRate = useAggregationStore((state) => state.editRate);
+  
+  // 経費率を表示用にフォーマット
+  const formatExpenseRate = (category: string): string => {
+    const rate = expenseRateMap[category];
+    if (rate === undefined) return '-';
+    const percentage = ((rate - 1) * 100).toFixed(2);
+    return `${percentage}%`;
+  };
 
   // 表示用データを取得
   const activities = getActivitiesForDisplay();
@@ -177,6 +186,7 @@ export default function AggregationCostPanel({
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-24">原価単価</th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-16">数量</th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-28">原価小計</th>
+                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-800 uppercase tracking-wider w-20">経費率</th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-24">メモ</th>
                   {isEditing && <th className="px-3 py-2" />}
                 </tr>
@@ -231,6 +241,11 @@ export default function AggregationCostPanel({
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-sm font-semibold text-gray-900 text-left">
                       {formatCurrency(expense.costTotal)}
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-center">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {formatExpenseRate(expense.category)}
+                      </span>
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
                       {isEditing ? (

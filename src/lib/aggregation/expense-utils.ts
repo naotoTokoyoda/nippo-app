@@ -74,8 +74,14 @@ export function createEmptyExpense(): EditableExpenseItem {
  * - 原価の計算
  * - 自動マークアップの適用（該当カテゴリかつ手動上書きでない場合）
  * - 請求額の計算
+ * 
+ * @param expense 経費アイテム
+ * @param expenseRateMap カテゴリ名 → マークアップ率のマップ（例：{ "テスト": 2.0, "その他": 1.5 }）
  */
-export function normalizeExpense(expense: EditableExpenseItem): EditableExpenseItem {
+export function normalizeExpense(
+  expense: EditableExpenseItem, 
+  expenseRateMap: Record<string, number> = {}
+): EditableExpenseItem {
   // 原価計算
   const safeCostUnitPrice = Number.isFinite(expense.costUnitPrice) ? Math.max(0, expense.costUnitPrice) : 0;
   const safeCostQuantity = Number.isFinite(expense.costQuantity) ? Math.max(1, expense.costQuantity) : 1;
@@ -88,12 +94,26 @@ export function normalizeExpense(expense: EditableExpenseItem): EditableExpenseI
     costTotal,
   };
 
-  const requiresAutoMarkup = !updated.manualBillOverride && AUTO_MARKUP_CATEGORIES.includes(updated.category);
+  // 経費率マップにカテゴリが存在し、手動上書きでない場合は自動マークアップを適用
+  const markupRate = expenseRateMap[updated.category];
+  const requiresAutoMarkup = !updated.manualBillOverride && markupRate !== undefined;
+
+  // デバッグログ（開発環境のみ）
+  if (process.env.NODE_ENV === 'development') {
+    console.log('normalizeExpense:', {
+      category: updated.category,
+      markupRate,
+      requiresAutoMarkup,
+      manualBillOverride: updated.manualBillOverride,
+      costTotal,
+      expenseRateMapKeys: Object.keys(expenseRateMap),
+    });
+  }
 
   if (requiresAutoMarkup) {
-    // 自動マークアップ: 原価 × 1.2
+    // 自動マークアップ: 原価 × マークアップ率
     const billQuantity = safeCostQuantity;
-    const billTotal = Math.ceil(costTotal * 1.2);
+    const billTotal = Math.ceil(costTotal * markupRate);
     const billUnitPrice = billQuantity > 0 ? Math.ceil(billTotal / billQuantity) : billTotal;
     updated = {
       ...updated,
@@ -128,10 +148,16 @@ export function normalizeExpense(expense: EditableExpenseItem): EditableExpenseI
  * - 正規化を適用
  * - 空データ（原価・請求額・見積がすべて0）を除外
  * - 内部フラグを除去
+ * 
+ * @param expenses 経費リスト
+ * @param expenseRateMap カテゴリ名 → マークアップ率のマップ
  */
-export function sanitizeExpensesForSave(expenses: EditableExpenseItem[]): ExpenseItem[] {
+export function sanitizeExpensesForSave(
+  expenses: EditableExpenseItem[],
+  expenseRateMap: Record<string, number> = {}
+): ExpenseItem[] {
   return expenses
-    .map(expense => normalizeExpense(expense))
+    .map(expense => normalizeExpense(expense, expenseRateMap))
     .filter(expense => expense.costTotal > 0 || expense.billTotal > 0 || (expense.fileEstimate ?? 0) > 0)
     .map(expense => ({
       id: expense.id,
@@ -149,12 +175,17 @@ export function sanitizeExpensesForSave(expenses: EditableExpenseItem[]): Expens
 
 /**
  * 経費リストが変更されたかを判定する
+ * 
+ * @param current 現在の経費リスト
+ * @param original 元の経費リスト
+ * @param expenseRateMap カテゴリ名 → マークアップ率のマップ
  */
 export function areExpensesChanged(
   current: EditableExpenseItem[],
-  original: ExpenseItem[]
+  original: ExpenseItem[],
+  expenseRateMap: Record<string, number> = {}
 ): boolean {
-  const sanitizedCurrent = sanitizeExpensesForSave(current);
+  const sanitizedCurrent = sanitizeExpensesForSave(current, expenseRateMap);
 
   const sanitizedOriginal = original
     .filter(expense => expense.costTotal > 0 || expense.billTotal > 0 || (expense.fileEstimate ?? 0) > 0)
