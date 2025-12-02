@@ -266,14 +266,16 @@ model AggregationSummary {
   @@map("aggregation_summaries")
 }
 
-model ExpenseMarkupSetting {
+model ExpenseRate {
   id            String    @id @default(cuid())
-  category      String    @unique @db.VarChar(50) // '材料' | '外注' | '配送' | 'その他'
-  markupRate    Decimal   @db.Decimal(5,2) // 1.20 = 20%マークアップ
+  categoryName  String    @unique @map("category_name") @db.VarChar(100) // カテゴリ名（例：「材料費」「外注費」）
+  markupRate    Decimal   @map("markup_rate") @db.Decimal(5,2) // 1.20 = 20%上乗せ
   memo          String?   @db.VarChar(200) // メモ
+  isActive      Boolean   @default(true) @map("is_active") // アクティブフラグ
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
   
-  @@index([category])
-  @@map("expense_markup_settings")
+  @@index([categoryName])
+  @@index([isActive])
+  @@map("expense_rates")
 }
