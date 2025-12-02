@@ -4,9 +4,9 @@ import { Prisma } from '@prisma/client';
  * 経費カテゴリの英語名から日本語名へのマッピング
  */
 export const CATEGORY_NAME_MAPPING: Record<string, string> = {
-  'materials': '材料',
-  'outsourcing': '外注',
-  'shipping': '配送',
+  'materials': '材料費',
+  'outsourcing': '外注費',
+  'shipping': '配送費',
   'other': 'その他',
 };
 
@@ -25,9 +25,10 @@ export async function getCurrentMarkupRate(
   const japaneseName = CATEGORY_NAME_MAPPING[category] || category;
   
   try {
-    const setting = await tx.expenseMarkupSetting.findUnique({
+    const setting = await tx.expenseRate.findUnique({
       where: {
-        category: japaneseName,
+        categoryName: japaneseName,
+        isActive: true,
       },
     });
 
@@ -52,7 +53,7 @@ export async function getCurrentMarkupRate(
 export async function getAllMarkupRates(
   tx: Prisma.TransactionClient
 ): Promise<Record<string, number>> {
-  const categories = ['材料', '外注', '配送', 'その他'];
+  const categories = ['材料費', '外注費', '配送費', 'その他'];
   const markupRates: Record<string, number> = {};
 
   for (const category of categories) {

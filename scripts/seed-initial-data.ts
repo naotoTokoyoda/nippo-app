@@ -27,48 +27,44 @@ async function seedInitialData() {
   
   console.log(`✅ Admin作成: ${admin.name} (${admin.email})`);
 
-  // 2. ExpenseMarkupSetting初期データ作成
-  console.log('\n📌 経費マークアップ率設定を作成...');
+  // 2. ExpenseRate初期データ作成
+  console.log('\n📌 経費率設定を作成...');
   
   // 既存データを削除
-  await prisma.expenseMarkupSetting.deleteMany();
+  await prisma.expenseRate.deleteMany();
   
-  const markupSettings = [
+  const expenseRates = [
     {
-      category: '材料',
+      categoryName: '材料費',
       markupRate: 1.20, // 20%マークアップ
-      effectiveFrom: new Date('2024-01-01'),
-      effectiveTo: null,
       memo: '初期設定（20%マークアップ）',
+      isActive: true,
     },
     {
-      category: '外注',
+      categoryName: '外注費',
       markupRate: 1.20,
-      effectiveFrom: new Date('2024-01-01'),
-      effectiveTo: null,
       memo: '初期設定（20%マークアップ）',
+      isActive: true,
     },
     {
-      category: '配送',
+      categoryName: '配送費',
       markupRate: 1.20,
-      effectiveFrom: new Date('2024-01-01'),
-      effectiveTo: null,
       memo: '初期設定（20%マークアップ）',
+      isActive: true,
     },
     {
-      category: 'その他',
+      categoryName: 'その他',
       markupRate: 1.20,
-      effectiveFrom: new Date('2024-01-01'),
-      effectiveTo: null,
       memo: '初期設定（20%マークアップ）',
+      isActive: true,
     },
   ];
 
-  for (const setting of markupSettings) {
-    await prisma.expenseMarkupSetting.create({
+  for (const setting of expenseRates) {
+    await prisma.expenseRate.create({
       data: setting,
     });
-    console.log(`✅ ${setting.category}: ${setting.markupRate}倍（${(setting.markupRate - 1) * 100}%）`);
+    console.log(`✅ ${setting.categoryName}: ${setting.markupRate}倍（${(setting.markupRate - 1) * 100}%）`);
   }
 
   console.log('\n🎉 初期データのシードが完了しました');

@@ -14,7 +14,6 @@ import {
   sanitizeExpensesForSave,
   areExpensesChanged,
   parseInteger,
-  AUTO_MARKUP_CATEGORIES,
   determineManualOverride,
   type EditableExpense,
 } from '@/lib/aggregation/expense-utils';
@@ -312,7 +311,7 @@ function createAggregationStore(
       const expenseDrafts = workOrder.expenses.map(expense =>
         normalizeExpense({
           ...expense,
-          manualBillOverride: determineManualOverride(expense),
+          manualBillOverride: determineManualOverride(expense, expenseRateMap),
         }, expenseRateMap)
       );
       

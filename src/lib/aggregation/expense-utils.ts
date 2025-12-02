@@ -1,11 +1,6 @@
 import { ExpenseItem, ExpenseCategory, EditableExpenseItem } from '@/types/aggregation';
 
 /**
- * 自動マークアップ対象カテゴリ（原価の1.2倍が請求額になる）
- */
-export const AUTO_MARKUP_CATEGORIES: ExpenseCategory[] = ['materials', 'outsourcing', 'shipping'];
-
-/**
  * 経費カテゴリのオプション
  */
 export const EXPENSE_CATEGORY_OPTIONS: Array<{ value: ExpenseCategory; label: string }> = [
@@ -39,15 +34,20 @@ export function parseInteger(value: string | number, fallback = 0): number {
 
 /**
  * 経費が手動上書きされているかを判定する
- * 自動マークアップ対象カテゴリで、請求額が原価×1.2と異なる場合はtrue
+ * 動的な経費率を使用して、請求額が期待値と異なる場合はtrue
  */
-export function determineManualOverride(expense: ExpenseItem | EditableExpenseItem): boolean {
-  if (!AUTO_MARKUP_CATEGORIES.includes(expense.category)) {
+export function determineManualOverride(
+  expense: ExpenseItem | EditableExpenseItem,
+  expenseRateMap: Record<string, number>
+): boolean {
+  const rate = expenseRateMap[expense.category];
+  // 経費率が設定されていない場合は手動上書きとみなす
+  if (rate === undefined) {
     return true;
   }
 
   const baselineCostTotal = expense.costTotal ?? expense.costUnitPrice * expense.costQuantity;
-  const expectedBillTotal = Math.ceil(baselineCostTotal * 1.2);
+  const expectedBillTotal = Math.ceil(baselineCostTotal * rate);
   return expense.billTotal !== expectedBillTotal;
 }
 
