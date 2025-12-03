@@ -5,7 +5,7 @@
  */
 
 import { Prisma } from '@prisma/client';
-import { determineActivity } from '@/lib/aggregation/activity-utils';
+import { determineActivity, getActivityName } from '@/lib/aggregation/activity-utils';
 import { logger } from '@/lib/logger';
 
 /**
@@ -103,6 +103,7 @@ async function updateActivityMemo(
  * @param oldBillRate 旧単価
  * @param newBillRate 新単価
  * @param memo メモ
+ * @param userId 操作ユーザーID
  * @param tx Prismaトランザクション
  */
 async function createRateAdjustmentHistory(
@@ -111,6 +112,7 @@ async function createRateAdjustmentHistory(
   oldBillRate: number,
   newBillRate: number,
   memo: string | undefined,
+  userId: string | undefined,
   tx: TransactionClient
 ): Promise<void> {
   const rateDifference = newBillRate - oldBillRate;
@@ -120,8 +122,16 @@ async function createRateAdjustmentHistory(
     return;
   }
 
-  // システムユーザーIDを取得
-  const systemUserId = await getOrCreateSystemUserId(tx);
+  // ユーザーIDが指定されている場合は存在確認
+  let effectiveUserId: string;
+  if (userId) {
+    const userExists = await tx.user.findUnique({
+      where: { id: userId },
+    });
+    effectiveUserId = userExists ? userId : await getOrCreateSystemUserId(tx);
+  } else {
+    effectiveUserId = await getOrCreateSystemUserId(tx);
+  }
 
   // この工番のこのactivityの総時間を取得
   const reportItems = await tx.reportItem.findMany({
@@ -153,7 +163,7 @@ async function createRateAdjustmentHistory(
       amount: totalAdjustment,
       reason: `${activity}単価調整 (${formatCurrency(oldBillRate)} → ${formatCurrency(newBillRate)})`,
       memo: memo || null,
-      createdBy: systemUserId,
+      createdBy: effectiveUserId,
     },
   });
 
@@ -166,19 +176,22 @@ async function createRateAdjustmentHistory(
  * @param workOrderId 工番ID
  * @param activity Activity種別
  * @param memo メモ
+ * @param userId 操作ユーザーID
  * @param tx Prismaトランザクション
  */
 async function createMemoUpdateHistory(
   workOrderId: string,
   activity: string,
   memo: string | undefined,
+  userId: string | undefined,
   tx: TransactionClient
 ): Promise<void> {
   if (memo === undefined) {
     return;
   }
 
-  const systemUserId = await getOrCreateSystemUserId(tx);
+  // ユーザーIDが指定されていない場合はシステムユーザーIDを取得
+  const effectiveUserId = userId || await getOrCreateSystemUserId(tx);
 
   await tx.adjustment.create({
     data: {
@@ -187,7 +200,7 @@ async function createMemoUpdateHistory(
       amount: 0,
       reason: `${activity}メモ更新`,
       memo: memo || null,
-      createdBy: systemUserId,
+      createdBy: effectiveUserId,
     },
   });
 
@@ -240,12 +253,14 @@ async function updateRate(
  * 
  * @param workOrderId 工番ID
  * @param adjustments 単価調整の情報
+ * @param userId 操作ユーザーID（省略時はシステムユーザー）
  * @param tx Prismaトランザクション
  */
 export async function processRateAdjustments(
   workOrderId: string,
   adjustments: Record<string, RateAdjustment>,
-  tx: TransactionClient
+  tx: TransactionClient,
+  userId?: string
 ): Promise<void> {
   for (const [activity, adjustment] of Object.entries(adjustments)) {
     // 人工費か機械費かを判定
@@ -255,14 +270,27 @@ export async function processRateAdjustments(
     let currentRate: { id: string; billRate: number; costRate: number } | null = null;
     
     if (isMachine) {
-      // 機械単価を取得（activityからmachineIdを推測するのは難しいので、
-      // ここでは簡易的にactivityをキーとして扱う）
-      // 実装を簡略化するため、この機能は一旦スキップ
-      logger.warn(`Machine rate adjustment not fully implemented for ${activity}`);
-      continue;
+      // 機械単価を取得
+      // activityから機械名を抽出（例：「M_1052」→「1052」）
+      const machineName = getActivityName(activity);
+      
+      // 機械名からmachineを検索
+      const machine = await tx.machine.findFirst({
+        where: { name: machineName },
+      });
+      
+      if (machine) {
+        // machineIdを使ってMachineRateを取得
+        currentRate = await tx.machineRate.findUnique({
+          where: { machineId: machine.id },
+        }) as { id: string; billRate: number; costRate: number } | null;
+      } else {
+        logger.warn(`Machine not found for activity ${activity} (machine name: ${machineName})`);
+        continue;
+      }
     } else {
       // 人工費単価を取得
-      const laborName = adjustment.memo || activity; // activityから名前を取得（仮実装）
+      const laborName = getActivityName(activity); // '通常作業'、'実習生'など
       currentRate = await tx.laborRate.findUnique({
         where: {
           laborName,
@@ -292,12 +320,11 @@ export async function processRateAdjustments(
         currentRate.billRate,
         adjustment.billRate,
         adjustment.memo,
+        userId,
         tx
       );
-    } else if (adjustment.memo !== undefined) {
-      // メモのみが変更された場合
-      await createMemoUpdateHistory(workOrderId, activity, adjustment.memo, tx);
     }
+    // メモのみの変更は調整履歴に記録しない（Activity別メモで確認可能）
   }
 
   logger.info(`Processed rate adjustments for work order ${workOrderId}: ${Object.keys(adjustments).length} activities`);
