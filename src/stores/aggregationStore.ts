@@ -304,9 +304,6 @@ function createAggregationStore(
       const { workOrder, expenseRateMap } = get();
       if (!workOrder) return;
 
-      console.log('📝 編集モード開始 - 経費率マップ:', expenseRateMap);
-      console.log('📝 元の経費データ:', workOrder.expenses);
-
       // 経費の編集データを準備
       const expenseDrafts = workOrder.expenses.map(expense =>
         normalizeExpense({
@@ -314,8 +311,6 @@ function createAggregationStore(
           manualBillOverride: determineManualOverride(expense, expenseRateMap),
         }, expenseRateMap)
       );
-      
-      console.log('📝 正規化後の経費データ:', expenseDrafts);
 
       // 単価の編集データを準備
       const initialRates = createInitialEditedRates(workOrder.activities);
@@ -505,7 +500,6 @@ function createAggregationStore(
     // ========================================
 
     editRate: (activity, field, value) => {
-      console.log('✏️ editRate呼び出し:', { activity, field, value });
       set((state) => ({
         editedRates: {
           ...state.editedRates,

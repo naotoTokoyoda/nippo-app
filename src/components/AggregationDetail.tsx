@@ -66,8 +66,6 @@ export default function AggregationDetail({
         const response = await fetch('/api/admin/expense-rates');
         const data = await response.json();
         
-        console.log('📊 経費率API応答:', data);
-        
         if (data.success) {
           // カテゴリオプションを設定（APIから取得した日本語のカテゴリ名をそのまま使用）
           const options = data.data.map((rate: { categoryName: string }) => ({
@@ -188,7 +186,6 @@ export default function AggregationDetail({
       finalDecisionAmount,
       deliveryDate,
     });
-    console.log('✅ saveManager.saveChanges 完了');
   }, [calculateChanges, saveManager, showToast, getAdjustmentsForAPI, getSanitizedExpenses]);
 
   const handleStatusChange = useCallback(
@@ -327,7 +324,6 @@ export default function AggregationDetail({
         />
         <AggregationAdjustmentHistory
           adjustments={workOrder.adjustments}
-          formatCurrency={formatCurrency}
         />
       </div>
     </PageLayout>
