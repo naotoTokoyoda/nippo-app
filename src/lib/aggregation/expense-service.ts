@@ -147,17 +147,139 @@ async function createExpense(
 }
 
 /**
+ * システムユーザーのIDを取得または作成
+ * 
+ * @param tx Prismaトランザクション
+ * @returns システムユーザーID
+ */
+async function getOrCreateSystemUserId(tx: TransactionClient): Promise<string> {
+  let systemUserId: string;
+  const existingUser = await tx.user.findFirst({
+    where: { name: 'システム' }
+  });
+  
+  if (existingUser) {
+    systemUserId = existingUser.id;
+  } else {
+    // システムユーザーを作成
+    const systemUser = await tx.user.create({
+      data: {
+        name: 'システム',
+      },
+    });
+    systemUserId = systemUser.id;
+  }
+  
+  return systemUserId;
+}
+
+/**
+ * 経費変更の調整履歴を作成
+ * 
+ * @param workOrderId 工番ID
+ * @param oldExpenses 旧経費データ
+ * @param newExpenses 新経費データ
+ * @param userId 操作ユーザーID
+ * @param tx Prismaトランザクション
+ */
+async function createExpenseChangeHistory(
+  workOrderId: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  oldExpenses: any[],
+  newExpenses: ExpenseInput[],
+  userId: string | undefined,
+  tx: TransactionClient
+): Promise<void> {
+  // ユーザーIDが指定されている場合は存在確認
+  let effectiveUserId: string;
+  if (userId) {
+    const userExists = await tx.user.findUnique({
+      where: { id: userId },
+    });
+    effectiveUserId = userExists ? userId : await getOrCreateSystemUserId(tx);
+  } else {
+    effectiveUserId = await getOrCreateSystemUserId(tx);
+  }
+
+  // 旧経費をマップ化（カテゴリごとに集計）
+  const oldExpenseMap = new Map<string, number>();
+  oldExpenses.forEach((expense) => {
+    const category = expense.category;
+    const billTotal = expense.billTotal || 0;
+    oldExpenseMap.set(category, (oldExpenseMap.get(category) || 0) + billTotal);
+  });
+
+  // 新経費をマップ化（カテゴリごとに集計）
+  const newExpenseMap = new Map<string, number>();
+  newExpenses.forEach((expense) => {
+    const category = expense.category.trim();
+    if (!category) return;
+    
+    // 請求合計を計算
+    const { safeCostUnitPrice, safeCostQuantity, costTotal } = normalizeCostCalculation(expense);
+    const billQuantity = normalizeBillQuantity(expense, safeCostQuantity);
+    const billTotal = calculateBillTotal(expense, costTotal, category, billQuantity);
+    
+    newExpenseMap.set(category, (newExpenseMap.get(category) || 0) + billTotal);
+  });
+
+  // 変更を検出して履歴を作成
+  const allCategories = new Set([...oldExpenseMap.keys(), ...newExpenseMap.keys()]);
+  
+  for (const category of allCategories) {
+    const oldAmount = oldExpenseMap.get(category) || 0;
+    const newAmount = newExpenseMap.get(category) || 0;
+    const difference = newAmount - oldAmount;
+
+    if (difference !== 0) {
+      let reason: string;
+      if (oldAmount === 0) {
+        reason = `${category} 追加`;
+      } else if (newAmount === 0) {
+        reason = `${category} 削除`;
+      } else {
+        reason = `${category} 変更 (¥${oldAmount.toLocaleString()} → ¥${newAmount.toLocaleString()})`;
+      }
+
+      await tx.adjustment.create({
+        data: {
+          workOrderId,
+          type: 'expense_change',
+          amount: difference,
+          reason,
+          memo: null,
+          createdBy: effectiveUserId,
+        },
+      });
+
+      logger.info(`Created expense change history: ${reason}, adjustment: ${difference}`);
+    }
+  }
+}
+
+/**
  * 経費を置き換え（既存をすべて削除して新規作成）
  * 
  * @param workOrderId 工番ID
  * @param expenses 経費データの配列
+ * @param userId 操作ユーザーID（省略時はシステムユーザー）
  * @param tx Prismaトランザクション
  */
 export async function replaceExpenses(
   workOrderId: string,
   expenses: ExpenseInput[],
-  tx: TransactionClient
+  tx: TransactionClient,
+  userId?: string
 ): Promise<void> {
+  // 既存の経費を取得（履歴記録用）
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const oldExpenses = await (tx as any).material.findMany({
+    where: { workOrderId },
+  });
+
+  // 経費変更の調整履歴を作成
+  await createExpenseChangeHistory(workOrderId, oldExpenses, expenses, userId, tx);
+
   // 既存の経費をすべて削除
   await tx.material.deleteMany({
     where: { workOrderId },
