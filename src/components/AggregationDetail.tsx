@@ -15,7 +15,6 @@ import AggregationFinalDecisionHistory from "./aggregation/aggregation-final-dec
 import { useAggregationData } from "@/hooks/useAggregationData";
 import { useAggregationSave } from "@/hooks/useAggregationSave";
 import { useAggregationStore } from "@/stores/aggregationStore";
-import { EXPENSE_CATEGORY_OPTIONS } from "@/lib/aggregation/expense-utils";
 
 interface AggregationDetailProps {
   workOrderId: string;
@@ -78,20 +77,13 @@ export default function AggregationDetail({
           setCategoryOptions(options);
           
           // 経費率マップを設定（カテゴリ名 → マークアップ率）
-          // 日本語と英語の両方のキーで登録して、どちらでもマッチするようにする
           const rateMap: Record<string, number> = {};
           data.data.forEach((rate: { categoryName: string; markupRate: number }) => {
             const markupRate = Number(rate.markupRate);
-            // 日本語のキー
             rateMap[rate.categoryName] = markupRate;
-            // 英語のキーも追加（EXPENSE_CATEGORY_OPTIONSから逆引き）
-            const englishCategory = EXPENSE_CATEGORY_OPTIONS.find(opt => opt.label === rate.categoryName);
-            if (englishCategory) {
-              rateMap[englishCategory.value] = markupRate;
-            }
           });
           
-          console.log('📊 経費率マップを設定（日英両対応）:', rateMap);
+          console.log('📊 経費率マップを設定:', rateMap);
           setExpenseRateMap(rateMap);
         }
       } catch (error) {

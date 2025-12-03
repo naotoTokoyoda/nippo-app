@@ -1,7 +1,6 @@
 import { ExpenseCategory } from '@/types/aggregation';
 import { useAggregationStore } from '@/stores/aggregationStore';
 import { getLaborCategory, type ActivityType } from '@/lib/aggregation/activity-utils';
-import { EXPENSE_CATEGORY_OPTIONS } from '@/lib/aggregation/expense-utils';
 
 interface AggregationBillingPanelProps {
   categoryOptions: Array<{ value: ExpenseCategory; label: string }>;
@@ -36,19 +35,14 @@ export default function AggregationBillingPanel({
   const setDeliveryDate = useAggregationStore((state) => state.setDeliveryDate);
   const editRate = useAggregationStore((state) => state.editRate);
   
-  // カテゴリ名を日本語に変換（英語→日本語のマッピング）
+  // カテゴリ名を取得（全て日本語で統一）
   const getCategoryLabel = (category: string): string => {
-    const option = EXPENSE_CATEGORY_OPTIONS.find(opt => opt.value === category);
-    if (option) return option.label;
-    // APIから日本語で返ってきている場合はそのまま使用
     return categoryOptions.find(opt => opt.value === category)?.label ?? category;
   };
 
   // 経費率を表示用にフォーマット
   const formatExpenseRate = (category: string): string => {
-    // 英語のカテゴリの場合は日本語に変換してから経費率を取得
-    const categoryLabel = getCategoryLabel(category);
-    const rate = expenseRateMap[category] ?? expenseRateMap[categoryLabel];
+    const rate = expenseRateMap[category];
     if (rate === undefined) return '-';
     const percentage = ((rate - 1) * 100).toFixed(2);
     return `${percentage}%`;

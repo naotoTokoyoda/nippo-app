@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 
 /**
  * 経費カテゴリの英語名から日本語名へのマッピング
+ * @deprecated 全て日本語に統一したため、このマッピングは不要です
  */
 export const CATEGORY_NAME_MAPPING: Record<string, string> = {
   'materials': '材料費',
