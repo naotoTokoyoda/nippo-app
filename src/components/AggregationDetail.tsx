@@ -83,7 +83,6 @@ export default function AggregationDetail({
             rateMap[rate.categoryName] = markupRate;
           });
           
-          console.log('📊 経費率マップを設定:', rateMap);
           setExpenseRateMap(rateMap);
         }
       } catch (error) {
@@ -152,6 +151,7 @@ export default function AggregationDetail({
       expensesChanged,
       amountAndDateChanged,
     } = calculateChanges();
+    
     const hasAnyChanges =
       rateChanges.length > 0 || expensesChanged || amountAndDateChanged;
 
@@ -188,6 +188,7 @@ export default function AggregationDetail({
       finalDecisionAmount,
       deliveryDate,
     });
+    console.log('✅ saveManager.saveChanges 完了');
   }, [calculateChanges, saveManager, showToast, getAdjustmentsForAPI, getSanitizedExpenses]);
 
   const handleStatusChange = useCallback(

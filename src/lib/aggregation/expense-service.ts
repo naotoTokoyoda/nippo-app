@@ -216,7 +216,7 @@ async function createExpenseChangeHistory(
     if (!category) return;
     
     // 請求合計を計算
-    const { safeCostUnitPrice, safeCostQuantity, costTotal } = normalizeCostCalculation(expense);
+    const { safeCostQuantity, costTotal } = normalizeCostCalculation(expense);
     const billQuantity = normalizeBillQuantity(expense, safeCostQuantity);
     const billTotal = calculateBillTotal(expense, costTotal, category, billQuantity);
     

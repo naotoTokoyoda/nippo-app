@@ -170,42 +170,6 @@ async function createRateAdjustmentHistory(
   logger.info(`Created rate adjustment history: ${activity} ${oldBillRate} -> ${newBillRate}, adjustment: ${totalAdjustment}`);
 }
 
-/**
- * メモのみの更新履歴を作成
- * 
- * @param workOrderId 工番ID
- * @param activity Activity種別
- * @param memo メモ
- * @param userId 操作ユーザーID
- * @param tx Prismaトランザクション
- */
-async function createMemoUpdateHistory(
-  workOrderId: string,
-  activity: string,
-  memo: string | undefined,
-  userId: string | undefined,
-  tx: TransactionClient
-): Promise<void> {
-  if (memo === undefined) {
-    return;
-  }
-
-  // ユーザーIDが指定されていない場合はシステムユーザーIDを取得
-  const effectiveUserId = userId || await getOrCreateSystemUserId(tx);
-
-  await tx.adjustment.create({
-    data: {
-      workOrderId,
-      type: 'memo_update',
-      amount: 0,
-      reason: `${activity}メモ更新`,
-      memo: memo || null,
-      createdBy: effectiveUserId,
-    },
-  });
-
-  logger.info(`Created memo update history: ${activity}`);
-}
 
 /**
  * 単価を更新
@@ -274,9 +238,9 @@ export async function processRateAdjustments(
       // activityから機械名を抽出（例：「M_1052」→「1052」）
       const machineName = getActivityName(activity);
       
-      // 機械名からmachineを検索
+      // 機械名からmachineを検索（部分一致）
       const machine = await tx.machine.findFirst({
-        where: { name: machineName },
+        where: { name: { contains: machineName } },
       });
       
       if (machine) {

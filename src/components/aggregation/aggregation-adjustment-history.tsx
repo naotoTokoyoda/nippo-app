@@ -86,44 +86,44 @@ export default function AggregationAdjustmentHistory({
 
       {filteredAdjustments.length > 0 ? (
         <>
-          <div className="space-y-3">
+        <div className="space-y-3">
             {displayedAdjustments.map((adjustment) => (
-              <div key={adjustment.id} className="py-3 px-4 bg-gray-50 rounded-lg">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900">{adjustment.reason}</div>
-                    {adjustment.memo && (
-                      <div className="text-sm text-gray-600 mt-1">{adjustment.memo}</div>
-                    )}
-                    <div className="text-xs text-gray-500 mt-2">
-                      {new Date(adjustment.createdAt).toLocaleString('ja-JP', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                        timeZone: 'Asia/Tokyo',
-                      })}{' '}
-                      - {adjustment.user?.name || adjustment.createdBy}
-                    </div>
-                  </div>
-                  <div
-                    className={`font-semibold text-lg ml-4 ${
-                      adjustment.amount === 0
-                        ? 'text-gray-900'
-                        : adjustment.amount > 0
-                          ? 'text-green-600'
-                          : 'text-red-600'
-                    }`}
-                  >
-                    {adjustment.amount > 0 ? '+' : ''}
-                    {formatCurrency(adjustment.amount)}
+            <div key={adjustment.id} className="py-3 px-4 bg-gray-50 rounded-lg">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="font-medium text-gray-900">{adjustment.reason}</div>
+                  {adjustment.memo && (
+                    <div className="text-sm text-gray-600 mt-1">{adjustment.memo}</div>
+                  )}
+                  <div className="text-xs text-gray-500 mt-2">
+                    {new Date(adjustment.createdAt).toLocaleString('ja-JP', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                      timeZone: 'Asia/Tokyo',
+                    })}{' '}
+                    - {adjustment.user?.name || adjustment.createdBy}
                   </div>
                 </div>
+                <div
+                  className={`font-semibold text-lg ml-4 ${
+                    adjustment.amount === 0
+                      ? 'text-gray-900'
+                      : adjustment.amount > 0
+                        ? 'text-green-600'
+                        : 'text-red-600'
+                  }`}
+                >
+                  {adjustment.amount > 0 ? '+' : ''}
+                  {formatCurrency(adjustment.amount)}
+                </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
+        </div>
           
           {hiddenCount > 0 && (
             <button

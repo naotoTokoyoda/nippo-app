@@ -57,6 +57,10 @@ export function useAggregationSave({
   const saveChanges = useCallback(
     async (saveData: SaveData) => {
       try {
+        console.log('📡 API呼び出し開始:', {
+          billRateAdjustments: saveData.adjustmentsForAPI,
+          hasAdjustments: Object.keys(saveData.adjustmentsForAPI || {}).length,
+        });
         setIsSaving(true);
 
         const response = await fetch(`/api/aggregation/${workOrderId}`, {
@@ -72,6 +76,8 @@ export function useAggregationSave({
             deliveryDate: saveData.deliveryDate,
           }),
         });
+        
+        console.log('📡 API応答:', response.status, response.ok);
 
         if (!response.ok) {
           const errorData = await response.json();
