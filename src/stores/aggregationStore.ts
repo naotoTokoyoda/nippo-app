@@ -505,6 +505,7 @@ function createAggregationStore(
     // ========================================
 
     editRate: (activity, field, value) => {
+      console.log('✏️ editRate呼び出し:', { activity, field, value });
       set((state) => ({
         editedRates: {
           ...state.editedRates,

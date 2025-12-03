@@ -77,6 +77,12 @@ export function calculateRateChanges(
 
       const oldRate = activityData.billRate;
       const newRate = parseInt(data.billRate, 10) || 0;
+      
+      // 単価が変更されていない場合はnullを返す
+      if (oldRate === newRate) {
+        return null;
+      }
+      
       const adjustment = (newRate - oldRate) * activityData.hours;
 
       return {

@@ -157,16 +157,27 @@ export async function PATCH(
       await prisma.$transaction(async (tx) => {
       // 単価調整がある場合
       if (validatedData.billRateAdjustments) {
-        await processRateAdjustments(workOrder.id, validatedData.billRateAdjustments, tx);
+        // TODO: 本番環境ではセッションから実際のユーザーIDを取得する
+        const userId = 'cmh8ils0x0000u5shpsixbzdf'; // 開発用: 常世田直人
+        await processRateAdjustments(workOrder.id, validatedData.billRateAdjustments, tx, userId);
       }
 
       // 経費更新がある場合
       if (validatedData.expenses) {
-        await replaceExpenses(workOrder.id, validatedData.expenses, tx);
+        // TODO: 本番環境ではセッションから実際のユーザーIDを取得する
+        const userId = 'cmh8ils0x0000u5shpsixbzdf'; // 開発用: 常世田直人
+        await replaceExpenses(workOrder.id, validatedData.expenses, tx, userId);
       }
 
       // 見積もり金額・最終決定金額・納品日の更新がある場合
       if (validatedData.estimateAmount !== undefined || validatedData.finalDecisionAmount !== undefined || validatedData.deliveryDate !== undefined) {
+        // TODO: 本番環境ではセッションから実際のユーザーIDを取得する
+        const userId = 'cmh8ils0x0000u5shpsixbzdf'; // 開発用: 常世田直人
+        
+        // 変更履歴を記録するため、現在の値を取得
+        const oldEstimateAmount = workOrder.estimateAmount;
+        const oldFinalDecisionAmount = workOrder.finalDecisionAmount;
+        
         const amountUpdateData: Record<string, number | Date | null> = {};
         if (validatedData.estimateAmount !== undefined) {
           amountUpdateData.estimateAmount = validatedData.estimateAmount;
@@ -177,10 +188,47 @@ export async function PATCH(
         if (validatedData.deliveryDate !== undefined) {
           amountUpdateData.deliveryDate = validatedData.deliveryDate ? new Date(validatedData.deliveryDate) : null;
         }
+        
         await tx.workOrder.update({
           where: { id: workOrder.id },
           data: amountUpdateData,
         });
+        
+        // 見積もり金額の変更履歴を作成
+        if (validatedData.estimateAmount !== undefined && validatedData.estimateAmount !== oldEstimateAmount) {
+          const difference = (validatedData.estimateAmount ?? 0) - (oldEstimateAmount ?? 0);
+          const oldAmountStr = oldEstimateAmount !== null ? `¥${oldEstimateAmount.toLocaleString()}` : '未設定';
+          const newAmountStr = validatedData.estimateAmount !== null ? `¥${validatedData.estimateAmount.toLocaleString()}` : '未設定';
+          
+          await tx.adjustment.create({
+            data: {
+              workOrderId: workOrder.id,
+              type: 'estimate_amount_change',
+              amount: difference,
+              reason: `見積もり金額変更 (${oldAmountStr} → ${newAmountStr})`,
+              memo: null,
+              createdBy: userId,
+            },
+          });
+        }
+        
+        // 最終決定金額の変更履歴を作成
+        if (validatedData.finalDecisionAmount !== undefined && validatedData.finalDecisionAmount !== oldFinalDecisionAmount) {
+          const difference = (validatedData.finalDecisionAmount ?? 0) - (oldFinalDecisionAmount ?? 0);
+          const oldAmountStr = oldFinalDecisionAmount !== null ? `¥${oldFinalDecisionAmount.toLocaleString()}` : '未設定';
+          const newAmountStr = validatedData.finalDecisionAmount !== null ? `¥${validatedData.finalDecisionAmount.toLocaleString()}` : '未設定';
+          
+          await tx.adjustment.create({
+            data: {
+              workOrderId: workOrder.id,
+              type: 'final_decision_amount_change',
+              amount: difference,
+              reason: `最終決定金額変更 (${oldAmountStr} → ${newAmountStr})`,
+              memo: null,
+              createdBy: userId,
+            },
+          });
+        }
       }
 
       // 集計完了時にAggregationSummaryを作成

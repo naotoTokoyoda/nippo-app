@@ -2,6 +2,7 @@ import { ExpenseItem, ExpenseCategory, EditableExpenseItem } from '@/types/aggre
 
 /**
  * 経費カテゴリのオプション
+ * @deprecated 動的にAPIから取得するため、この固定配列は使用しないでください
  */
 export const EXPENSE_CATEGORY_OPTIONS: Array<{ value: ExpenseCategory; label: string }> = [
   { value: 'materials', label: '材料費' },
@@ -57,7 +58,7 @@ export function determineManualOverride(
 export function createEmptyExpense(): EditableExpenseItem {
   return {
     id: `temp-${Date.now()}`,
-    category: 'materials',
+    category: '材料費', // 日本語のカテゴリ名
     costUnitPrice: 0,
     costQuantity: 1,
     costTotal: 0,
