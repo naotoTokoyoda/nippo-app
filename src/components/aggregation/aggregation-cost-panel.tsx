@@ -1,6 +1,7 @@
 import { ExpenseCategory } from '@/types/aggregation';
 import { useAggregationStore } from '@/stores/aggregationStore';
 import { getLaborCategory, type ActivityType } from '@/lib/aggregation/activity-utils';
+import { EXPENSE_CATEGORY_OPTIONS } from '@/lib/aggregation/expense-utils';
 
 interface AggregationCostPanelProps {
   categoryOptions: Array<{ value: ExpenseCategory; label: string }>;
@@ -29,6 +30,14 @@ export default function AggregationCostPanel({
   const changeCategoryAt = useAggregationStore((state) => state.changeCategoryAt);
   const changeCostFieldAt = useAggregationStore((state) => state.changeCostFieldAt);
   const editRate = useAggregationStore((state) => state.editRate);
+  
+  // カテゴリ名を日本語に変換（英語→日本語のマッピング）
+  const getCategoryLabel = (category: string): string => {
+    const option = EXPENSE_CATEGORY_OPTIONS.find(opt => opt.value === category);
+    if (option) return option.label;
+    // APIから日本語で返ってきている場合はそのまま使用
+    return categoryOptions.find(opt => opt.value === category)?.label ?? category;
+  };
 
   // 表示用データを取得
   const activities = getActivitiesForDisplay();
@@ -198,7 +207,7 @@ export default function AggregationCostPanel({
                           ))}
                         </select>
                       ) : (
-                        categoryOptions.find((option) => option.value === expense.category)?.label ?? expense.category
+                        getCategoryLabel(expense.category)
                       )}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-left">

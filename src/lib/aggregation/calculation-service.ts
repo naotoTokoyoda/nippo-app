@@ -106,11 +106,14 @@ async function calculateActivitySummary(
   activityData: ActivityGroup,
   tx: Prisma.TransactionClient
 ): Promise<ActivitySummary> {
+  // activityDataから最初のアイテムを取得（machineIdやworker情報を取得するため）
+  const firstItem = activityData.items[0];
+  
   // 現在有効な単価を取得
-  const rate = await getCurrentRate(activityData.activity, tx);
+  const rate = await getCurrentRate(activityData.activity, firstItem, tx);
   
   // 最初（デフォルト）の単価を取得
-  const originalRate = await getOriginalRate(activityData.activity, tx);
+  const originalRate = await getOriginalRate(activityData.activity, firstItem, tx);
 
   // 工番ごとのActivityメモを取得
   const activityMemo = await getActivityMemo(workOrderId, activityData.activity, tx);
@@ -140,38 +143,44 @@ async function calculateActivitySummary(
 }
 
 /**
- * 現在有効な単価を取得する
+ * 現在の単価を取得する
  */
-async function getCurrentRate(activity: string, tx: Prisma.TransactionClient) {
-  return await tx.rate.findFirst({
-    where: {
-      activity,
-      effectiveFrom: {
-        lte: new Date(),
+async function getCurrentRate(
+  activity: string, 
+  reportItem: ReportItemWithRelations,
+  tx: Prisma.TransactionClient
+) {
+  // 人工費か機械費かを判定
+  if (activity.startsWith('M_')) {
+    // 機械費：reportItemからmachineIdを取得して、MachineRateから検索
+    return await tx.machineRate.findUnique({
+      where: {
+        machineId: reportItem.machineId,
       },
-      OR: [
-        { effectiveTo: null },
-        { effectiveTo: { gte: new Date() } },
-      ],
-    },
-    orderBy: {
-      effectiveFrom: 'desc',
-    },
-  });
+    });
+  } else {
+    // 人工費：activityから判定してLaborRateから検索
+    const laborName = getActivityName(activity); // '通常'、'1号実習生'など
+    
+    return await tx.laborRate.findUnique({
+      where: {
+        laborName: laborName,
+      },
+    });
+  }
 }
 
 /**
  * 元の（最初の）単価を取得する
+ * ※履歴機能廃止により、getCurrentRateと同じ動作
  */
-async function getOriginalRate(activity: string, tx: Prisma.TransactionClient) {
-  return await tx.rate.findFirst({
-    where: {
-      activity,
-    },
-    orderBy: {
-      effectiveFrom: 'asc',
-    },
-  });
+async function getOriginalRate(
+  activity: string,
+  reportItem: ReportItemWithRelations,
+  tx: Prisma.TransactionClient
+) {
+  // 履歴機能廃止により、現在の単価と同じ
+  return await getCurrentRate(activity, reportItem, tx);
 }
 
 /**

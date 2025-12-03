@@ -8,6 +8,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showInactive, setShowInactive] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -74,6 +75,9 @@ export default function UsersPage() {
     );
   };
 
+  // 表示するユーザーをフィルタリング
+  const displayedUsers = showInactive ? users : users.filter(user => user.isActive);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -99,12 +103,23 @@ export default function UsersPage() {
             ユーザーの追加、編集、削除、権限設定
           </p>
         </div>
-        <Link
-          href="/admin/users/new"
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-        >
-          + 新規ユーザー
-        </Link>
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showInactive}
+              onChange={(e) => setShowInactive(e.target.checked)}
+              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            無効なユーザーを表示
+          </label>
+          <Link
+            href="/admin/users/new"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            + 新規ユーザー
+          </Link>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -124,6 +139,9 @@ export default function UsersPage() {
                 PIN
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                タグ
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 状態
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -132,20 +150,11 @@ export default function UsersPage() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {users.map((user) => (
+            {displayedUsers.map((user) => (
               <tr key={user.id} className={!user.isActive ? 'bg-gray-50 opacity-60' : ''}>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {user.name}
-                        {user.isTrainee && (
-                          <span className="ml-2 px-2 py-0.5 text-xs font-semibold rounded bg-yellow-100 text-yellow-800">
-                            実習生
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                  <div className="text-sm font-medium text-gray-900">
+                    {user.name}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -156,6 +165,15 @@ export default function UsersPage() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-500 font-mono">{user.pin}</div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {user.isTrainee ? (
+                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                      実習生
+                    </span>
+                  ) : (
+                    <span className="text-sm text-gray-400">-</span>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {user.isActive ? (
@@ -189,9 +207,11 @@ export default function UsersPage() {
           </tbody>
         </table>
 
-        {users.length === 0 && (
+        {displayedUsers.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-500">ユーザーが登録されていません</p>
+            <p className="text-gray-500">
+              {showInactive ? 'ユーザーが登録されていません' : '有効なユーザーが登録されていません'}
+            </p>
           </div>
         )}
       </div>

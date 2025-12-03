@@ -32,8 +32,13 @@ export async function GET() {
         return Array.from(months).sort(); // 昇順でソート
       }),
 
-      // ユニークな作業者名を取得
+      // ユニークな作業者名を取得（Admin権限は除外）
       prisma.user.findMany({
+        where: {
+          role: {
+            not: 'admin',
+          },
+        },
         select: {
           name: true,
         },

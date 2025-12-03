@@ -27,11 +27,12 @@ export type ActivityType =
 
 /**
  * アクティビティ名のマッピング
+ * ※データベースのlaborNameと一致させる必要がある
  */
 export const ACTIVITY_NAMES: Record<ActivityType, string> = {
-  'NORMAL': '通常',
-  'TRAINEE1': '1号実習生', 
-  'INSPECTION': '検品',
+  'NORMAL': '通常作業',
+  'TRAINEE1': '実習生', 
+  'INSPECTION': '検品（廃止）',
   'M_1052': '1052',
   'M_SHOMEN': '正面盤',
   'M_12SHAKU': '12尺',

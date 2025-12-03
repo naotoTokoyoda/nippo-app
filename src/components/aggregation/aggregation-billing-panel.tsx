@@ -18,6 +18,7 @@ export default function AggregationBillingPanel({
   const isEditing = useAggregationStore((state) => state.isEditing);
   const editedRates = useAggregationStore((state) => state.editedRates);
   const editedExpenses = useAggregationStore((state) => state.editedExpenses);
+  const expenseRateMap = useAggregationStore((state) => state.expenseRateMap);
   const editedEstimateAmount = useAggregationStore((state) => state.editedEstimateAmount);
   const editedFinalDecisionAmount = useAggregationStore((state) => state.editedFinalDecisionAmount);
   const editedDeliveryDate = useAggregationStore((state) => state.editedDeliveryDate);
@@ -33,6 +34,19 @@ export default function AggregationBillingPanel({
   const setFinalDecisionAmount = useAggregationStore((state) => state.setFinalDecisionAmount);
   const setDeliveryDate = useAggregationStore((state) => state.setDeliveryDate);
   const editRate = useAggregationStore((state) => state.editRate);
+  
+  // カテゴリ名を取得（全て日本語で統一）
+  const getCategoryLabel = (category: string): string => {
+    return categoryOptions.find(opt => opt.value === category)?.label ?? category;
+  };
+
+  // 経費率を表示用にフォーマット
+  const formatExpenseRate = (category: string): string => {
+    const rate = expenseRateMap[category];
+    if (rate === undefined) return '-';
+    const percentage = ((rate - 1) * 100).toFixed(2);
+    return `${percentage}%`;
+  };
 
   // 負の数の入力を防ぐハンドラー
   const preventNegativeInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -58,11 +72,6 @@ export default function AggregationBillingPanel({
   const machineActivities = activities.filter(
     (activity) => getLaborCategory(activity.activity as ActivityType) === 'MACHINE'
   );
-
-  const categoryLabelMap = categoryOptions.reduce<Record<string, string>>((acc, option) => {
-    acc[option.value] = option.label;
-    return acc;
-  }, {});
 
   // 納品日のフォーマット（表示用）
   const formatDeliveryDate = (date: Date | null | undefined) => {
@@ -239,6 +248,7 @@ export default function AggregationBillingPanel({
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-24">請求単価</th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-16">数量</th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-28">請求小計</th>
+                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-800 uppercase tracking-wider w-20">経費率</th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-24">メモ</th>
                 </tr>
               </thead>
@@ -246,7 +256,7 @@ export default function AggregationBillingPanel({
                 {expenses.map((expense, index) => (
                     <tr key={expense.id || index}>
                       <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                        {categoryLabelMap[expense.category] ?? expense.category}
+                        {getCategoryLabel(expense.category)}
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-left">
                         {isEditing ? (
@@ -289,6 +299,9 @@ export default function AggregationBillingPanel({
                         ) : (
                           formatCurrency(expense.billTotal)
                         )}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-center">
+                        {formatExpenseRate(expense.category)}
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
                         {isEditing ? (

@@ -20,6 +20,29 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = createCommentSchema.parse(body);
 
+    // ユーザーIDの存在確認
+    const userExists = await prisma.user.findUnique({
+      where: { id: validated.userId },
+    });
+
+    // ユーザーが存在しない場合はシステムユーザーを取得または作成
+    let effectiveUserId = validated.userId;
+    if (!userExists) {
+      const systemUser = await prisma.user.findFirst({
+        where: { name: 'システム' },
+      });
+      
+      if (systemUser) {
+        effectiveUserId = systemUser.id;
+      } else {
+        // システムユーザーを作成
+        const newSystemUser = await prisma.user.create({
+          data: { name: 'システム' },
+        });
+        effectiveUserId = newSystemUser.id;
+      }
+    }
+
     // コメント（Adjustment）を作成
     const comment = await prisma.adjustment.create({
       data: {
@@ -28,7 +51,7 @@ export async function POST(request: NextRequest) {
         amount: validated.amount,
         reason: validated.reason,
         memo: validated.memo || '',
-        createdBy: validated.userId,
+        createdBy: effectiveUserId,
       },
       include: {
         user: {

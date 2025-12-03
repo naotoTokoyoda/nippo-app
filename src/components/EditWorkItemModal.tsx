@@ -48,6 +48,31 @@ export default function EditWorkItemModal({
     workStatus: 'normal'
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [machines, setMachines] = useState<{ id: string; name: string }[]>([]);
+  const [loadingMachines, setLoadingMachines] = useState(true);
+
+  // 機械リストを取得
+  useEffect(() => {
+    const fetchMachines = async () => {
+      try {
+        setLoadingMachines(true);
+        const response = await fetch('/api/admin/machines');
+        const data = await response.json();
+        
+        if (data.success) {
+          setMachines(data.data);
+        } else {
+          console.error('機械一覧の取得に失敗しました:', data.error);
+        }
+      } catch (error) {
+        console.error('機械一覧の取得に失敗しました:', error);
+      } finally {
+        setLoadingMachines(false);
+      }
+    };
+
+    fetchMachines();
+  }, []);
 
   // 作業項目が変更されたときにフォームデータを更新
   useEffect(() => {
@@ -237,21 +262,15 @@ export default function EditWorkItemModal({
                 value={formData.machineType}
                 onChange={(e) => handleInputChange('machineType', e.target.value)}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={loadingMachines}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${loadingMachines ? 'bg-gray-100 cursor-not-allowed' : ''}`}
               >
-                <option value=""></option>
-                <option value="MILLAC 1052 VII">MILLAC 1052 VII</option>
-                <option value="MILLAC 761 VII">MILLAC 761 VII</option>
-                <option value="250 : NC旋盤マザック">250 : NC旋盤マザック</option>
-                <option value="350 : NC旋盤マザック">350 : NC旋盤マザック</option>
-                <option value="スマート250 L : NC旋盤">スマート250 L : NC旋盤</option>
-                <option value="Mazak REX">Mazak REX</option>
-                <option value="Mazatrol M-32">Mazatrol M-32</option>
-                <option value="正面盤 : Chubu LF 500">正面盤 : Chubu LF 500</option>
-                <option value="12尺 : 汎用旋盤">12尺 : 汎用旋盤</option>
-                <option value="汎用旋盤">汎用旋盤</option>
-                <option value="溶接">溶接</option>
-                <option value="該当なし">該当なし</option>
+                <option value="">
+                  {loadingMachines ? '読み込み中...' : ''}
+                </option>
+                {machines.map(machine => (
+                  <option key={machine.id} value={machine.name}>{machine.name}</option>
+                ))}
               </select>
             </div>
           </div>

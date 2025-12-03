@@ -67,6 +67,14 @@ export default function NewMachinePage() {
         </div>
       )}
 
+      {/* 注意事項 */}
+      <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p className="text-sm text-blue-800">
+          <strong className="font-semibold">💡 次のステップ</strong><br />
+          機械を登録後、「単価管理」画面で機械稼働費の単価を設定してください。
+        </p>
+      </div>
+
       <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="space-y-6">
           {/* 機械名 */}
@@ -123,14 +131,6 @@ export default function NewMachinePage() {
           </button>
         </div>
       </form>
-
-      {/* 注意事項 */}
-      <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p className="text-sm text-blue-800">
-          <strong className="font-semibold">💡 次のステップ</strong><br />
-          機械を登録後、「単価管理」画面で機械稼働費の単価を設定してください。
-        </p>
-      </div>
     </div>
   );
 }

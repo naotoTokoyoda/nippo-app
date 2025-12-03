@@ -44,13 +44,14 @@ model Customer {
 }
 
 model Machine {
-  id          String       @id @default(cuid())
-  name        String       @db.VarChar(100)
-  isActive    Boolean      @default(true) @map("is_active") // 論理削除用
-  memo        String?      @db.VarChar(200) // 機械の説明・備考
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
-  reportItems ReportItem[]
+  id           String        @id @default(cuid())
+  name         String        @db.VarChar(100)
+  isActive     Boolean       @default(true) @map("is_active") // 論理削除用
+  memo         String?       @db.VarChar(200) // 機械の説明・備考
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  reportItems  ReportItem[]
+  machineRates MachineRate[] // 機械単価
 
   @@index([name])
   @@index([isActive])
@@ -133,23 +134,35 @@ model ReportItem {
   @@map("report_items")
 }
 
-model Rate {
+// 人工費単価テーブル
+model LaborRate {
   id            String    @id @default(cuid())
-  activity      String    @db.VarChar(50) // Activity種別: NORMAL/TRAINEE1/M_1052/M_SHOMEN/M_12SHAKU等
-  activityType  String    @default("labor") @db.VarChar(20) // 'labor' | 'machine'
-  displayName   String    @default("") @db.VarChar(100) // 表示名（例：「通常作業」「1052」）
-  effectiveFrom DateTime  @map("effective_from") @db.Date // 適用開始日
-  effectiveTo   DateTime? @map("effective_to") @db.Date // 適用終了日（NULLは現在有効）
-  costRate      Int       @map("cost_rate") // 原価単価
-  billRate      Int       @map("bill_rate") // 請求単価
+  laborName     String    @unique @map("labor_name") @db.VarChar(100) // 単価名（例：「通常作業」「実習生」）
+  costRate      Int       @map("cost_rate") // 原価単価（円/時間）
+  billRate      Int       @map("bill_rate") // 請求単価（円/時間）
   memo          String?   @db.VarChar(200) // メモ
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  @@index([activity, effectiveFrom])
-  @@index([effectiveFrom])
-  @@index([activityType])
-  @@map("rates")
+  @@index([laborName])
+  @@map("labor_rates")
+}
+
+// 機械単価テーブル
+model MachineRate {
+  id            String    @id @default(cuid())
+  machineId     String    @unique @map("machine_id") // 機械マスタとの紐付け
+  machineName   String    @map("machine_name") @db.VarChar(100) // 機械名（参照用）
+  costRate      Int       @map("cost_rate") // 原価単価（円/時間）
+  billRate      Int       @map("bill_rate") // 請求単価（円/時間）
+  memo          String?   @db.VarChar(200) // メモ
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  machine       Machine   @relation(fields: [machineId], references: [id], onDelete: Cascade)
+
+  @@index([machineId])
+  @@map("machine_rates")
 }
 
 model Adjustment {
@@ -253,16 +266,16 @@ model AggregationSummary {
   @@map("aggregation_summaries")
 }
 
-model ExpenseMarkupSetting {
+model ExpenseRate {
   id            String    @id @default(cuid())
-  category      String    @db.VarChar(50) // '材料' | '外注' | '配送' | 'その他'
-  markupRate    Decimal   @db.Decimal(5,2) // 1.20 = 20%マークアップ
-  effectiveFrom DateTime  @map("effective_from") @db.Date // 適用開始日
-  effectiveTo   DateTime? @map("effective_to") @db.Date // 適用終了日（NULLは現在有効）
+  categoryName  String    @unique @map("category_name") @db.VarChar(100) // カテゴリ名（例：「材料費」「外注費」）
+  markupRate    Decimal   @map("markup_rate") @db.Decimal(5,2) // 1.20 = 20%上乗せ
   memo          String?   @db.VarChar(200) // メモ
+  isActive      Boolean   @default(true) @map("is_active") // アクティブフラグ
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
   
-  @@index([category, effectiveFrom])
-  @@map("expense_markup_settings")
+  @@index([categoryName])
+  @@index([isActive])
+  @@map("expense_rates")
 }

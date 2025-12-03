@@ -10,7 +10,8 @@ export interface ActivitySummary {
   memo?: string;
 }
 
-export type ExpenseCategory = 'materials' | 'outsourcing' | 'shipping' | 'other';
+// カテゴリは動的に追加可能なため、string型として定義
+export type ExpenseCategory = string;
 
 export interface ExpenseItem {
   id: string;

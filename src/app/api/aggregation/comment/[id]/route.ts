@@ -176,12 +176,35 @@ export async function DELETE(
       );
     }
 
+    // ユーザーIDの存在確認
+    const userExists = await prisma.user.findUnique({
+      where: { id: validated.userId },
+    });
+
+    // ユーザーが存在しない場合はシステムユーザーを取得または作成
+    let effectiveUserId = validated.userId;
+    if (!userExists) {
+      const systemUser = await prisma.user.findFirst({
+        where: { name: 'システム' },
+      });
+      
+      if (systemUser) {
+        effectiveUserId = systemUser.id;
+      } else {
+        // システムユーザーを作成
+        const newSystemUser = await prisma.user.create({
+          data: { name: 'システム' },
+        });
+        effectiveUserId = newSystemUser.id;
+      }
+    }
+
     // 論理削除
     const deleted = await prisma.adjustment.update({
       where: { id },
       data: {
         isDeleted: true,
-        deletedBy: validated.userId,
+        deletedBy: effectiveUserId,
         deletedAt: new Date(),
       },
       include: {
