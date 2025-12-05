@@ -128,71 +128,94 @@ function ReportsFilter({
   onOpenSearchModal,
   onClearDetailFilters,
 }: ReportsFilterProps) {
-  // 適用中の詳細条件を表示用にフォーマット
-  const formatAppliedFilters = () => {
-    const parts: string[] = [];
-    if (appliedDetailFilters.workerName) parts.push(`作業者: ${appliedDetailFilters.workerName}`);
-    if (appliedDetailFilters.customerName) parts.push(`客先: ${appliedDetailFilters.customerName}`);
-    if (appliedDetailFilters.workNumberFront) parts.push(`工番(前): ${appliedDetailFilters.workNumberFront}`);
-    if (appliedDetailFilters.workNumberBack) parts.push(`工番(後): ${appliedDetailFilters.workNumberBack}`);
-    if (appliedDetailFilters.machineType) parts.push(`機械: ${appliedDetailFilters.machineType}`);
-    return parts.join('、');
+  // 適用中の詳細条件をタグ形式で表示
+  const getAppliedFilterTags = () => {
+    const tags: { label: string; value: string }[] = [];
+    if (appliedDetailFilters.workerName) tags.push({ label: '作業者', value: appliedDetailFilters.workerName });
+    if (appliedDetailFilters.customerName) tags.push({ label: '客先', value: appliedDetailFilters.customerName });
+    if (appliedDetailFilters.workNumberFront) tags.push({ label: '工番(前)', value: appliedDetailFilters.workNumberFront });
+    if (appliedDetailFilters.workNumberBack) tags.push({ label: '工番(後)', value: appliedDetailFilters.workNumberBack });
+    if (appliedDetailFilters.machineType) tags.push({ label: '機械', value: appliedDetailFilters.machineType });
+    return tags;
   };
 
+  const filterTags = getAppliedFilterTags();
+
   return (
-    <div className="mb-6 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
-      {/* 年月セレクト */}
-      <div className="flex items-center gap-2">
-        <label className="text-sm font-medium text-gray-700 whitespace-nowrap">年月:</label>
-        <select
-          value={selectedMonth}
-          onChange={(e) => onMonthChange(e.target.value)}
-          className="px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-        >
-          {filterOptions.availableMonths.map((month, index) => {
-            const [year, monthNum] = month.split('-');
-            const monthName = new Date(parseInt(year), parseInt(monthNum) - 1).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' });
-            return (
-              <option key={`month-${month}-${index}`} value={month}>{monthName}</option>
-            );
-          })}
-        </select>
-      </div>
+    <div className="mb-6">
+      {/* メインフィルターエリア */}
+      <div className="bg-gradient-to-r from-slate-50 to-gray-50 border border-gray-200 rounded-xl p-5 shadow-sm">
+        <div className="flex flex-wrap items-end gap-6">
+          {/* 年月セレクト */}
+          <div className="flex-shrink-0">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+              対象年月
+            </label>
+            <select
+              value={selectedMonth}
+              onChange={(e) => onMonthChange(e.target.value)}
+              className="px-4 py-2.5 bg-white border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800 font-medium min-w-[160px] cursor-pointer hover:border-gray-300 transition-colors"
+            >
+              {filterOptions.availableMonths.map((month, index) => {
+                const [year, monthNum] = month.split('-');
+                const monthName = new Date(parseInt(year), parseInt(monthNum) - 1).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' });
+                return (
+                  <option key={`month-${month}-${index}`} value={month}>{monthName}</option>
+                );
+              })}
+            </select>
+          </div>
 
-      {/* 詳細検索ボタン */}
-      <div className="mt-3 flex items-center gap-3">
-        <button
-          onClick={onOpenSearchModal}
-          className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-gray-700 flex items-center gap-2 text-sm"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          詳細検索
-          {hasDetailFilters && (
-            <span className="bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded-full">適用中</span>
-          )}
-        </button>
-
-        {/* クリアボタン（詳細条件がある場合のみ表示） */}
-        {hasDetailFilters && (
+          {/* 詳細検索ボタン */}
           <button
-            onClick={onClearDetailFilters}
-            className="px-3 py-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors text-sm"
+            onClick={onOpenSearchModal}
+            className={`
+              px-5 py-2.5 rounded-lg font-medium text-sm flex items-center gap-2 transition-all duration-200
+              ${hasDetailFilters 
+                ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700 hover:shadow-lg' 
+                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 shadow-sm'
+              }
+            `}
           >
-            条件をクリア
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            詳細検索
+            {hasDetailFilters && (
+              <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full">
+                {filterTags.length}
+              </span>
+            )}
           </button>
+        </div>
+
+        {/* 適用中のフィルタータグ */}
+        {hasDetailFilters && (
+          <div className="mt-4 pt-4 border-t border-gray-200/60">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-medium text-gray-500 mr-1">絞り込み:</span>
+              {filterTags.map((tag, index) => (
+                <span
+                  key={index}
+                  className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm border border-blue-100"
+                >
+                  <span className="text-blue-400 text-xs">{tag.label}:</span>
+                  <span className="font-medium">{tag.value}</span>
+                </span>
+              ))}
+              <button
+                onClick={onClearDetailFilters}
+                className="inline-flex items-center gap-1 px-2 py-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full text-sm transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                クリア
+              </button>
+            </div>
+          </div>
         )}
       </div>
-
-      {/* 適用中の詳細条件を表示 */}
-      {hasDetailFilters && (
-        <div className="mt-3 pt-3 border-t border-gray-100">
-          <p className="text-sm text-gray-600">
-            <span className="font-medium">検索条件:</span> {formatAppliedFilters()}
-          </p>
-        </div>
-      )}
     </div>
   );
 }
