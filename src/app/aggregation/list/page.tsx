@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import AggregationList from '@/components/AggregationList';
+import { AggregationList } from '@/components/aggregation';
 
 export const metadata: Metadata = {
   title: '集計一覧 | 日報アプリ',

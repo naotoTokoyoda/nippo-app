@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import AggregationHistory from '@/components/AggregationHistory';
+import { AggregationHistory } from '@/components/aggregation';
 
 export const metadata: Metadata = {
   title: '案件履歴 | 日報アプリ',
