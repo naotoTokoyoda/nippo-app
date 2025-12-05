@@ -87,14 +87,16 @@ function buildReportFilter(filters: ReportFilters): ReportFilterType {
 
   const reportFilter: ReportFilterType = { report: {} };
 
-  // 日付フィルター
+  // 日付フィルター（UTCで統一）
   if (date) {
     const targetDate = new Date(date + 'T12:00:00.000Z');
     reportFilter.report!.date = targetDate;
   } else if (month) {
     const [year, monthNum] = month.split('-');
-    const startDate = new Date(parseInt(year), parseInt(monthNum) - 1, 1, 12, 0, 0, 0);
-    const endDate = new Date(parseInt(year), parseInt(monthNum), 0, 12, 0, 0, 0);
+    // UTC 12:00で月の開始日と終了日を作成（DBの保存形式に合わせる）
+    const startDate = new Date(`${year}-${monthNum}-01T12:00:00.000Z`);
+    const lastDay = new Date(parseInt(year), parseInt(monthNum), 0).getDate();
+    const endDate = new Date(`${year}-${monthNum}-${String(lastDay).padStart(2, '0')}T12:00:00.000Z`);
     reportFilter.report!.date = { gte: startDate, lte: endDate };
   }
 
@@ -110,6 +112,15 @@ function buildWhereClause(filters: ReportFilters) {
   const reportFilter = buildReportFilter(filters);
   const { customerName, workNumberFront, workNumberBack, machineType } = filters;
 
+  // 工番フィルター（前番・後番を1つのオブジェクトにまとめる）
+  const workOrderFilter: { frontNumber?: string; backNumber?: string } = {};
+  if (workNumberFront) {
+    workOrderFilter.frontNumber = workNumberFront;
+  }
+  if (workNumberBack) {
+    workOrderFilter.backNumber = workNumberBack;
+  }
+
   return {
     ...reportFilter,
     ...(customerName && {
@@ -117,11 +128,8 @@ function buildWhereClause(filters: ReportFilters) {
         name: { contains: customerName, mode: 'insensitive' as const },
       },
     }),
-    ...(workNumberFront && {
-      workOrder: { frontNumber: workNumberFront },
-    }),
-    ...(workNumberBack && {
-      workOrder: { backNumber: workNumberBack },
+    ...(Object.keys(workOrderFilter).length > 0 && {
+      workOrder: workOrderFilter,
     }),
     ...(machineType && {
       machine: { name: machineType },
