@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { WorkItemData } from '@/types/daily-report';
 import { DatabaseWorkItem, ReportsApiResponse, PaginationInfo } from '@/types/database';
 
@@ -21,12 +21,23 @@ export interface Filters {
   machineType: string;
 }
 
+// 詳細検索条件の型（month以外）
+export type DetailFilters = Omit<Filters, 'month'>;
+
 const createDefaultPagination = (): PaginationInfo => ({
   page: 1,
   limit: 50,
   totalPages: 1,
   hasNextPage: false,
   hasPrevPage: false,
+});
+
+const createEmptyDetailFilters = (): DetailFilters => ({
+  workerName: '',
+  customerName: '',
+  workNumberFront: '',
+  workNumberBack: '',
+  machineType: '',
 });
 
 export function useReportsList() {
@@ -52,15 +63,20 @@ export function useReportsList() {
     uniqueMachineTypes: [],
   });
 
-  // フィルタリング状態
-  const [filters, setFilters] = useState<Filters>({
-    month: currentYearMonth,
-    workerName: '',
-    customerName: '',
-    workNumberFront: '',
-    workNumberBack: '',
-    machineType: ''
-  });
+  // 選択中の年月（即時反映）
+  const [selectedMonth, setSelectedMonth] = useState<string>(currentYearMonth);
+
+  // 適用中の詳細検索条件（検索ボタン押下で反映）
+  const [appliedDetailFilters, setAppliedDetailFilters] = useState<DetailFilters>(createEmptyDetailFilters);
+
+  // 統合されたフィルター状態（UI表示用・互換性維持）
+  const filters: Filters = useMemo(() => ({
+    month: selectedMonth,
+    ...appliedDetailFilters,
+  }), [selectedMonth, appliedDetailFilters]);
+
+  // 初回読み込みフラグ
+  const isInitialLoad = useRef(true);
 
   // 編集モーダル状態
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -105,7 +121,7 @@ export function useReportsList() {
         }
         
         // 常に当月をデフォルトに設定
-        setFilters(prev => ({ ...prev, month: currentYearMonth }));
+        setSelectedMonth(currentYearMonth);
       } else {
         throw new Error(result.error || 'フィルター選択肢の取得に失敗しました');
       }
@@ -181,29 +197,40 @@ export function useReportsList() {
     fetchFilterOptions();
   }, [fetchFilterOptions]);
 
-  // フィルター変更時にデータを再取得
+  // 年月変更時・初回ロード時にデータを取得
   useEffect(() => {
-    if (filterOptions.availableMonths.length > 0 && filters.month) {
-      fetchReports(filters, 1);
+    if (filterOptions.availableMonths.length > 0 && selectedMonth) {
+      // 初回ロード時または年月変更時にAPI呼び出し
+      fetchReports({ month: selectedMonth, ...appliedDetailFilters }, 1);
+      isInitialLoad.current = false;
     }
-  }, [fetchReports, filters, filterOptions.availableMonths.length]);
+  }, [fetchReports, selectedMonth, filterOptions.availableMonths.length, appliedDetailFilters]);
 
-  // フィルター更新
-  const updateFilter = useCallback(<K extends keyof Filters>(key: K, value: Filters[K]) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+  // 年月を変更（即時反映）
+  const updateMonth = useCallback((month: string) => {
+    setSelectedMonth(month);
   }, []);
 
-  // フィルタークリア
+  // 詳細検索を実行（検索ボタン押下時）
+  const executeDetailSearch = useCallback((detailFilters: DetailFilters) => {
+    setAppliedDetailFilters(detailFilters);
+  }, []);
+
+  // 詳細検索条件をクリア
+  const clearDetailFilters = useCallback(() => {
+    setAppliedDetailFilters(createEmptyDetailFilters());
+  }, []);
+
+  // 全フィルタークリア（年月は当月に、詳細条件はリセット）
   const clearFilters = useCallback(() => {
-    setFilters({
-      month: currentYearMonth,
-      workerName: '',
-      customerName: '',
-      workNumberFront: '',
-      workNumberBack: '',
-      machineType: ''
-    });
+    setSelectedMonth(currentYearMonth);
+    setAppliedDetailFilters(createEmptyDetailFilters());
   }, [currentYearMonth]);
+
+  // 詳細検索条件が設定されているか
+  const hasDetailFilters = useMemo(() => {
+    return Object.values(appliedDetailFilters).some(v => v !== '');
+  }, [appliedDetailFilters]);
 
   // ページ変更
   const handlePageChange = useCallback((newPage: number) => {
@@ -240,8 +267,13 @@ export function useReportsList() {
     // フィルター
     filters,
     filterOptions,
-    updateFilter,
+    selectedMonth,
+    appliedDetailFilters,
+    updateMonth,
+    executeDetailSearch,
+    clearDetailFilters,
     clearFilters,
+    hasDetailFilters,
     // ページネーション
     handlePageChange,
     // 編集モーダル

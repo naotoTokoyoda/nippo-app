@@ -1,12 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import { calculateWorkTime, formatTime, formatDecimalTime } from '@/utils/timeCalculation';
 import { getRowBackgroundClass } from '@/utils/conditionalFormatting';
-import DatabaseClientNameInput from './DatabaseClientNameInput';
 import EditWorkItemModal from './EditWorkItemModal';
+import ReportsSearchModal from './reports/ReportsSearchModal';
 import { WorkItemData } from '@/types/daily-report';
 import { DatabaseWorkItem, PaginationInfo } from '@/types/database';
-import { useReportsList, FilterOptions, Filters } from '@/hooks/useReportsList';
+import { useReportsList, FilterOptions, DetailFilters } from '@/hooks/useReportsList';
 
 export default function ReportsList() {
   const {
@@ -17,8 +18,12 @@ export default function ReportsList() {
     pagination,
     filters,
     filterOptions,
-    updateFilter,
-    clearFilters,
+    selectedMonth,
+    appliedDetailFilters,
+    updateMonth,
+    executeDetailSearch,
+    clearDetailFilters,
+    hasDetailFilters,
     handlePageChange,
     isEditModalOpen,
     selectedWorkItem,
@@ -28,6 +33,9 @@ export default function ReportsList() {
     retryFetch,
   } = useReportsList();
 
+  // 詳細検索モーダルの状態
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+
   if (error) {
     return <ErrorDisplay error={error} onRetry={retryFetch} />;
   }
@@ -36,10 +44,13 @@ export default function ReportsList() {
     <div>
       {/* フィルター */}
       <ReportsFilter
-        filters={filters}
+        selectedMonth={selectedMonth}
         filterOptions={filterOptions}
-        onFilterChange={updateFilter}
-        onClear={clearFilters}
+        appliedDetailFilters={appliedDetailFilters}
+        hasDetailFilters={hasDetailFilters}
+        onMonthChange={updateMonth}
+        onOpenSearchModal={() => setIsSearchModalOpen(true)}
+        onClearDetailFilters={clearDetailFilters}
       />
 
       {/* 結果件数 */}
@@ -67,6 +78,15 @@ export default function ReportsList() {
         reportId={selectedReportId}
         availableCustomerNames={filterOptions.uniqueCustomerNames}
       />
+
+      {/* 詳細検索モーダル */}
+      <ReportsSearchModal
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        onSearch={executeDetailSearch}
+        currentFilters={filters}
+        filterOptions={filterOptions}
+      />
     </div>
   );
 }
@@ -90,24 +110,45 @@ function ErrorDisplay({ error, onRetry }: { error: string; onRetry: () => void }
 }
 
 interface ReportsFilterProps {
-  filters: Filters;
+  selectedMonth: string;
   filterOptions: FilterOptions;
-  onFilterChange: <K extends keyof Filters>(key: K, value: Filters[K]) => void;
-  onClear: () => void;
+  appliedDetailFilters: DetailFilters;
+  hasDetailFilters: boolean;
+  onMonthChange: (month: string) => void;
+  onOpenSearchModal: () => void;
+  onClearDetailFilters: () => void;
 }
 
-function ReportsFilter({ filters, filterOptions, onFilterChange, onClear }: ReportsFilterProps) {
+function ReportsFilter({
+  selectedMonth,
+  filterOptions,
+  appliedDetailFilters,
+  hasDetailFilters,
+  onMonthChange,
+  onOpenSearchModal,
+  onClearDetailFilters,
+}: ReportsFilterProps) {
+  // 適用中の詳細条件を表示用にフォーマット
+  const formatAppliedFilters = () => {
+    const parts: string[] = [];
+    if (appliedDetailFilters.workerName) parts.push(`作業者: ${appliedDetailFilters.workerName}`);
+    if (appliedDetailFilters.customerName) parts.push(`客先: ${appliedDetailFilters.customerName}`);
+    if (appliedDetailFilters.workNumberFront) parts.push(`工番(前): ${appliedDetailFilters.workNumberFront}`);
+    if (appliedDetailFilters.workNumberBack) parts.push(`工番(後): ${appliedDetailFilters.workNumberBack}`);
+    if (appliedDetailFilters.machineType) parts.push(`機械: ${appliedDetailFilters.machineType}`);
+    return parts.join('、');
+  };
+
   return (
-    <div className="mb-8 p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
-      <h2 className="text-lg font-semibold text-gray-800 mb-4">フィルター</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* 年月 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">年月</label>
+    <div className="mb-6 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+      <div className="flex flex-wrap items-center gap-4">
+        {/* 年月セレクト */}
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-700 whitespace-nowrap">年月:</label>
           <select
-            value={filters.month}
-            onChange={(e) => onFilterChange('month', e.target.value)}
-            className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+            value={selectedMonth}
+            onChange={(e) => onMonthChange(e.target.value)}
+            className="px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
           >
             {filterOptions.availableMonths.map((month, index) => {
               const [year, monthNum] = month.split('-');
@@ -118,85 +159,40 @@ function ReportsFilter({ filters, filterOptions, onFilterChange, onClear }: Repo
             })}
           </select>
         </div>
-        
-        {/* 作業者名 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">作業者名</label>
-          <select
-            value={filters.workerName}
-            onChange={(e) => onFilterChange('workerName', e.target.value)}
-            className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-          >
-            <option value="">すべて</option>
-            {filterOptions.uniqueWorkers.map((worker, index) => (
-              <option key={`worker-${worker}-${index}`} value={worker}>{worker}</option>
-            ))}
-          </select>
-        </div>
-        
-        {/* 客先名 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">客先名</label>
-          <DatabaseClientNameInput
-            value={filters.customerName}
-            onChange={(value) => onFilterChange('customerName', value)}
-            availableNames={filterOptions.uniqueCustomerNames}
-            placeholder="客先名を入力"
-            className="text-gray-900 h-10"
-          />
-        </div>
-        
-        {/* 工番（前番） */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">工番（前番）</label>
-          <select
-            value={filters.workNumberFront}
-            onChange={(e) => onFilterChange('workNumberFront', e.target.value)}
-            className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-          >
-            <option value="">すべて</option>
-            {filterOptions.uniqueWorkNumbers.map((number, index) => (
-              <option key={`workNumberFront-${number}-${index}`} value={number}>{number}</option>
-            ))}
-          </select>
-        </div>
-        
-        {/* 工番（後番） */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">工番（後番）</label>
-          <input
-            type="text"
-            value={filters.workNumberBack}
-            onChange={(e) => onFilterChange('workNumberBack', e.target.value)}
-            placeholder="工番（後番）を入力"
-            className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-          />
-        </div>
-        
-        {/* 機械種類 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">機械種類</label>
-          <select
-            value={filters.machineType}
-            onChange={(e) => onFilterChange('machineType', e.target.value)}
-            className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-          >
-            <option value="">すべて</option>
-            {filterOptions.uniqueMachineTypes.map((type, index) => (
-              <option key={`machineType-${type}-${index}`} value={type}>{type}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-      
-      <div className="mt-4">
+
+        {/* 詳細検索ボタン */}
         <button
-          onClick={onClear}
-          className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
+          onClick={onOpenSearchModal}
+          className="px-4 py-2 h-10 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-gray-700 flex items-center gap-2"
         >
-          フィルターをクリア
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          詳細検索
+          {hasDetailFilters && (
+            <span className="bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded-full">適用中</span>
+          )}
         </button>
+
+        {/* クリアボタン（詳細条件がある場合のみ表示） */}
+        {hasDetailFilters && (
+          <button
+            onClick={onClearDetailFilters}
+            className="px-3 py-2 h-10 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors text-sm"
+          >
+            条件をクリア
+          </button>
+        )}
       </div>
+
+      {/* 適用中の詳細条件を表示 */}
+      {hasDetailFilters && (
+        <div className="mt-3 pt-3 border-t border-gray-100">
+          <p className="text-sm text-gray-600">
+            <span className="font-medium">検索条件:</span> {formatAppliedFilters()}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
