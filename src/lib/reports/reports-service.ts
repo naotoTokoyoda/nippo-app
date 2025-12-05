@@ -87,16 +87,18 @@ function buildReportFilter(filters: ReportFilters): ReportFilterType {
 
   const reportFilter: ReportFilterType = { report: {} };
 
-  // 日付フィルター（UTCで統一）
+  // 日付フィルター（日単位で範囲検索）
   if (date) {
-    const targetDate = new Date(date + 'T12:00:00.000Z');
-    reportFilter.report!.date = targetDate;
+    // 特定日の0:00〜23:59:59をカバー
+    const startOfDay = new Date(date + 'T00:00:00.000Z');
+    const endOfDay = new Date(date + 'T23:59:59.999Z');
+    reportFilter.report!.date = { gte: startOfDay, lte: endOfDay };
   } else if (month) {
     const [year, monthNum] = month.split('-');
-    // UTC 12:00で月の開始日と終了日を作成（DBの保存形式に合わせる）
-    const startDate = new Date(`${year}-${monthNum}-01T12:00:00.000Z`);
+    // 月の1日 0:00 〜 月末 23:59:59をカバー
+    const startDate = new Date(`${year}-${monthNum}-01T00:00:00.000Z`);
     const lastDay = new Date(parseInt(year), parseInt(monthNum), 0).getDate();
-    const endDate = new Date(`${year}-${monthNum}-${String(lastDay).padStart(2, '0')}T12:00:00.000Z`);
+    const endDate = new Date(`${year}-${monthNum}-${String(lastDay).padStart(2, '0')}T23:59:59.999Z`);
     reportFilter.report!.date = { gte: startDate, lte: endDate };
   }
 

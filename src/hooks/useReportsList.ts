@@ -77,12 +77,14 @@ export function useReportsList() {
       const result = await response.json();
       
       if (result.success) {
+        // APIレスポンスは { success, data: { ... } } 形式
+        const data = result.data || result;
         const newFilterOptions: FilterOptions = {
-          availableMonths: result.availableMonths || [],
-          uniqueWorkers: result.uniqueWorkers || [],
-          uniqueCustomerNames: result.uniqueCustomerNames || [],
-          uniqueWorkNumbers: result.uniqueWorkNumbers || [],
-          uniqueMachineTypes: result.uniqueMachineTypes || [],
+          availableMonths: data.availableMonths || [],
+          uniqueWorkers: data.uniqueWorkers || [],
+          uniqueCustomerNames: data.uniqueCustomerNames || [],
+          uniqueWorkNumbers: data.uniqueWorkNumbers || [],
+          uniqueMachineTypes: data.uniqueMachineTypes || [],
         };
         
         setFilterOptions(newFilterOptions);
