@@ -8,6 +8,7 @@ import { validateWorkItem } from '@/utils/validation';
 import { TimeContinuityCheck } from '@/utils/timeValidation';
 
 import ClientNameInput from './ClientNameInput';
+import { HelpTooltip, FieldHint } from './ui';
 
 interface WorkItemProps {
   item: WorkItemData;
@@ -120,14 +121,16 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             客先名
+            <HelpTooltip content="客先名のない作業は「クオール市原」とご記入ください。" />
           </label>
-          <ClientNameInput
-            value={item.customerName}
-            onChange={(value) => onUpdate({ customerName: value })}
-            placeholder="客先名を入力"
-            className={getFieldClassName('customerName', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
-          />
-          <p className="text-xs text-gray-500 mt-1">工番検索セクションで自動入力できます。客先名のない作業は「クオール市原」とご記入ください。</p>
+          <FieldHint hint="工番検索セクションで自動入力できます。">
+            <ClientNameInput
+              value={item.customerName}
+              onChange={(value) => onUpdate({ customerName: value })}
+              placeholder="客先名を入力"
+              className={getFieldClassName('customerName', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
+            />
+          </FieldHint>
           {getErrorMessage('customerName') && (
             <p className="text-xs text-red-600 mt-1">{getErrorMessage('customerName')}</p>
           )}
@@ -138,14 +141,15 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
           <label className="block text-sm font-medium text-gray-700 mb-2">
             工番（前番）
           </label>
-          <input
-            type="text"
-            value={item.workNumberFront}
-            onChange={(e) => onUpdate({ workNumberFront: e.target.value })}
-            className={getFieldClassName('workNumberFront', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
-            placeholder="工番検索セクションで自動入力できます"
-          />
-          <p className="text-xs text-gray-500 mt-1">工番情報検索を使用すると自動入力されます。</p>
+          <FieldHint hint="工番情報検索を使用すると自動入力されます。">
+            <input
+              type="text"
+              value={item.workNumberFront}
+              onChange={(e) => onUpdate({ workNumberFront: e.target.value })}
+              className={getFieldClassName('workNumberFront', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
+              placeholder="工番検索で自動入力"
+            />
+          </FieldHint>
           {getErrorMessage('workNumberFront') && (
             <p className="text-xs text-red-600 mt-1">{getErrorMessage('workNumberFront')}</p>
           )}
@@ -161,7 +165,7 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
             value={item.workNumberBack}
             onChange={(e) => onUpdate({ workNumberBack: e.target.value })}
             className={getFieldClassName('workNumberBack', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
-            placeholder="工番検索セクションで自動入力できます"
+            placeholder="工番検索で自動入力"
           />
           {getErrorMessage('workNumberBack') && (
             <p className="text-xs text-red-600 mt-1">{getErrorMessage('workNumberBack')}</p>
@@ -172,14 +176,17 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             作業名称
+            <HelpTooltip content="工番表と同じ名称をご記入ください。" />
           </label>
-          <input
-            type="text"
-            value={item.name}
-            onChange={(e) => onUpdate({ name: e.target.value })}
-            className={getFieldClassName('name', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
-          />
-          <p className="text-xs text-gray-500 mt-1">工番検索セクションで自動入力できます。工番表と同じ名称をご記入ください。</p>
+          <FieldHint hint="工番検索セクションで自動入力できます。">
+            <input
+              type="text"
+              value={item.name}
+              onChange={(e) => onUpdate({ name: e.target.value })}
+              className={getFieldClassName('name', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
+              placeholder="工番検索で自動入力"
+            />
+          </FieldHint>
           {getErrorMessage('name') && (
             <p className="text-xs text-red-600 mt-1">{getErrorMessage('name')}</p>
           )}
@@ -243,6 +250,7 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             勤務状況
+            <HelpTooltip content="昼残の場合は昼休憩時間が差し引かれません。" />
           </label>
           <select
             value={item.workStatus || 'normal'}
@@ -255,7 +263,6 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
               </option>
             ))}
           </select>
-          <p className="text-xs text-gray-500 mt-1">勤務状況を選択してください。昼残の場合は昼休憩時間が差し引かれません。</p>
           {getErrorMessage('workStatus') && (
             <p className="text-xs text-red-600 mt-1">{getErrorMessage('workStatus')}</p>
           )}
@@ -265,6 +272,7 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             機械種類
+            <HelpTooltip content="作業時間を明確にするため、使用した機械の記入を必ずお願いします。" />
           </label>
           <select
             value={item.machineType}
@@ -279,7 +287,6 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
               <option key={machine.id} value={machine.name}>{machine.name}</option>
             ))}
           </select>
-          <p className="text-xs text-gray-500 mt-1">作業時間を明確にするため、使用した機械の記入を必ずお願いします。</p>
           {getErrorMessage('machineType') && (
             <p className="text-xs text-red-600 mt-1">{getErrorMessage('machineType')}</p>
           )}
@@ -290,16 +297,16 @@ export default function WorkItem({ item, index, onUpdate, onRemove, showValidati
           <label className="block text-sm font-medium text-gray-700 mb-2">
             備考
           </label>
-          <textarea
-            value={item.remarks}
-            onChange={(e) => onUpdate({ remarks: e.target.value })}
-            rows={1}
-            className={getFieldClassName('remarks', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
-            style={{ color: item.remarks ? '#111827' : '#6b7280' }}
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            作業に関する特記事項があれば記入してください。
-          </p>
+          <FieldHint hint="作業に関する特記事項があれば記入してください。">
+            <textarea
+              value={item.remarks}
+              onChange={(e) => onUpdate({ remarks: e.target.value })}
+              rows={1}
+              className={getFieldClassName('remarks', "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500")}
+              style={{ color: item.remarks ? '#111827' : '#6b7280' }}
+              placeholder="特記事項があれば記入"
+            />
+          </FieldHint>
           {getErrorMessage('remarks') && (
             <p className="text-xs text-red-600 mt-1">{getErrorMessage('remarks')}</p>
           )}
