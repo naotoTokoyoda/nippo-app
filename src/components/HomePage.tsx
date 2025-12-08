@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import AggregationPasswordModal from './AggregationPasswordModal';
+import { AggregationPasswordModal } from './aggregation';
 import { useEnvironment } from '@/hooks/useEnvironment';
 
 export default function HomePage() {
