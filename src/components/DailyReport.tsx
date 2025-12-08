@@ -44,7 +44,7 @@ export default function DailyReport() {
         <div className="bg-blue-50 rounded-lg shadow-sm border border-blue-200">
           <WorkerHistory 
             workerName={reportData.workerName} 
-            currentDate={reportData.date} 
+            currentDate={reportData.date}
           />
         </div>
       )}
@@ -184,6 +184,37 @@ function WorkItemsSection({
 }: WorkItemsSectionProps) {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      {/* 工番検索誘導バナー */}
+      <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-blue-800">
+                💡 まず「工番情報検索」をお試しください
+              </p>
+              <p className="text-xs text-blue-600 mt-0.5">
+                客先名・工番・作業名称が自動で入力されます
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onOpenSearchModal}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors shadow-sm"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            工番情報検索
+          </button>
+        </div>
+      </div>
+
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-gray-800 flex items-center">
           <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -191,18 +222,6 @@ function WorkItemsSection({
           </svg>
           作業項目
         </h2>
-        
-        {/* 工番検索ボタン */}
-        <button
-          type="button"
-          onClick={onOpenSearchModal}
-          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-        >
-          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          工番情報検索
-        </button>
       </div>
       
       <div className="space-y-6">
