@@ -1,7 +1,8 @@
 /**
  * 認証システム用のユーザー設定スクリプト
- * admin/manager ユーザーにemail/passwordを設定し、
- * 全ユーザーにPINを設定します。
+ * admin: 管理者個人アカウント
+ * manager: 工場共有端末用アカウント
+ * member: 作業者（PIN認証で日報入力）
  */
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
@@ -15,24 +16,20 @@ async function hashPassword(password: string): Promise<string> {
 
 // ユーザー設定データ
 const userConfigs = {
-  // admin（日報入力しない）
+  // admin（管理者個人アカウント）
   admin: [
     {
       name: '常世田直人',
       email: 'admin@nippo.local',
       password: 'admin123',
-      pin: null, // adminはPIN不要
     },
   ],
-  // manager（日報入力もする）
+  // manager（工場共有端末用アカウント）
   manager: [
-    { name: '根本', email: 'nemoto@nippo.local', password: 'test1234', pin: '1234' },
-    { name: '橋本正朗', email: 'hashimoto@nippo.local', password: 'test1234', pin: '1234' },
-    { name: '金谷', email: 'kanaya@nippo.local', password: 'test1234', pin: '1234' },
-    { name: '清水', email: 'shimizu@nippo.local', password: 'test1234', pin: '1234' },
-    { name: '常世田悠莉', email: 'yuri@nippo.local', password: 'test1234', pin: '1234' },
+    { name: '新工場', email: 'shinkojo@nippo.local', password: 'shinkojo2024' },
+    { name: '旧工場', email: 'kyukojo@nippo.local', password: 'kyukojo2024' },
   ],
-  // member（日報入力のみ）
+  // member（作業者 - PIN認証で日報入力）
   member: [
     { name: '常世田博', pin: '1234' },
     { name: '野城喜幸', pin: '1234' },
@@ -55,57 +52,46 @@ async function main() {
     const user = await prisma.user.upsert({
       where: { email: config.email },
       update: {
+        name: config.name,
         role: 'admin',
         password: hashedPassword,
-        pin: config.pin || '0000',
+        pin: '0000',
       },
       create: {
         name: config.name,
         email: config.email,
         password: hashedPassword,
         role: 'admin',
-        pin: config.pin || '0000',
+        pin: '0000',
       },
     });
     
     console.log(`  ✅ ${user.name} (${user.email}) - role: admin`);
   }
 
-  // Manager ユーザーの設定
-  console.log('\n👔 Manager ユーザーの設定...');
+  // Manager ユーザーの設定（工場アカウント）
+  console.log('\n🏭 Manager ユーザーの設定（工場アカウント）...');
   for (const config of userConfigs.manager) {
     const hashedPassword = await hashPassword(config.password);
     
-    // 名前で既存ユーザーを検索
-    const existingUser = await prisma.user.findFirst({
-      where: { name: config.name },
+    const user = await prisma.user.upsert({
+      where: { email: config.email },
+      update: {
+        name: config.name,
+        role: 'manager',
+        password: hashedPassword,
+        pin: '0000',
+      },
+      create: {
+        name: config.name,
+        email: config.email,
+        password: hashedPassword,
+        role: 'manager',
+        pin: '0000',
+      },
     });
-
-    if (existingUser) {
-      // 既存ユーザーを更新
-      const user = await prisma.user.update({
-        where: { id: existingUser.id },
-        data: {
-          email: config.email,
-          password: hashedPassword,
-          role: 'manager',
-          pin: config.pin,
-        },
-      });
-      console.log(`  ✅ ${user.name} (${user.email}) - role: manager, PIN: ${config.pin}`);
-    } else {
-      // 新規作成
-      const user = await prisma.user.create({
-        data: {
-          name: config.name,
-          email: config.email,
-          password: hashedPassword,
-          role: 'manager',
-          pin: config.pin,
-        },
-      });
-      console.log(`  ✅ ${user.name} (${user.email}) - role: manager, PIN: ${config.pin} (新規作成)`);
-    }
+    
+    console.log(`  ✅ ${user.name} (${user.email}) - role: manager`);
   }
 
   // Member ユーザーの設定
@@ -144,6 +130,13 @@ async function main() {
   // 設定完了後の確認
   console.log('\n📊 設定完了後のユーザー一覧:');
   const allUsers = await prisma.user.findMany({
+    where: {
+      OR: [
+        { role: 'admin' },
+        { role: 'manager' },
+        { role: 'member' },
+      ],
+    },
     orderBy: [
       { role: 'asc' },
       { name: 'asc' },
@@ -166,9 +159,10 @@ async function main() {
 
   console.log('\n✨ 認証システム用ユーザー設定が完了しました！');
   console.log('\n📝 ログイン情報:');
-  console.log('  Admin:   admin@nippo.local / admin123');
-  console.log('  Manager: nemoto@nippo.local / test1234');
-  console.log('  PIN:     全員 1234（テスト用）');
+  console.log('  Admin:    admin@nippo.local / admin123');
+  console.log('  新工場:   shinkojo@nippo.local / shinkojo2024');
+  console.log('  旧工場:   kyukojo@nippo.local / kyukojo2024');
+  console.log('  作業者PIN: 全員 1234（テスト用）');
 }
 
 main()
@@ -179,4 +173,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-

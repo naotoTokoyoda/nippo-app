@@ -3,7 +3,6 @@ import "./globals.css";
 import EnvironmentBadge from "@/components/EnvironmentBadge";
 import FeedbackButton from "@/components/FeedbackButton";
 import { ToastProvider } from "@/components/ToastProvider";
-import AuthGuard from "@/components/AuthGuard";
 import SessionProvider from "@/components/SessionProvider";
 
 export const metadata: Metadata = {
@@ -21,11 +20,9 @@ export default function RootLayout({
       <body className="antialiased">
         <SessionProvider>
           <ToastProvider>
-            <AuthGuard>
-              <EnvironmentBadge />
-              {children}
-              <FeedbackButton />
-            </AuthGuard>
+            <EnvironmentBadge />
+            {children}
+            <FeedbackButton />
           </ToastProvider>
         </SessionProvider>
       </body>
