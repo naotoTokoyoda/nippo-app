@@ -19,7 +19,8 @@
     "migrate-work-descriptions": "tsx scripts/migrate-work-descriptions.ts",
     "seed-jooto-production": "tsx scripts/seed-jooto-production-data.ts",
     "seed:rates": "tsx scripts/seed-rates.ts",
-    "seed:initial": "tsx scripts/seed-initial-data.ts"
+    "seed:initial": "tsx scripts/seed-initial-data.ts",
+    "setup:auth": "tsx scripts/setup-auth-users.ts"
   },
   "dependencies": {
     "@faker-js/faker": "^9.9.0",
