@@ -32,12 +32,14 @@ export default function DailyReportWithAuth() {
     const fetchUsers = async () => {
       try {
         const response = await fetch('/api/users');
-        const data = await response.json();
-        // member と manager のみ表示（adminは日報入力しない）
-        const filteredUsers = data.filter((u: { role: string }) => 
-          u.role === 'member' || u.role === 'manager'
-        );
-        setUsers(filteredUsers);
+        const result = await response.json();
+        // APIは { success: true, data: [...] } の形式で返す
+        if (result.success && Array.isArray(result.data)) {
+          setUsers(result.data);
+        } else {
+          console.error('ユーザー取得エラー:', result.error);
+          showToast('ユーザー情報の取得に失敗しました', 'error');
+        }
       } catch (error) {
         console.error('ユーザー取得エラー:', error);
         showToast('ユーザー情報の取得に失敗しました', 'error');
