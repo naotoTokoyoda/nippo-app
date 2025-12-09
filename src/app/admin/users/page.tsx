@@ -2,9 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import { AdminUser } from '@/types/admin';
+import { canManageUser, canCreateUserWithRole, UserRole } from '@/lib/auth/permissions';
 
 export default function UsersPage() {
+  const { data: session } = useSession();
+  const currentUserRole = session?.user?.role as UserRole | undefined;
+  
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -101,6 +106,11 @@ export default function UsersPage() {
           <h1 className="text-2xl font-bold text-gray-900">ユーザー管理</h1>
           <p className="mt-1 text-sm text-gray-600">
             ユーザーの追加、編集、削除、権限設定
+            {currentUserRole === 'manager' && (
+              <span className="ml-2 text-orange-600">
+                （Memberのみ管理可能）
+              </span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -113,12 +123,15 @@ export default function UsersPage() {
             />
             無効なユーザーを表示
           </label>
-          <Link
-            href="/admin/users/new"
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-          >
-            + 新規ユーザー
-          </Link>
+          {/* adminは全ロール作成可能、managerはmemberのみ作成可能 */}
+          {(currentUserRole === 'admin' || canCreateUserWithRole(currentUserRole, 'member')) && (
+            <Link
+              href="/admin/users/new"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              + 新規ユーザー
+            </Link>
+          )}
         </div>
       </div>
 
@@ -187,19 +200,25 @@ export default function UsersPage() {
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <Link
-                    href={`/admin/users/${user.id}/edit`}
-                    className="text-blue-600 hover:text-blue-900 mr-4"
-                  >
-                    編集
-                  </Link>
-                  {user.isActive && (
-                    <button
-                      onClick={() => handleDelete(user.id, user.name)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      無効化
-                    </button>
+                  {canManageUser(currentUserRole, user.role as UserRole) ? (
+                    <>
+                      <Link
+                        href={`/admin/users/${user.id}/edit`}
+                        className="text-blue-600 hover:text-blue-900 mr-4"
+                      >
+                        編集
+                      </Link>
+                      {user.isActive && (
+                        <button
+                          onClick={() => handleDelete(user.id, user.name)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          無効化
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-gray-400 text-xs">権限なし</span>
                   )}
                 </td>
               </tr>
