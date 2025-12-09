@@ -1,13 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import WorkItem from '@/components/WorkItem';
 import WorkerHistory from '@/components/WorkerHistory';
 import WorkNumberSearchModal from '@/components/WorkNumberSearchModal';
 import { useDailyReportForm } from '@/hooks/useDailyReportForm';
 import { WorkItemData } from '@/types/daily-report';
 
-export default function DailyReport() {
+interface DailyReportProps {
+  /** PIN認証済みユーザーID */
+  authenticatedUserId?: string;
+  /** PIN認証済みユーザー名 */
+  authenticatedUserName?: string;
+  /** 送信完了時のコールバック */
+  onSubmitComplete?: () => void;
+}
+
+export default function DailyReport({
+  authenticatedUserId,
+  authenticatedUserName,
+  onSubmitComplete,
+}: DailyReportProps = {}) {
   const [isWorkNumberModalOpen, setIsWorkNumberModalOpen] = useState(false);
   
   const {
@@ -24,7 +37,17 @@ export default function DailyReport() {
     removeWorkItem,
     applyWorkNumberSearch,
     handleSubmit,
-  } = useDailyReportForm();
+  } = useDailyReportForm({ onSubmitComplete });
+
+  // PIN認証済みの場合、作業者名を自動設定
+  useEffect(() => {
+    if (authenticatedUserName && reportData.workerName !== authenticatedUserName) {
+      updateWorkerName(authenticatedUserName);
+    }
+  }, [authenticatedUserName, reportData.workerName, updateWorkerName]);
+
+  // 認証済みかどうか
+  const isAuthenticated = !!authenticatedUserId;
 
   return (
     <div className="space-y-8">
@@ -37,6 +60,7 @@ export default function DailyReport() {
         basicInfoErrors={basicInfoErrors}
         onDateChange={updateDate}
         onWorkerNameChange={updateWorkerName}
+        isWorkerLocked={isAuthenticated}
       />
 
       {/* 作業者履歴表示 */}
@@ -89,6 +113,7 @@ interface BasicInfoSectionProps {
   basicInfoErrors: { field: string; message: string }[];
   onDateChange: (date: string) => void;
   onWorkerNameChange: (name: string) => void;
+  isWorkerLocked?: boolean;
 }
 
 function BasicInfoSection({
@@ -99,6 +124,7 @@ function BasicInfoSection({
   basicInfoErrors,
   onDateChange,
   onWorkerNameChange,
+  isWorkerLocked = false,
 }: BasicInfoSectionProps) {
   const hasDateError = basicInfoErrors.some(err => err.field === 'date');
   const hasWorkerError = basicInfoErrors.some(err => err.field === 'workerName');
@@ -135,24 +161,33 @@ function BasicInfoSection({
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             作業者名
+            {isWorkerLocked && (
+              <span className="ml-2 text-xs text-green-600 font-normal">（PIN認証済み）</span>
+            )}
           </label>
-          <select
-            value={workerName}
-            onChange={(e) => onWorkerNameChange(e.target.value)}
-            data-field="workerName"
-            disabled={loadingUsers}
-            className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 h-10 ${
-              hasWorkerError ? 'border-red-500 focus:ring-red-500' : ''
-            } ${loadingUsers ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-          >
-            <option value="">
-              {loadingUsers ? '読み込み中...' : ''}
-            </option>
-            {users.map(user => (
-              <option key={user.id} value={user.name}>{user.name}</option>
-            ))}
-          </select>
-          {hasWorkerError && (
+          {isWorkerLocked ? (
+            <div className="w-full px-3 py-2 border border-green-300 bg-green-50 rounded-md h-10 flex items-center text-gray-800">
+              {workerName}
+            </div>
+          ) : (
+            <select
+              value={workerName}
+              onChange={(e) => onWorkerNameChange(e.target.value)}
+              data-field="workerName"
+              disabled={loadingUsers}
+              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 h-10 ${
+                hasWorkerError ? 'border-red-500 focus:ring-red-500' : ''
+              } ${loadingUsers ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+            >
+              <option value="">
+                {loadingUsers ? '読み込み中...' : ''}
+              </option>
+              {users.map(user => (
+                <option key={user.id} value={user.name}>{user.name}</option>
+              ))}
+            </select>
+          )}
+          {hasWorkerError && !isWorkerLocked && (
             <p className="text-xs text-red-600 mt-1">
               {basicInfoErrors.find(err => err.field === 'workerName')?.message}
             </p>

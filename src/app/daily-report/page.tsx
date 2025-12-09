@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import DailyReport from '@/components/DailyReport';
+import DailyReportWithAuth from '@/components/DailyReportWithAuth';
 import PageLayout from '@/components/PageLayout';
 
 export const metadata: Metadata = {
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export default function DailyReportPage() {
   return (
     <PageLayout title="日報入力" showListButton={true}>
-      <DailyReport />
+      <DailyReportWithAuth />
     </PageLayout>
   );
-} 
+}
