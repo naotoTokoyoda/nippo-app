@@ -4,6 +4,7 @@ import EnvironmentBadge from "@/components/EnvironmentBadge";
 import FeedbackButton from "@/components/FeedbackButton";
 import { ToastProvider } from "@/components/ToastProvider";
 import SessionProvider from "@/components/SessionProvider";
+import AppHeader from "@/components/AppHeader";
 
 export const metadata: Metadata = {
   title: "日報アプリ",
@@ -20,6 +21,7 @@ export default function RootLayout({
       <body className="antialiased">
         <SessionProvider>
           <ToastProvider>
+            <AppHeader />
             <EnvironmentBadge />
             {children}
             <FeedbackButton />
