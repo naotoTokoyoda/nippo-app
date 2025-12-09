@@ -10,8 +10,8 @@ export default function AppHeader() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const pathname = usePathname();
 
-  // ログインページではヘッダーを表示しない
-  if (pathname === '/login') {
+  // ログインページと管理画面ではヘッダーを表示しない（管理画面は独自ヘッダーがある）
+  if (pathname === '/login' || pathname.startsWith('/admin')) {
     return null;
   }
 

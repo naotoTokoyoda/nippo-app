@@ -33,9 +33,9 @@ export default auth((req) => {
     }
   }
 
-  // 管理画面へのアクセス制御（admin / manager のみ）
+  // 管理画面へのアクセス制御（admin のみ）
   if (pathname.startsWith('/admin')) {
-    if (userRole !== 'admin' && userRole !== 'manager') {
+    if (userRole !== 'admin') {
       return NextResponse.redirect(new URL('/', req.url));
     }
   }
