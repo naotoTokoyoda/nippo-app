@@ -2,26 +2,30 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 
-// 日本時間の今日の日付を取得
-function getTodayJST(): Date {
+// 日本時間の昨日の日付を取得
+function getYesterdayJST(): { start: Date; end: Date; month: number; day: number } {
   const now = new Date();
-  const jstOffset = 9 * 60; // JST は UTC+9
-  const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
-  const jstMinutes = utcMinutes + jstOffset;
+  const jstOffset = 9 * 60 * 60 * 1000; // 9時間をミリ秒で
+  const jstNow = new Date(now.getTime() + jstOffset);
   
-  // 日付変更線を跨いだ場合の調整
-  const jstDate = new Date(now);
-  if (jstMinutes >= 24 * 60) {
-    jstDate.setUTCDate(jstDate.getUTCDate() + 1);
-  }
+  // 昨日の日付を計算
+  const yesterday = new Date(jstNow);
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
   
-  // 時刻部分をリセット
-  jstDate.setUTCHours(0, 0, 0, 0);
+  const year = yesterday.getUTCFullYear();
+  const month = yesterday.getUTCMonth(); // 0-indexed
+  const day = yesterday.getUTCDate();
   
-  // JST 0:00 を UTC に変換（UTC 15:00 前日）
-  jstDate.setUTCHours(jstDate.getUTCHours() - 9);
+  // 昨日の0:00（JST）
+  const startJST = new Date(Date.UTC(year, month, day));
+  // 今日の0:00（JST）
+  const endJST = new Date(Date.UTC(year, month, day + 1));
   
-  return jstDate;
+  // UTC に変換
+  const start = new Date(startJST.getTime() - jstOffset);
+  const end = new Date(endJST.getTime() - jstOffset);
+  
+  return { start, end, month: month + 1, day }; // 月は1-indexed で返す
 }
 
 // 今月の開始日と終了日を取得（JST）
@@ -48,16 +52,13 @@ function getMonthRangeJST(): { start: Date; end: Date; month: number } {
 // GET: ダッシュボード統計情報取得
 export async function GET() {
   try {
-    const today = getTodayJST();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
+    const { start: yesterdayStart, end: yesterdayEnd, month: targetMonth, day: targetDay } = getYesterdayJST();
     const { start: monthStart, end: monthEnd, month } = getMonthRangeJST();
     
     // 並列でデータ取得
     const [
       activeMembers,
-      todayReports,
+      yesterdayReports,
       monthlyReportCount,
       aggregatingWorkOrderCount,
     ] = await Promise.all([
@@ -76,12 +77,12 @@ export async function GET() {
         },
       }),
       
-      // 今日の日報を取得（作業日ベース）
+      // 昨日の日報を取得（作業日ベース）
       prisma.report.findMany({
         where: {
           date: {
-            gte: today,
-            lt: tomorrow,
+            gte: yesterdayStart,
+            lt: yesterdayEnd,
           },
         },
         select: {
@@ -113,7 +114,7 @@ export async function GET() {
     ]);
     
     // 提出済みユーザーIDのセット
-    const submittedUserIds = new Set(todayReports.map(r => r.workerId));
+    const submittedUserIds = new Set(yesterdayReports.map(r => r.workerId));
     
     // 提出済み・未提出ユーザーを分類
     const submittedUsers: string[] = [];
@@ -130,11 +131,13 @@ export async function GET() {
     const response = {
       success: true,
       data: {
-        todayReports: {
+        reportStatus: {
           submitted: submittedUsers.length,
           total: activeMembers.length,
           submittedUsers,
           pendingUsers,
+          targetMonth,
+          targetDay,
         },
         monthlyReports: {
           count: monthlyReportCount,
@@ -147,7 +150,8 @@ export async function GET() {
     };
     
     logger.info('Admin stats fetched successfully', {
-      todaySubmitted: submittedUsers.length,
+      targetDate: `${targetMonth}/${targetDay}`,
+      submitted: submittedUsers.length,
       totalMembers: activeMembers.length,
       monthlyReports: monthlyReportCount,
       aggregatingWorkOrders: aggregatingWorkOrderCount,
@@ -165,4 +169,3 @@ export async function GET() {
     );
   }
 }
-

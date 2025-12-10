@@ -5,11 +5,13 @@ import { useEffect, useState } from 'react';
 
 // 統計情報の型定義
 interface AdminStats {
-  todayReports: {
+  reportStatus: {
     submitted: number;
     total: number;
     submittedUsers: string[];
     pendingUsers: string[];
+    targetMonth: number;
+    targetDay: number;
   };
   monthlyReports: {
     count: number;
@@ -153,20 +155,22 @@ export default function AdminDashboard() {
           </div>
         ) : stats ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* 本日の日報提出状況 */}
+            {/* 日報提出状況 */}
             <div className="p-4 bg-blue-50 rounded-lg">
               <div className="text-center mb-3">
                 <div className="text-2xl font-bold text-blue-900">
-                  {stats.todayReports.submitted} / {stats.todayReports.total} 人
+                  {stats.reportStatus.submitted} / {stats.reportStatus.total} 人
                 </div>
-                <div className="text-sm text-blue-700 mt-1">本日の日報提出状況</div>
+                <div className="text-sm text-blue-700 mt-1">
+                  日報提出状況（{stats.reportStatus.targetMonth}/{stats.reportStatus.targetDay}）
+                </div>
               </div>
               <div className="border-t border-blue-200 pt-3 mt-3">
-                {stats.todayReports.total === 0 ? (
+                {stats.reportStatus.total === 0 ? (
                   <p className="text-xs text-blue-600 text-center">対象の作業者がいません</p>
                 ) : (
                   <div className="flex flex-wrap gap-1 justify-center">
-                    {stats.todayReports.submittedUsers.map((name) => (
+                    {stats.reportStatus.submittedUsers.map((name) => (
                       <span
                         key={name}
                         className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-green-100 text-green-800"
@@ -175,7 +179,7 @@ export default function AdminDashboard() {
                         ✓ {getDisplayName(name)}
                       </span>
                     ))}
-                    {stats.todayReports.pendingUsers.map((name) => (
+                    {stats.reportStatus.pendingUsers.map((name) => (
                       <span
                         key={name}
                         className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-red-100 text-red-800"
