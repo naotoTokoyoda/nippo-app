@@ -11,8 +11,8 @@ export default function HomePage() {
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const { isDevelopment, isClient } = useEnvironment();
   
-  // adminのみ管理画面にアクセス可能
-  const canAccessAdmin = session?.user?.role === 'admin';
+  // adminのみ集計・管理画面にアクセス可能
+  const isAdmin = session?.user?.role === 'admin';
 
   const handleAggregationClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -33,10 +33,10 @@ export default function HomePage() {
         <p className="text-xl text-gray-600">作業日報を作成・管理するアプリケーション</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+      <div className={`grid grid-cols-1 gap-8 max-w-4xl mx-auto ${isAdmin ? 'md:grid-cols-2 lg:grid-cols-3' : 'md:grid-cols-2'}`}>
         {/* 日報入力ボタン */}
         <Link href="/daily-report">
-          <div className="bg-white rounded-xl shadow-lg p-8 cursor-pointer border border-gray-100 h-full">
+          <div className="bg-white rounded-xl shadow-lg p-8 cursor-pointer border border-gray-100 h-full hover:shadow-xl transition-shadow">
             <div className="text-center">
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -51,7 +51,7 @@ export default function HomePage() {
 
         {/* 日報一覧ボタン */}
         <Link href="/reports">
-          <div className="bg-white rounded-xl shadow-lg p-8 cursor-pointer border border-gray-100 h-full">
+          <div className="bg-white rounded-xl shadow-lg p-8 cursor-pointer border border-gray-100 h-full hover:shadow-xl transition-shadow">
             <div className="text-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,43 +64,45 @@ export default function HomePage() {
           </div>
         </Link>
 
-        {/* 集計ボタン */}
-        <div 
-          onClick={handleAggregationClick}
-          className="bg-white rounded-xl shadow-lg p-8 cursor-pointer border border-gray-100 h-full hover:shadow-xl transition-shadow"
-        >
-          <div className="text-center">
-            <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-semibold text-gray-800 mb-2">集計</h2>
-            <p className="text-gray-600">納品済み・集計中の案件を管理します</p>
-            {isClient && (
-              <div className="mt-2 flex items-center justify-center">
-                {isDevelopment ? (
-                  <>
-                    <svg className="w-4 h-4 text-green-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="text-xs text-green-500">開発環境</span>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4 text-purple-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                    <span className="text-xs text-purple-500">認証が必要</span>
-                  </>
-                )}
+        {/* 集計ボタン（adminのみ表示） */}
+        {isAdmin && (
+          <div 
+            onClick={handleAggregationClick}
+            className="bg-white rounded-xl shadow-lg p-8 cursor-pointer border border-gray-100 h-full hover:shadow-xl transition-shadow"
+          >
+            <div className="text-center">
+              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
               </div>
-            )}
+              <h2 className="text-2xl font-semibold text-gray-800 mb-2">集計</h2>
+              <p className="text-gray-600">納品済み・集計中の案件を管理します</p>
+              {isClient && (
+                <div className="mt-2 flex items-center justify-center">
+                  {isDevelopment ? (
+                    <>
+                      <svg className="w-4 h-4 text-green-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-xs text-green-500">開発環境</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4 text-purple-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      <span className="text-xs text-purple-500">認証が必要</span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* 管理画面ボタン（admin/managerのみ表示） */}
-        {canAccessAdmin && (
+        {/* 管理画面ボタン（adminのみ表示） */}
+        {isAdmin && (
           <Link href="/admin">
             <div className="bg-white rounded-xl shadow-lg p-8 cursor-pointer border border-gray-100 h-full hover:shadow-xl transition-shadow">
               <div className="text-center">

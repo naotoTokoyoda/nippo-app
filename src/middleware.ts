@@ -26,9 +26,9 @@ export default auth((req) => {
     return NextResponse.redirect(loginUrl);
   }
 
-  // 集計機能へのアクセス制御（admin / manager のみ）
+  // 集計機能へのアクセス制御（admin のみ）
   if (pathname.startsWith('/aggregation')) {
-    if (userRole !== 'admin' && userRole !== 'manager') {
+    if (userRole !== 'admin') {
       return NextResponse.redirect(new URL('/', req.url));
     }
   }
