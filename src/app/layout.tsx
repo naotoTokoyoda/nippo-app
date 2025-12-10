@@ -3,7 +3,8 @@ import "./globals.css";
 import EnvironmentBadge from "@/components/EnvironmentBadge";
 import FeedbackButton from "@/components/FeedbackButton";
 import { ToastProvider } from "@/components/ToastProvider";
-import AuthGuard from "@/components/AuthGuard";
+import SessionProvider from "@/components/SessionProvider";
+import AppHeader from "@/components/AppHeader";
 
 export const metadata: Metadata = {
   title: "日報アプリ",
@@ -18,13 +19,14 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className="antialiased">
-        <ToastProvider>
-          <AuthGuard>
+        <SessionProvider>
+          <ToastProvider>
+            <AppHeader />
             <EnvironmentBadge />
             {children}
             <FeedbackButton />
-          </AuthGuard>
-        </ToastProvider>
+          </ToastProvider>
+        </SessionProvider>
       </body>
     </html>
   );

@@ -198,11 +198,11 @@ export default function WorkerHistory({ workerName, currentDate }: WorkerHistory
               const workTime = calculateWorkTime(item.startTime, item.endTime, item.workStatus);
               return (
                 <div key={item.uniqueId || item.id} className="p-3 bg-white rounded border border-yellow-200">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                     <div>
                       <span className="font-medium text-gray-700">作業 {index + 1}:</span>
                       <span className="ml-2 text-gray-600">{item.name}</span>
                     </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                     <div>
                       <span className="font-medium text-gray-700">客先名:</span>
                       <span className="ml-2 text-gray-600">{item.customerName}</span>

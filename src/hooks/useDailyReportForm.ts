@@ -32,7 +32,13 @@ const createInitialReportData = (): DailyReportData => ({
   workItems: [createInitialWorkItem()]
 });
 
-export function useDailyReportForm() {
+interface UseDailyReportFormOptions {
+  /** 送信完了時のコールバック */
+  onSubmitComplete?: () => void;
+}
+
+export function useDailyReportForm(options: UseDailyReportFormOptions = {}) {
+  const { onSubmitComplete } = options;
   const router = useRouter();
   
   // 状態
@@ -182,7 +188,12 @@ export function useDailyReportForm() {
       const result = await response.json();
 
       if (result.success) {
-        router.push('/reports');
+        // onSubmitCompleteが指定されている場合はそれを呼び出す
+        if (onSubmitComplete) {
+          onSubmitComplete();
+        } else {
+          router.push('/reports');
+        }
       } else {
         console.error('保存エラー:', result.error);
         alert('日報の保存に失敗しました: ' + result.error);
@@ -193,7 +204,7 @@ export function useDailyReportForm() {
       alert('日報の送信中にエラーが発生しました');
       setIsSubmitting(false);
     }
-  }, [reportData, router]);
+  }, [reportData, router, onSubmitComplete]);
 
   // エラーがあるかどうか
   const hasErrors = validationErrors.length > 0 || basicInfoErrors.length > 0;

@@ -19,7 +19,8 @@
     "migrate-work-descriptions": "tsx scripts/migrate-work-descriptions.ts",
     "seed-jooto-production": "tsx scripts/seed-jooto-production-data.ts",
     "seed:rates": "tsx scripts/seed-rates.ts",
-    "seed:initial": "tsx scripts/seed-initial-data.ts"
+    "seed:initial": "tsx scripts/seed-initial-data.ts",
+    "setup:auth": "tsx scripts/setup-auth-users.ts"
   },
   "dependencies": {
     "@faker-js/faker": "^9.9.0",
@@ -27,11 +28,11 @@
     "@prisma/client": "^6.13.0",
     "@react-email/components": "^0.5.0",
     "@react-email/render": "^1.2.0",
-    "@types/bcryptjs": "^3.0.0",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.13",
     "next": "^15.4.8",
+    "next-auth": "^5.0.0-beta.30",
     "pg": "^8.16.3",
     "prisma": "^6.13.0",
     "react": "19.1.0",
@@ -45,6 +46,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/bcryptjs": "^3.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

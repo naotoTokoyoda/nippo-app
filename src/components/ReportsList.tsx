@@ -9,7 +9,17 @@ import { WorkItemData } from '@/types/daily-report';
 import { DatabaseWorkItem, PaginationInfo } from '@/types/database';
 import { useReportsList, FilterOptions, DetailFilters } from '@/hooks/useReportsList';
 
-export default function ReportsList() {
+interface ReportsListProps {
+  /** PIN認証済みユーザーID（指定された場合、そのユーザーの日報のみ編集可能） */
+  authenticatedUserId?: string;
+  /** PIN認証済みユーザー名 */
+  authenticatedUserName?: string;
+}
+
+export default function ReportsList({
+  authenticatedUserId,
+  authenticatedUserName,
+}: ReportsListProps = {}) {
   const {
     filteredWorkItems,
     loading,
@@ -62,6 +72,7 @@ export default function ReportsList() {
         loading={loading}
         pagination={pagination}
         onEdit={openEditModal}
+        authenticatedUserName={authenticatedUserName}
       />
 
       {/* ページネーション */}
@@ -237,9 +248,10 @@ interface ReportsTableProps {
   loading: boolean;
   pagination: PaginationInfo;
   onEdit: (item: WorkItemData, reportId: string) => void;
+  authenticatedUserName?: string;
 }
 
-function ReportsTable({ items, loading, pagination, onEdit }: ReportsTableProps) {
+function ReportsTable({ items, loading, pagination, onEdit, authenticatedUserName }: ReportsTableProps) {
   const formatWorkDate = (dateString: string) => {
     if (!dateString) return '未入力';
     const date = new Date(dateString);
@@ -310,12 +322,17 @@ function ReportsTable({ items, loading, pagination, onEdit }: ReportsTableProps)
                       {workTime > 0 ? `${formatTime(workTime)} (${formatDecimalTime(workTime)}時間)` : '0:00 (0.00時間)'}
                     </td>
                     <td className="px-3 py-3 whitespace-nowrap">
-                      <button
-                        onClick={() => onEdit(item, item.reportId!)}
-                        className="px-2 py-1 text-blue-600 hover:bg-blue-50 rounded text-xs transition-colors"
-                      >
-                        編集
-                      </button>
+                      {/* authenticatedUserNameが指定されている場合は、そのユーザーの日報のみ編集可能 */}
+                      {(!authenticatedUserName || item.workerName === authenticatedUserName) ? (
+                        <button
+                          onClick={() => onEdit(item, item.reportId!)}
+                          className="px-2 py-1 text-blue-600 hover:bg-blue-50 rounded text-xs transition-colors"
+                        >
+                          編集
+                        </button>
+                      ) : (
+                        <span className="text-xs text-gray-400">-</span>
+                      )}
                     </td>
                   </tr>
                 );

@@ -1,13 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import WorkItem from '@/components/WorkItem';
 import WorkerHistory from '@/components/WorkerHistory';
 import WorkNumberSearchModal from '@/components/WorkNumberSearchModal';
 import { useDailyReportForm } from '@/hooks/useDailyReportForm';
 import { WorkItemData } from '@/types/daily-report';
 
-export default function DailyReport() {
+interface DailyReportProps {
+  /** PIN認証済みユーザーID */
+  authenticatedUserId?: string;
+  /** PIN認証済みユーザー名 */
+  authenticatedUserName?: string;
+  /** 送信完了時のコールバック */
+  onSubmitComplete?: () => void;
+}
+
+export default function DailyReport({
+  authenticatedUserId,
+  authenticatedUserName,
+  onSubmitComplete,
+}: DailyReportProps = {}) {
   const [isWorkNumberModalOpen, setIsWorkNumberModalOpen] = useState(false);
   
   const {
@@ -24,7 +37,17 @@ export default function DailyReport() {
     removeWorkItem,
     applyWorkNumberSearch,
     handleSubmit,
-  } = useDailyReportForm();
+  } = useDailyReportForm({ onSubmitComplete });
+
+  // PIN認証済みの場合、作業者名を自動設定
+  useEffect(() => {
+    if (authenticatedUserName && reportData.workerName !== authenticatedUserName) {
+      updateWorkerName(authenticatedUserName);
+    }
+  }, [authenticatedUserName, reportData.workerName, updateWorkerName]);
+
+  // 認証済みかどうか
+  const isAuthenticated = !!authenticatedUserId;
 
   return (
     <div className="space-y-8">
@@ -37,6 +60,7 @@ export default function DailyReport() {
         basicInfoErrors={basicInfoErrors}
         onDateChange={updateDate}
         onWorkerNameChange={updateWorkerName}
+        isWorkerLocked={isAuthenticated}
       />
 
       {/* 作業者履歴表示 */}
@@ -44,7 +68,7 @@ export default function DailyReport() {
         <div className="bg-blue-50 rounded-lg shadow-sm border border-blue-200">
           <WorkerHistory 
             workerName={reportData.workerName} 
-            currentDate={reportData.date} 
+            currentDate={reportData.date}
           />
         </div>
       )}
@@ -89,6 +113,7 @@ interface BasicInfoSectionProps {
   basicInfoErrors: { field: string; message: string }[];
   onDateChange: (date: string) => void;
   onWorkerNameChange: (name: string) => void;
+  isWorkerLocked?: boolean;
 }
 
 function BasicInfoSection({
@@ -99,6 +124,7 @@ function BasicInfoSection({
   basicInfoErrors,
   onDateChange,
   onWorkerNameChange,
+  isWorkerLocked = false,
 }: BasicInfoSectionProps) {
   const hasDateError = basicInfoErrors.some(err => err.field === 'date');
   const hasWorkerError = basicInfoErrors.some(err => err.field === 'workerName');
@@ -135,24 +161,33 @@ function BasicInfoSection({
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             作業者名
+            {isWorkerLocked && (
+              <span className="ml-2 text-xs text-green-600 font-normal">（PIN認証済み）</span>
+            )}
           </label>
-          <select
-            value={workerName}
-            onChange={(e) => onWorkerNameChange(e.target.value)}
-            data-field="workerName"
-            disabled={loadingUsers}
-            className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 h-10 ${
-              hasWorkerError ? 'border-red-500 focus:ring-red-500' : ''
-            } ${loadingUsers ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-          >
-            <option value="">
-              {loadingUsers ? '読み込み中...' : ''}
-            </option>
-            {users.map(user => (
-              <option key={user.id} value={user.name}>{user.name}</option>
-            ))}
-          </select>
-          {hasWorkerError && (
+          {isWorkerLocked ? (
+            <div className="w-full px-3 py-2 border border-green-300 bg-green-50 rounded-md h-10 flex items-center text-gray-800">
+              {workerName}
+            </div>
+          ) : (
+            <select
+              value={workerName}
+              onChange={(e) => onWorkerNameChange(e.target.value)}
+              data-field="workerName"
+              disabled={loadingUsers}
+              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 h-10 ${
+                hasWorkerError ? 'border-red-500 focus:ring-red-500' : ''
+              } ${loadingUsers ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+            >
+              <option value="">
+                {loadingUsers ? '読み込み中...' : ''}
+              </option>
+              {users.map(user => (
+                <option key={user.id} value={user.name}>{user.name}</option>
+              ))}
+            </select>
+          )}
+          {hasWorkerError && !isWorkerLocked && (
             <p className="text-xs text-red-600 mt-1">
               {basicInfoErrors.find(err => err.field === 'workerName')?.message}
             </p>
@@ -184,6 +219,37 @@ function WorkItemsSection({
 }: WorkItemsSectionProps) {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      {/* 工番検索誘導バナー */}
+      <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-blue-800">
+                💡 まず「工番情報検索」をお試しください
+              </p>
+              <p className="text-xs text-blue-600 mt-0.5">
+                客先名・工番・作業名称が自動で入力されます
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onOpenSearchModal}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors shadow-sm"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            工番情報検索
+          </button>
+        </div>
+      </div>
+
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-gray-800 flex items-center">
           <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -191,18 +257,6 @@ function WorkItemsSection({
           </svg>
           作業項目
         </h2>
-        
-        {/* 工番検索ボタン */}
-        <button
-          type="button"
-          onClick={onOpenSearchModal}
-          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-        >
-          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          工番情報検索
-        </button>
       </div>
       
       <div className="space-y-6">

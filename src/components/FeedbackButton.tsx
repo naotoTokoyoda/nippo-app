@@ -1,15 +1,22 @@
 'use client';
 
 import { useState } from 'react';
+import { useSession } from 'next-auth/react';
 import FeedbackModal from './FeedbackModal';
 
 export default function FeedbackButton() {
+  const { data: session } = useSession();
   const [isHovered, setIsHovered] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleFeedbackClick = () => {
     setIsModalOpen(true);
   };
+
+  // ログインしていない場合は表示しない
+  if (!session) {
+    return null;
+  }
 
   return (
     <div className="fixed bottom-6 right-6 z-50">

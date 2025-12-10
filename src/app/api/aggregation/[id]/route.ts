@@ -7,7 +7,7 @@ import { getWorkOrder } from '@/lib/aggregation/work-order-service';
 import { processRateAdjustments } from '@/lib/aggregation/adjustment-service';
 import { replaceExpenses } from '@/lib/aggregation/expense-service';
 import { createAggregationSummary } from '@/lib/aggregation/summary-service';
-import { updateWorkOrderStatus, updateStatusOnly, moveJootoTaskByStatus } from '@/lib/aggregation/status-management-service';
+import { updateWorkOrderStatus, updateStatusOnly, moveJootoTaskByStatus, validateStatusTransition } from '@/lib/aggregation/status-management-service';
 import { z } from 'zod';
 
 // 集計詳細を取得
@@ -140,6 +140,38 @@ export async function PATCH(
     }
 
     const workOrder = result.workOrder;
+
+    // ステータス変更がある場合、遷移ルールをバリデーション
+    if (validatedData.status && validatedData.status !== workOrder.status) {
+      // リクエストに新しい値が含まれている場合はそれを使用、なければ現在の値を使用
+      const finalDecisionAmountForValidation = 
+        validatedData.finalDecisionAmount !== undefined 
+          ? validatedData.finalDecisionAmount 
+          : workOrder.finalDecisionAmount;
+      const deliveryDateForValidation = 
+        validatedData.deliveryDate !== undefined
+          ? (validatedData.deliveryDate ? new Date(validatedData.deliveryDate) : null)
+          : workOrder.deliveryDate;
+
+      const transitionValidation = validateStatusTransition(
+        workOrder.status as 'delivered' | 'aggregating' | 'aggregated',
+        validatedData.status,
+        {
+          finalDecisionAmount: finalDecisionAmountForValidation,
+          deliveryDate: deliveryDateForValidation,
+        }
+      );
+
+      if (!transitionValidation.isValid) {
+        return Response.json(
+          {
+            error: transitionValidation.error,
+            details: transitionValidation.details?.join('\n'),
+          },
+          { status: 400 }
+        );
+      }
+    }
 
     // ステータスのみの変更かチェック（軽量化のため）
     const isOnlyStatusChange = validatedData.status && 

@@ -1,6 +1,40 @@
+'use client';
+
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+
+// 統計情報の型定義
+interface AdminStats {
+  reportStatus: {
+    submitted: number;
+    total: number;
+    submittedUsers: string[];
+    pendingUsers: string[];
+    targetMonth: number;
+    targetDay: number;
+  };
+  monthlyReports: {
+    count: number;
+    month: number;
+  };
+  aggregatingWorkOrders: {
+    count: number;
+  };
+}
+
+// 8文字を超える場合は省略
+function getDisplayName(name: string): string {
+  if (name.length > 8) {
+    return name.slice(0, 8) + '...';
+  }
+  return name;
+}
 
 export default function AdminDashboard() {
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const menuItems = [
     {
       title: 'ユーザー管理',
@@ -31,6 +65,27 @@ export default function AdminDashboard() {
       color: 'bg-purple-50 hover:bg-purple-100 border-purple-200',
     },
   ];
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/admin/stats');
+        const data = await response.json();
+        
+        if (data.success) {
+          setStats(data.data);
+        } else {
+          setError(data.error || '統計情報の取得に失敗しました');
+        }
+      } catch {
+        setError('統計情報の取得に失敗しました');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   return (
     <div>
@@ -79,30 +134,89 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* 統計情報（将来的に追加） */}
+      {/* システム情報 */}
       <div className="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
           システム情報
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <div className="text-2xl font-bold text-gray-900">-</div>
-            <div className="text-sm text-gray-600 mt-1">登録ユーザー数</div>
+        
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="p-4 bg-gray-50 rounded-lg animate-pulse">
+                <div className="h-8 bg-gray-200 rounded w-16 mx-auto mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-24 mx-auto"></div>
+              </div>
+            ))}
           </div>
-          <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <div className="text-2xl font-bold text-gray-900">-</div>
-            <div className="text-sm text-gray-600 mt-1">登録機械数</div>
+        ) : error ? (
+          <div className="text-center p-4 text-red-600">
+            <p>{error}</p>
           </div>
-          <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <div className="text-2xl font-bold text-gray-900">-</div>
-            <div className="text-sm text-gray-600 mt-1">有効な単価設定数</div>
+        ) : stats ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* 日報提出状況 */}
+            <div className="p-4 bg-blue-50 rounded-lg">
+              <div className="text-center mb-3">
+                <div className="text-2xl font-bold text-blue-900">
+                  {stats.reportStatus.submitted} / {stats.reportStatus.total} 人
+                </div>
+                <div className="text-sm text-blue-700 mt-1">
+                  日報提出状況（{stats.reportStatus.targetMonth}/{stats.reportStatus.targetDay}）
+                </div>
+              </div>
+              <div className="border-t border-blue-200 pt-3 mt-3">
+                {stats.reportStatus.total === 0 ? (
+                  <p className="text-xs text-blue-600 text-center">対象の作業者がいません</p>
+                ) : (
+                  <div className="flex flex-wrap gap-1 justify-center">
+                    {stats.reportStatus.submittedUsers.map((name) => (
+                      <span
+                        key={name}
+                        className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-green-100 text-green-800"
+                        title={name}
+                      >
+                        ✓ {getDisplayName(name)}
+                      </span>
+                    ))}
+                    {stats.reportStatus.pendingUsers.map((name) => (
+                      <span
+                        key={name}
+                        className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-red-100 text-red-800"
+                        title={name}
+                      >
+                        ✗ {getDisplayName(name)}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 今月の日報総数 */}
+            <div className="p-4 bg-green-50 rounded-lg">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-900">
+                  {stats.monthlyReports.count} 件
+                </div>
+                <div className="text-sm text-green-700 mt-1">
+                  今月の日報（{stats.monthlyReports.month}月）
+                </div>
+              </div>
+            </div>
+
+            {/* 集計中の工番数 */}
+            <div className="p-4 bg-orange-50 rounded-lg">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-900">
+                  {stats.aggregatingWorkOrders.count} 件
+                </div>
+                <div className="text-sm text-orange-700 mt-1">集計中の工番</div>
+              </div>
+            </div>
           </div>
-        </div>
-        <p className="mt-4 text-xs text-gray-500 text-center">
-          ※ 統計情報は今後実装予定です
-        </p>
+        ) : null}
       </div>
     </div>
   );
 }
-
