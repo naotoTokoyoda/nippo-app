@@ -93,6 +93,17 @@ export default function AdminLayout({
                     </div>
                   </Link>
                 </li>
+                <li>
+                  <Link
+                    href="/admin/audit-logs"
+                    className="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                  >
+                    <div className="flex items-center">
+                      <span className="text-lg mr-3">📋</span>
+                      <span className="font-medium">監査ログ</span>
+                    </div>
+                  </Link>
+                </li>
               </ul>
             </nav>
 

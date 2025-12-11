@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+import { auth } from '@/lib/auth/auth';
 import { calculateActivitiesForWorkOrder } from '@/lib/aggregation/calculation-service';
 import { updateAggregationSchema } from '@/lib/aggregation/schemas';
 import { getWorkOrder } from '@/lib/aggregation/work-order-service';
@@ -8,6 +9,7 @@ import { processRateAdjustments } from '@/lib/aggregation/adjustment-service';
 import { replaceExpenses } from '@/lib/aggregation/expense-service';
 import { createAggregationSummary } from '@/lib/aggregation/summary-service';
 import { updateWorkOrderStatus, updateStatusOnly, moveJootoTaskByStatus, validateStatusTransition } from '@/lib/aggregation/status-management-service';
+import { recordStatusChange, recordFinalDecisionChange } from '@/lib/audit/audit-service';
 import { z } from 'zod';
 
 // 集計詳細を取得
@@ -123,6 +125,16 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
 
+    // セッションからユーザー情報を取得
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: '認証が必要です' },
+        { status: 401 }
+      );
+    }
+    const currentUser = session.user;
+
     const validatedData = updateAggregationSchema.parse(body);
 
     // 工番を取得（簡易版 - customerのみinclude）
@@ -189,22 +201,16 @@ export async function PATCH(
       await prisma.$transaction(async (tx) => {
       // 単価調整がある場合
       if (validatedData.billRateAdjustments) {
-        // TODO: 本番環境ではセッションから実際のユーザーIDを取得する
-        const userId = 'cmh8ils0x0000u5shpsixbzdf'; // 開発用: 常世田直人
-        await processRateAdjustments(workOrder.id, validatedData.billRateAdjustments, tx, userId);
+        await processRateAdjustments(workOrder.id, validatedData.billRateAdjustments, tx, currentUser.id);
       }
 
       // 経費更新がある場合
       if (validatedData.expenses) {
-        // TODO: 本番環境ではセッションから実際のユーザーIDを取得する
-        const userId = 'cmh8ils0x0000u5shpsixbzdf'; // 開発用: 常世田直人
-        await replaceExpenses(workOrder.id, validatedData.expenses, tx, userId);
+        await replaceExpenses(workOrder.id, validatedData.expenses, tx, currentUser.id);
       }
 
       // 見積もり金額・最終決定金額・納品日の更新がある場合
       if (validatedData.estimateAmount !== undefined || validatedData.finalDecisionAmount !== undefined || validatedData.deliveryDate !== undefined) {
-        // TODO: 本番環境ではセッションから実際のユーザーIDを取得する
-        const userId = 'cmh8ils0x0000u5shpsixbzdf'; // 開発用: 常世田直人
         
         // 変更履歴を記録するため、現在の値を取得
         const oldEstimateAmount = workOrder.estimateAmount;
@@ -239,7 +245,7 @@ export async function PATCH(
               amount: difference,
               reason: `見積もり金額変更 (${oldAmountStr} → ${newAmountStr})`,
               memo: null,
-              createdBy: userId,
+              createdBy: currentUser.id,
             },
           });
         }
@@ -257,9 +263,20 @@ export async function PATCH(
               amount: difference,
               reason: `最終決定金額変更 (${oldAmountStr} → ${newAmountStr})`,
               memo: null,
-              createdBy: userId,
+              createdBy: currentUser.id,
             },
           });
+          
+          // 監査ログ: 最終決定金額の変更を記録
+          const workNumber = `${workOrder.frontNumber}-${workOrder.backNumber}`;
+          await recordFinalDecisionChange(
+            currentUser.id,
+            currentUser.name,
+            workOrder.id,
+            workNumber,
+            oldFinalDecisionAmount,
+            validatedData.finalDecisionAmount
+          );
         }
       }
 
@@ -280,6 +297,17 @@ export async function PATCH(
     // Jootoタスクの移動（トランザクション外で実行）
     if (validatedData.status) {
       await moveJootoTaskByStatus(id, workOrder.status, validatedData.status);
+      
+      // 監査ログ: ステータス変更を記録
+      const workNumber = `${workOrder.frontNumber}-${workOrder.backNumber}`;
+      await recordStatusChange(
+        currentUser.id,
+        currentUser.name,
+        workOrder.id,
+        workNumber,
+        workOrder.status,
+        validatedData.status
+      );
     }
 
     return NextResponse.json({ success: true });

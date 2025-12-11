@@ -279,3 +279,22 @@ model ExpenseRate {
   @@index([isActive])
   @@map("expense_rates")
 }
+
+// 監査ログテーブル
+model AuditLog {
+  id            String    @id @default(cuid())
+  timestamp     DateTime  @default(now())
+  userId        String    @map("user_id")
+  userName      String    @map("user_name") @db.VarChar(100)
+  action        String    @db.VarChar(50) // access / update
+  resourceType  String    @map("resource_type") @db.VarChar(50) // page / work_order
+  resourceId    String    @map("resource_id") @db.VarChar(100) // 工番ID or ページパス
+  details       Json?     // 変更内容の詳細
+  ipAddress     String?   @map("ip_address") @db.VarChar(50)
+
+  @@index([timestamp])
+  @@index([userId])
+  @@index([resourceType])
+  @@index([action])
+  @@map("audit_logs")
+}
