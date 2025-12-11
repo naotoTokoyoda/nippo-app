@@ -38,11 +38,11 @@ export function isMember(user: User | null | undefined): boolean {
 
 /**
  * 集計機能にアクセスできるかどうかを判定
- * ルール: admin または manager のみ
+ * ルール: admin のみ
  */
 export function canAccessAggregation(user: User | null | undefined): boolean {
   if (!user) return false;
-  return user.role === 'admin' || user.role === 'manager';
+  return user.role === 'admin';
 }
 
 /**

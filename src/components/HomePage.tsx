@@ -17,8 +17,9 @@ export default function HomePage() {
   const handleAggregationClick = (e: React.MouseEvent) => {
     e.preventDefault();
     
-    // 開発環境では認証をスキップして直接遷移
-    if (isDevelopment) {
+    // Admin は直接アクセス可能（パスワード不要）
+    // 開発環境でも同様にスキップ
+    if (isAdmin || isDevelopment) {
       window.location.href = '/aggregation';
       return;
     }
@@ -78,23 +79,12 @@ export default function HomePage() {
               </div>
               <h2 className="text-2xl font-semibold text-gray-800 mb-2">集計</h2>
               <p className="text-gray-600">納品済み・集計中の案件を管理します</p>
-              {isClient && (
+              {isClient && isDevelopment && (
                 <div className="mt-2 flex items-center justify-center">
-                  {isDevelopment ? (
-                    <>
-                      <svg className="w-4 h-4 text-green-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span className="text-xs text-green-500">開発環境</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4 text-purple-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                      </svg>
-                      <span className="text-xs text-purple-500">認証が必要</span>
-                    </>
-                  )}
+                  <svg className="w-4 h-4 text-green-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-xs text-green-500">開発環境</span>
                 </div>
               )}
             </div>
