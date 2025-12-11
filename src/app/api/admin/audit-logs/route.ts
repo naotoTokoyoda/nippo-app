@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { auth } from '@/lib/auth/auth';
+import { Prisma } from '@prisma/client';
 
 // 監査ログ一覧を取得
 export async function GET(request: NextRequest) {
@@ -18,24 +19,31 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '50', 10);
-    const action = searchParams.get('action') || undefined;
-    const resourceType = searchParams.get('resourceType') || undefined;
+    const userId = searchParams.get('userId') || undefined;
+    const startDate = searchParams.get('startDate') || undefined;
+    const endDate = searchParams.get('endDate') || undefined;
 
     // フィルタ条件を構築
-    const whereConditions: {
-      action?: string;
-      resourceType?: string;
-    } = {};
+    const whereConditions: Prisma.AuditLogWhereInput = {};
 
-    if (action) {
-      whereConditions.action = action;
+    if (userId) {
+      whereConditions.userId = userId;
     }
-    if (resourceType) {
-      whereConditions.resourceType = resourceType;
+    if (startDate || endDate) {
+      whereConditions.timestamp = {};
+      if (startDate) {
+        whereConditions.timestamp.gte = new Date(startDate);
+      }
+      if (endDate) {
+        // endDateは当日の終わりまで含める
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        whereConditions.timestamp.lte = end;
+      }
     }
 
-    // 監査ログを取得
-    const [logs, total] = await Promise.all([
+    // 監査ログと操作者一覧を並行取得
+    const [logs, total, operators] = await Promise.all([
       prisma.auditLog.findMany({
         where: whereConditions,
         orderBy: { timestamp: 'desc' },
@@ -43,6 +51,12 @@ export async function GET(request: NextRequest) {
         take: limit,
       }),
       prisma.auditLog.count({ where: whereConditions }),
+      // 操作者一覧（重複なし）
+      prisma.auditLog.findMany({
+        select: { userId: true, userName: true },
+        distinct: ['userId'],
+        orderBy: { userName: 'asc' },
+      }),
     ]);
 
     return NextResponse.json({
@@ -57,6 +71,10 @@ export async function GET(request: NextRequest) {
         resourceId: log.resourceId,
         details: log.details,
         ipAddress: log.ipAddress,
+      })),
+      operators: operators.map(op => ({
+        userId: op.userId,
+        userName: op.userName,
       })),
       total,
       page,
