@@ -41,6 +41,13 @@ const fieldLabels: Record<string, string> = {
   final_decision_amount: '最終決定金額',
 };
 
+// ステータスの日本語表示
+const statusLabels: Record<string, string> = {
+  delivered: '納品済み',
+  aggregating: '集計中',
+  aggregated: '完了',
+};
+
 export default function AuditLogsPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,30 +102,40 @@ export default function AuditLogsPage() {
     });
   };
 
-  const formatDetails = (details: Record<string, unknown> | null) => {
+  // 工番を取得（details.workNumber または resourceId）
+  const getWorkNumber = (log: AuditLog): string => {
+    if (log.details?.workNumber) {
+      return log.details.workNumber as string;
+    }
+    // resourceIdが工番形式でない場合は省略表示
+    if (log.resourceId.length > 10) {
+      return log.resourceId.slice(0, 8) + '...';
+    }
+    return log.resourceId;
+  };
+
+  // 値をフォーマット（金額 or ステータス）
+  const formatValue = (value: unknown, field: string): string => {
+    if (value === null || value === undefined) return '未設定';
+    if (field === 'status') {
+      return statusLabels[value as string] || (value as string);
+    }
+    if (typeof value === 'number') {
+      return `¥${value.toLocaleString()}`;
+    }
+    return String(value);
+  };
+
+  // 変更内容を簡潔に表示
+  const formatChangesSummary = (details: Record<string, unknown> | null): string => {
     if (!details) return '-';
     
-    const parts: string[] = [];
+    const field = details.field as string;
+    const fieldName = fieldLabels[field] || field;
+    const oldVal = formatValue(details.oldValue, field);
+    const newVal = formatValue(details.newValue, field);
     
-    if (details.field) {
-      const fieldName = fieldLabels[details.field as string] || details.field;
-      parts.push(`項目: ${fieldName}`);
-    }
-    if (details.workNumber) {
-      parts.push(`工番: ${details.workNumber}`);
-    }
-    if (details.oldValue !== undefined) {
-      const oldVal = details.oldValue === null ? '未設定' : 
-        typeof details.oldValue === 'number' ? `¥${details.oldValue.toLocaleString()}` : details.oldValue;
-      parts.push(`変更前: ${oldVal}`);
-    }
-    if (details.newValue !== undefined) {
-      const newVal = details.newValue === null ? '未設定' : 
-        typeof details.newValue === 'number' ? `¥${details.newValue.toLocaleString()}` : details.newValue;
-      parts.push(`変更後: ${newVal}`);
-    }
-    
-    return parts.length > 0 ? parts.join(' / ') : JSON.stringify(details);
+    return `${fieldName}: ${oldVal} → ${newVal}`;
   };
 
   return (
@@ -185,10 +202,10 @@ export default function AuditLogsPage() {
                     操作
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    対象
+                    工番
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    詳細
+                    変更内容
                   </th>
                 </tr>
               </thead>
@@ -209,13 +226,10 @@ export default function AuditLogsPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                      <span className="text-gray-500 text-xs mr-1">
-                        [{resourceTypeLabels[log.resourceType] || log.resourceType}]
-                      </span>
-                      <span className="font-mono text-xs">{log.resourceId}</span>
+                      <span className="font-mono font-medium">{getWorkNumber(log)}</span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600 max-w-md truncate">
-                      {formatDetails(log.details)}
+                    <td className="px-4 py-3 text-sm text-gray-700">
+                      {formatChangesSummary(log.details)}
                     </td>
                   </tr>
                 ))}
