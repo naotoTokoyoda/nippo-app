@@ -95,8 +95,8 @@ export async function PUT(
       );
     }
 
-    // === AdminはAdmin/SuperAdminを編集できない ===
-    if (currentUserRole === 'admin' && (existingUser.role === 'admin' || existingUser.role === 'superAdmin')) {
+    // === AdminはAdmin/SuperAdminを編集できない（自分自身は除く） ===
+    if (currentUserRole === 'admin' && id !== currentUserId && (existingUser.role === 'admin' || existingUser.role === 'superAdmin')) {
       return NextResponse.json(
         {
           success: false,
