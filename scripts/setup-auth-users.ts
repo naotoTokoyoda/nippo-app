@@ -15,8 +15,26 @@ async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
 }
 
+// 型定義
+interface AuthUser {
+  name: string;
+  email: string;
+  password: string;
+}
+
+interface MemberUser {
+  name: string;
+  pin: string;
+  isTrainee?: boolean;
+}
+
 // ユーザー設定データ
-const userConfigs = {
+const userConfigs: {
+  superAdmin: AuthUser[];
+  admin: AuthUser[];
+  manager: AuthUser[];
+  member: MemberUser[];
+} = {
   // superAdmin（最高責任者 - 常世田直人のみ）
   superAdmin: [
     {

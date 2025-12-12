@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { AdminUser } from '@/types/admin';
-import { canManageUser, canCreateUserWithRole, UserRole } from '@/lib/auth/permissions';
+import { canManageUser, UserRole } from '@/lib/auth/permissions';
 
 export default function UsersPage() {
   const { data: session } = useSession();
