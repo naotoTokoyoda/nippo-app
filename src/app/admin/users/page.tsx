@@ -14,6 +14,15 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(false);
+  const [sortByRole, setSortByRole] = useState<'asc' | 'desc' | null>('asc'); // デフォルトで権限順
+
+  // ロールの優先順位（ソート用）
+  const rolePriority: Record<string, number> = {
+    superAdmin: 1,
+    admin: 2,
+    manager: 3,
+    member: 4,
+  };
 
   useEffect(() => {
     fetchUsers();
@@ -63,25 +72,50 @@ export default function UsersPage() {
   };
 
   const getRoleBadge = (role: string) => {
-    const styles = {
+    const styles: Record<string, string> = {
+      superAdmin: 'bg-purple-100 text-purple-800',
       admin: 'bg-red-100 text-red-800',
       manager: 'bg-blue-100 text-blue-800',
       member: 'bg-gray-100 text-gray-800',
     };
-    const labels = {
+    const labels: Record<string, string> = {
+      superAdmin: 'Super Admin',
       admin: 'Admin',
       manager: 'Manager',
       member: 'Member',
     };
     return (
-      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${styles[role as keyof typeof styles]}`}>
-        {labels[role as keyof typeof labels]}
+      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${styles[role] || 'bg-gray-100 text-gray-800'}`}>
+        {labels[role] || role}
       </span>
     );
   };
 
-  // 表示するユーザーをフィルタリング
-  const displayedUsers = showInactive ? users : users.filter(user => user.isActive);
+  // 表示するユーザーをフィルタリング＆ソート
+  const displayedUsers = (() => {
+    let filtered = showInactive ? users : users.filter(user => user.isActive);
+    
+    if (sortByRole) {
+      filtered = [...filtered].sort((a, b) => {
+        const priorityA = rolePriority[a.role] || 99;
+        const priorityB = rolePriority[b.role] || 99;
+        return sortByRole === 'asc' ? priorityA - priorityB : priorityB - priorityA;
+      });
+    }
+    
+    return filtered;
+  })();
+
+  // ソートのトグル
+  const toggleRoleSort = () => {
+    if (sortByRole === null) {
+      setSortByRole('asc');
+    } else if (sortByRole === 'asc') {
+      setSortByRole('desc');
+    } else {
+      setSortByRole('asc');
+    }
+  };
 
   if (loading) {
     return (
@@ -106,9 +140,9 @@ export default function UsersPage() {
           <h1 className="text-2xl font-bold text-gray-900">ユーザー管理</h1>
           <p className="mt-1 text-sm text-gray-600">
             ユーザーの追加、編集、削除、権限設定
-            {currentUserRole === 'manager' && (
+            {currentUserRole === 'admin' && (
               <span className="ml-2 text-orange-600">
-                （Memberのみ管理可能）
+                （SuperAdmin以外を管理可能）
               </span>
             )}
           </p>
@@ -123,8 +157,8 @@ export default function UsersPage() {
             />
             無効なユーザーを表示
           </label>
-          {/* adminは全ロール作成可能、managerはmemberのみ作成可能 */}
-          {(currentUserRole === 'admin' || canCreateUserWithRole(currentUserRole, 'member')) && (
+          {/* superAdminは全ロール作成可能、adminはsuperAdmin以外作成可能 */}
+          {(currentUserRole === 'superAdmin' || currentUserRole === 'admin') && (
             <Link
               href="/admin/users/new"
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
@@ -142,14 +176,18 @@ export default function UsersPage() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 ユーザー名
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                権限
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                メールアドレス
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                PIN
+              <th 
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                onClick={toggleRoleSort}
+              >
+                <div className="flex items-center gap-1">
+                  権限
+                  <span className="text-gray-400">
+                    {sortByRole === 'asc' && '↑'}
+                    {sortByRole === 'desc' && '↓'}
+                    {sortByRole === null && '↕'}
+                  </span>
+                </div>
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 タグ
@@ -164,7 +202,7 @@ export default function UsersPage() {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {displayedUsers.map((user) => (
-              <tr key={user.id} className={!user.isActive ? 'bg-gray-50 opacity-60' : ''}>
+              <tr key={user.id} className={!user.isActive ? 'bg-gray-50 opacity-60' : 'hover:bg-gray-50'}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">
                     {user.name}
@@ -172,12 +210,6 @@ export default function UsersPage() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {getRoleBadge(user.role)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{user.email || '-'}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500 font-mono">{user.pin}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {user.isTrainee ? (
