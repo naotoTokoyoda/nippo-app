@@ -7,9 +7,10 @@ import { Prisma } from '@prisma/client';
 // 監査ログ一覧を取得
 export async function GET(request: NextRequest) {
   try {
-    // 認証チェック
+    // 認証チェック（superAdmin, admin, manager が閲覧可能）
     const session = await auth();
-    if (!session?.user || session.user.role !== 'admin') {
+    const allowedRoles = ['superAdmin', 'admin', 'manager'];
+    if (!session?.user || !allowedRoles.includes(session.user.role)) {
       return NextResponse.json(
         { error: '権限がありません' },
         { status: 403 }
