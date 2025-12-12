@@ -233,7 +233,8 @@ export default function UsersPage() {
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  {canManageUser(currentUserRole, user.role as UserRole) ? (
+                  {/* 自分自身または管理可能なユーザーの場合は編集可能 */}
+                  {(user.id === currentUserId || canManageUser(currentUserRole, user.role as UserRole)) ? (
                     <>
                       <Link
                         href={`/admin/users/${user.id}/edit`}
@@ -241,8 +242,8 @@ export default function UsersPage() {
                       >
                         編集
                       </Link>
-                      {/* 無効化ボタン: 自分自身とSuperAdminは無効化不可 */}
-                      {user.isActive && user.id !== currentUserId && user.role !== 'superAdmin' && (
+                      {/* 無効化ボタン: 自分自身とSuperAdminは無効化不可、かつ管理可能なユーザーのみ */}
+                      {user.isActive && user.id !== currentUserId && user.role !== 'superAdmin' && canManageUser(currentUserRole, user.role as UserRole) && (
                         <button
                           onClick={() => handleDelete(user.id, user.name)}
                           className="text-red-600 hover:text-red-900"
