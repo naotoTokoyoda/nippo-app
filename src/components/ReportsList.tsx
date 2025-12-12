@@ -17,9 +17,10 @@ interface ReportsListProps {
 }
 
 export default function ReportsList({
-  authenticatedUserId,
+  authenticatedUserId: _authenticatedUserId,
   authenticatedUserName,
 }: ReportsListProps = {}) {
+  // Note: _authenticatedUserId is available for future use (e.g., restrict editing to own reports)
   const {
     filteredWorkItems,
     loading,

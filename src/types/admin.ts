@@ -3,7 +3,7 @@
  */
 
 // ユーザー管理
-export type UserRole = 'admin' | 'manager' | 'member';
+export type UserRole = 'superAdmin' | 'admin' | 'manager' | 'member';
 
 export interface AdminUser {
   id: string;

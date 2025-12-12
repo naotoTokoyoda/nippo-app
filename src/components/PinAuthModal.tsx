@@ -122,8 +122,6 @@ export default function PinAuthModal({
 
   if (!isOpen) return null;
 
-  const selectedUser = users.find(u => u.id === userId);
-
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
@@ -155,14 +153,6 @@ export default function PinAuthModal({
                   </option>
                 ))}
               </select>
-            </div>
-          )}
-
-          {/* 選択されたユーザー表示 */}
-          {selectedUser && (
-            <div className="bg-blue-50 rounded-lg p-4">
-              <p className="text-sm text-blue-600 font-medium">認証するユーザー</p>
-              <p className="text-lg font-bold text-blue-900">{selectedUser.name}</p>
             </div>
           )}
 

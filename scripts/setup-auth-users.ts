@@ -1,5 +1,6 @@
 /**
  * 認証システム用のユーザー設定スクリプト
+ * superAdmin: 最高責任者（常世田直人のみ）
  * admin: 管理者個人アカウント
  * manager: 工場共有端末用アカウント
  * member: 作業者（PIN認証で日報入力）
@@ -14,15 +15,37 @@ async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
 }
 
+// 型定義
+interface AuthUser {
+  name: string;
+  email: string;
+  password: string;
+}
+
+interface MemberUser {
+  name: string;
+  pin: string;
+  isTrainee?: boolean;
+}
+
 // ユーザー設定データ
-const userConfigs = {
-  // admin（管理者個人アカウント）
-  admin: [
+const userConfigs: {
+  superAdmin: AuthUser[];
+  admin: AuthUser[];
+  manager: AuthUser[];
+  member: MemberUser[];
+} = {
+  // superAdmin（最高責任者 - 常世田直人のみ）
+  superAdmin: [
     {
       name: '常世田直人',
       email: 'admin@nippo.local',
       password: 'admin123',
     },
+  ],
+  // admin（管理者個人アカウント）
+  admin: [
+    // 現状は superAdmin のみ
   ],
   // manager（工場共有端末用アカウント）
   manager: [
@@ -44,8 +67,33 @@ const userConfigs = {
 async function main() {
   console.log('🔐 認証システム用ユーザー設定を開始します...\n');
 
+  // SuperAdmin ユーザーの設定（最高責任者）
+  console.log('🔱 Super Admin ユーザーの設定...');
+  for (const config of userConfigs.superAdmin) {
+    const hashedPassword = await hashPassword(config.password);
+    
+    const user = await prisma.user.upsert({
+      where: { email: config.email },
+      update: {
+        name: config.name,
+        role: 'superAdmin',
+        password: hashedPassword,
+        pin: '0000',
+      },
+      create: {
+        name: config.name,
+        email: config.email,
+        password: hashedPassword,
+        role: 'superAdmin',
+        pin: '0000',
+      },
+    });
+    
+    console.log(`  ✅ ${user.name} (${user.email}) - role: superAdmin`);
+  }
+
   // Admin ユーザーの設定
-  console.log('👑 Admin ユーザーの設定...');
+  console.log('\n👑 Admin ユーザーの設定...');
   for (const config of userConfigs.admin) {
     const hashedPassword = await hashPassword(config.password);
     
@@ -67,6 +115,9 @@ async function main() {
     });
     
     console.log(`  ✅ ${user.name} (${user.email}) - role: admin`);
+  }
+  if (userConfigs.admin.length === 0) {
+    console.log('  （現在 Admin ユーザーはいません）');
   }
 
   // Manager ユーザーの設定（工場アカウント）
@@ -132,6 +183,7 @@ async function main() {
   const allUsers = await prisma.user.findMany({
     where: {
       OR: [
+        { role: 'superAdmin' },
         { role: 'admin' },
         { role: 'manager' },
         { role: 'member' },
@@ -159,10 +211,10 @@ async function main() {
 
   console.log('\n✨ 認証システム用ユーザー設定が完了しました！');
   console.log('\n📝 ログイン情報:');
-  console.log('  Admin:    admin@nippo.local / admin123');
-  console.log('  新工場:   shinkojo@nippo.local / shinkojo2024');
-  console.log('  旧工場:   kyukojo@nippo.local / kyukojo2024');
-  console.log('  作業者PIN: 全員 1234（テスト用）');
+  console.log('  SuperAdmin: admin@nippo.local / admin123（常世田直人）');
+  console.log('  新工場:     shinkojo@nippo.local / shinkojo2024');
+  console.log('  旧工場:     kyukojo@nippo.local / kyukojo2024');
+  console.log('  作業者PIN:  全員 1234（テスト用）');
 }
 
 main()

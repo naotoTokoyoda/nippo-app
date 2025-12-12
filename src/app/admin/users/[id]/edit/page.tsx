@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { AdminUser } from '@/types/admin';
+import { UserRole } from '@/lib/auth/permissions';
 
 interface EditUserPageProps {
   params: Promise<{ id: string }>;
@@ -11,6 +13,8 @@ interface EditUserPageProps {
 
 export default function EditUserPage({ params }: EditUserPageProps) {
   const router = useRouter();
+  const { data: session } = useSession();
+  const currentUserRole = session?.user?.role as UserRole | undefined;
   const [id, setId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -19,7 +23,7 @@ export default function EditUserPage({ params }: EditUserPageProps) {
 
   const [formData, setFormData] = useState({
     name: '',
-    role: 'member' as 'admin' | 'manager' | 'member',
+    role: 'member' as UserRole,
     email: '',
     password: '',
     pin: '',
@@ -100,7 +104,7 @@ export default function EditUserPage({ params }: EditUserPageProps) {
     }
   };
 
-  const needsEmailPassword = formData.role === 'admin' || formData.role === 'manager';
+  const needsEmailPassword = formData.role === 'superAdmin' || formData.role === 'admin' || formData.role === 'manager';
 
   if (loading) {
     return (
@@ -163,13 +167,23 @@ export default function EditUserPage({ params }: EditUserPageProps) {
             <select
               id="role"
               value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value as 'admin' | 'manager' | 'member' })}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              disabled={user?.role === 'superAdmin' && currentUserRole !== 'superAdmin'}
             >
               <option value="member">Member（作業者）</option>
-              <option value="manager">Manager（マネージャー）</option>
+              <option value="manager">Manager（共有端末用）</option>
               <option value="admin">Admin（管理者）</option>
+              {/* SuperAdminのみがSuperAdminを設定可能 */}
+              {(currentUserRole === 'superAdmin' || user?.role === 'superAdmin') && (
+                <option value="superAdmin">Super Admin（最高責任者）</option>
+              )}
             </select>
+            {user?.role === 'superAdmin' && currentUserRole !== 'superAdmin' && (
+              <p className="mt-1 text-xs text-orange-600">
+                SuperAdminの権限は変更できません
+              </p>
+            )}
           </div>
 
           {/* メールアドレス（Admin/Managerのみ） */}

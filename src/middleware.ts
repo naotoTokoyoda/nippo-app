@@ -26,16 +26,16 @@ export default auth((req) => {
     return NextResponse.redirect(loginUrl);
   }
 
-  // 集計機能へのアクセス制御（admin のみ）
+  // 集計機能へのアクセス制御（superAdmin, admin のみ）
   if (pathname.startsWith('/aggregation')) {
-    if (userRole !== 'admin') {
+    if (userRole !== 'superAdmin' && userRole !== 'admin') {
       return NextResponse.redirect(new URL('/', req.url));
     }
   }
 
-  // 管理画面へのアクセス制御（admin のみ）
+  // 管理画面へのアクセス制御（superAdmin, admin のみ）
   if (pathname.startsWith('/admin')) {
-    if (userRole !== 'admin') {
+    if (userRole !== 'superAdmin' && userRole !== 'admin') {
       return NextResponse.redirect(new URL('/', req.url));
     }
   }

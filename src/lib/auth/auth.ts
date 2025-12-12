@@ -37,8 +37,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return null;
           }
 
-          // admin または manager のみログイン可能
-          if (user.role !== 'admin' && user.role !== 'manager') {
+          // superAdmin, admin, manager のみログイン可能
+          if (user.role !== 'superAdmin' && user.role !== 'admin' && user.role !== 'manager') {
             return null;
           }
 

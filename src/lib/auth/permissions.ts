@@ -4,7 +4,7 @@
 
 import { AggregationAdjustment } from '@/types/aggregation';
 
-export type UserRole = 'admin' | 'manager' | 'member';
+export type UserRole = 'superAdmin' | 'admin' | 'manager' | 'member';
 
 export interface User {
   id: string;
@@ -13,11 +13,19 @@ export interface User {
 }
 
 /**
- * ユーザーが管理者かどうかを判定
+ * ユーザーがスーパー管理者かどうかを判定
+ */
+export function isSuperAdmin(user: User | null | undefined): boolean {
+  if (!user) return false;
+  return user.role === 'superAdmin';
+}
+
+/**
+ * ユーザーが管理者かどうかを判定（superAdminも含む）
  */
 export function isAdmin(user: User | null | undefined): boolean {
   if (!user) return false;
-  return user.role === 'admin';
+  return user.role === 'admin' || user.role === 'superAdmin';
 }
 
 /**
@@ -38,36 +46,37 @@ export function isMember(user: User | null | undefined): boolean {
 
 /**
  * 集計機能にアクセスできるかどうかを判定
- * ルール: admin または manager のみ
+ * ルール: superAdmin または admin のみ
  */
 export function canAccessAggregation(user: User | null | undefined): boolean {
   if (!user) return false;
-  return user.role === 'admin' || user.role === 'manager';
+  return user.role === 'superAdmin' || user.role === 'admin';
 }
 
 /**
  * 管理画面にアクセスできるかどうかを判定
- * ルール: admin または manager のみ
+ * ルール: superAdmin または admin のみ
  */
 export function canAccessAdmin(user: User | null | undefined): boolean {
   if (!user) return false;
-  return user.role === 'admin' || user.role === 'manager';
+  return user.role === 'superAdmin' || user.role === 'admin';
 }
 
 /**
  * 監査ログを閲覧できるかどうかを判定
- * ルール: admin または manager のみ
+ * ルール: superAdmin, admin, manager のみ
  */
 export function canViewAuditLog(user: User | null | undefined): boolean {
   if (!user) return false;
-  return user.role === 'admin' || user.role === 'manager';
+  return user.role === 'superAdmin' || user.role === 'admin' || user.role === 'manager';
 }
 
 /**
  * ユーザーを管理（追加・編集・削除）できるかどうかを判定
  * ルール:
- * - admin: 全ロールを管理可能
- * - manager: member のみ管理可能
+ * - superAdmin: 全ロールを管理可能
+ * - admin: superAdmin以外を管理可能（admin, manager, member）
+ * - manager: 管理不可
  * - member: 管理不可
  */
 export function canManageUser(
@@ -76,14 +85,14 @@ export function canManageUser(
 ): boolean {
   if (!currentUserRole) return false;
   
-  // admin は全ロールを管理可能
-  if (currentUserRole === 'admin') {
+  // superAdmin は全ロールを管理可能
+  if (currentUserRole === 'superAdmin') {
     return true;
   }
   
-  // manager は member のみ管理可能
-  if (currentUserRole === 'manager' && targetUserRole === 'member') {
-    return true;
+  // admin は superAdmin 以外を管理可能
+  if (currentUserRole === 'admin') {
+    return targetUserRole !== 'superAdmin';
   }
   
   return false;
@@ -92,8 +101,10 @@ export function canManageUser(
 /**
  * 特定のロールを持つユーザーを作成できるかどうかを判定
  * ルール:
- * - admin: 全ロールを作成可能
- * - manager: member のみ作成可能
+ * - superAdmin: 全ロールを作成可能
+ * - admin: superAdmin以外を作成可能
+ * - manager: 作成不可
+ * - member: 作成不可
  */
 export function canCreateUserWithRole(
   currentUserRole: UserRole | null | undefined,
@@ -101,14 +112,14 @@ export function canCreateUserWithRole(
 ): boolean {
   if (!currentUserRole) return false;
   
-  // admin は全ロールを作成可能
-  if (currentUserRole === 'admin') {
+  // superAdmin は全ロールを作成可能
+  if (currentUserRole === 'superAdmin') {
     return true;
   }
   
-  // manager は member のみ作成可能
-  if (currentUserRole === 'manager' && newUserRole === 'member') {
-    return true;
+  // admin は superAdmin 以外を作成可能
+  if (currentUserRole === 'admin') {
+    return newUserRole !== 'superAdmin';
   }
   
   return false;
@@ -131,7 +142,7 @@ export function canEditComment(
 /**
  * コメントを削除できるかどうかを判定
  * ルール:
- * - admin / manager: 全てのコメントを削除可能
+ * - superAdmin / admin / manager: 全てのコメントを削除可能
  */
 export function canDeleteComment(
   comment: AggregationAdjustment,
@@ -139,8 +150,8 @@ export function canDeleteComment(
 ): boolean {
   if (!currentUser) return false;
   
-  // admin / manager は全て削除可能
-  if (currentUser.role === 'admin' || currentUser.role === 'manager') {
+  // superAdmin / admin / manager は全て削除可能
+  if (currentUser.role === 'superAdmin' || currentUser.role === 'admin' || currentUser.role === 'manager') {
     return true;
   }
   
