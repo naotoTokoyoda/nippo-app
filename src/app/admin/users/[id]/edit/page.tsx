@@ -15,6 +15,7 @@ export default function EditUserPage({ params }: EditUserPageProps) {
   const router = useRouter();
   const { data: session } = useSession();
   const currentUserRole = session?.user?.role as UserRole | undefined;
+  const currentUserId = session?.user?.id;
   const [id, setId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -106,6 +107,26 @@ export default function EditUserPage({ params }: EditUserPageProps) {
 
   const needsEmailPassword = formData.role === 'superAdmin' || formData.role === 'admin' || formData.role === 'manager';
 
+  // 編集制限の判定
+  const isEditingSelf = id === currentUserId;
+  const isEditingSuperAdmin = user?.role === 'superAdmin';
+  const isEditingAdmin = user?.role === 'admin';
+  
+  // 権限変更が禁止されるケース：
+  // 1. 自分自身を編集している
+  // 2. SuperAdminを編集している（誰も変更できない）
+  // 3. Adminが他のAdminを編集している
+  const isRoleChangeDisabled = 
+    isEditingSelf || 
+    isEditingSuperAdmin || 
+    (currentUserRole === 'admin' && isEditingAdmin);
+
+  // SuperAdminの場合、isTrainee/isActiveは非表示
+  const showTraineeAndActiveFields = !isEditingSuperAdmin;
+
+  // 自分自身の場合、isActiveは変更不可
+  const isActiveChangeDisabled = isEditingSelf;
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -168,20 +189,22 @@ export default function EditUserPage({ params }: EditUserPageProps) {
               id="role"
               value={formData.role}
               onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              disabled={user?.role === 'superAdmin' && currentUserRole !== 'superAdmin'}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              disabled={isRoleChangeDisabled}
             >
               <option value="member">Member（作業者）</option>
               <option value="manager">Manager（共有端末用）</option>
               <option value="admin">Admin（管理者）</option>
-              {/* SuperAdminのみがSuperAdminを設定可能 */}
+              {/* SuperAdminのみがSuperAdminを設定可能、または既存のSuperAdminを表示 */}
               {(currentUserRole === 'superAdmin' || user?.role === 'superAdmin') && (
                 <option value="superAdmin">Super Admin（最高責任者）</option>
               )}
             </select>
-            {user?.role === 'superAdmin' && currentUserRole !== 'superAdmin' && (
+            {isRoleChangeDisabled && (
               <p className="mt-1 text-xs text-orange-600">
-                SuperAdminの権限は変更できません
+                {isEditingSelf && '自分の権限は変更できません'}
+                {!isEditingSelf && isEditingSuperAdmin && 'SuperAdminの権限は変更できません'}
+                {!isEditingSelf && !isEditingSuperAdmin && isEditingAdmin && currentUserRole === 'admin' && '同等の権限を持つユーザーの権限は変更できません'}
               </p>
             )}
           </div>
@@ -240,33 +263,43 @@ export default function EditUserPage({ params }: EditUserPageProps) {
             />
           </div>
 
-          {/* 実習生フラグ */}
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="isTrainee"
-              checked={formData.isTrainee}
-              onChange={(e) => setFormData({ ...formData, isTrainee: e.target.checked })}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-            />
-            <label htmlFor="isTrainee" className="ml-2 block text-sm text-gray-700">
-              実習生として扱う
-            </label>
-          </div>
+          {/* 実習生フラグ（SuperAdmin以外のみ表示） */}
+          {showTraineeAndActiveFields && (
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="isTrainee"
+                checked={formData.isTrainee}
+                onChange={(e) => setFormData({ ...formData, isTrainee: e.target.checked })}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="isTrainee" className="ml-2 block text-sm text-gray-700">
+                実習生として扱う
+              </label>
+            </div>
+          )}
 
-          {/* アクティブフラグ */}
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="isActive"
-              checked={formData.isActive}
-              onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-            />
-            <label htmlFor="isActive" className="ml-2 block text-sm text-gray-700">
-              アクティブ（有効）
-            </label>
-          </div>
+          {/* アクティブフラグ（SuperAdmin以外のみ表示、自分自身は変更不可） */}
+          {showTraineeAndActiveFields && (
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="isActive"
+                checked={formData.isActive}
+                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isActiveChangeDisabled}
+              />
+              <label htmlFor="isActive" className="ml-2 block text-sm text-gray-700">
+                アクティブ（有効）
+              </label>
+              {isActiveChangeDisabled && (
+                <span className="ml-2 text-xs text-orange-600">
+                  （自分自身は無効化できません）
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ボタン */}
