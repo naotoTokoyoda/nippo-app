@@ -14,9 +14,15 @@ interface AuditLog {
   ipAddress: string | null;
 }
 
+interface Operator {
+  userId: string;
+  userName: string;
+}
+
 interface AuditLogsResponse {
   success: boolean;
   items: AuditLog[];
+  operators: Operator[];
   total: number;
   page: number;
   limit: number;
@@ -27,12 +33,6 @@ interface AuditLogsResponse {
 const actionLabels: Record<string, string> = {
   access: 'アクセス',
   update: '更新',
-};
-
-// リソース種別の日本語表示
-const resourceTypeLabels: Record<string, string> = {
-  page: 'ページ',
-  work_order: '工番',
 };
 
 // 詳細情報のフィールド名を日本語に変換
@@ -50,12 +50,14 @@ const statusLabels: Record<string, string> = {
 
 export default function AuditLogsPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [operators, setOperators] = useState<Operator[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [actionFilter, setActionFilter] = useState<string>('');
-  const [resourceTypeFilter, setResourceTypeFilter] = useState<string>('');
+  const [userFilter, setUserFilter] = useState<string>('');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
 
   const fetchLogs = async () => {
     setLoading(true);
@@ -64,16 +66,18 @@ export default function AuditLogsPage() {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: '30',
+        limit: '50',
       });
-      if (actionFilter) params.set('action', actionFilter);
-      if (resourceTypeFilter) params.set('resourceType', resourceTypeFilter);
+      if (userFilter) params.set('userId', userFilter);
+      if (startDate) params.set('startDate', startDate);
+      if (endDate) params.set('endDate', endDate);
 
       const response = await fetch(`/api/admin/audit-logs?${params}`);
       const data: AuditLogsResponse = await response.json();
 
       if (data.success) {
         setLogs(data.items);
+        setOperators(data.operators || []);
         setTotalPages(data.totalPages);
       } else {
         setError('監査ログの取得に失敗しました');
@@ -85,10 +89,25 @@ export default function AuditLogsPage() {
     }
   };
 
+  // 初回ロードとページ変更時のみAPI呼び出し
   useEffect(() => {
     fetchLogs();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, actionFilter, resourceTypeFilter]);
+  }, [page]);
+
+  const handleSearch = () => {
+    setPage(1);
+    fetchLogs();
+  };
+
+  const clearFilters = () => {
+    setUserFilter('');
+    setStartDate('');
+    setEndDate('');
+    setPage(1);
+    // フィルタークリア後に再検索
+    setTimeout(() => fetchLogs(), 0);
+  };
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -148,34 +167,61 @@ export default function AuditLogsPage() {
       </div>
 
       {/* フィルター */}
-      <div className="mb-4 flex gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            操作種別
-          </label>
-          <select
-            value={actionFilter}
-            onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+      <div className="mb-4 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="flex flex-wrap gap-4 items-end">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              操作者
+            </label>
+            <select
+              value={userFilter}
+              onChange={(e) => setUserFilter(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm min-w-[150px]"
+            >
+              <option value="">すべて</option>
+              {operators.map((op) => (
+                <option key={op.userId} value={op.userId}>
+                  {op.userName}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              開始日
+            </label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              終了日
+            </label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+            />
+          </div>
+          <button
+            onClick={handleSearch}
+            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
           >
-            <option value="">すべて</option>
-            <option value="access">アクセス</option>
-            <option value="update">更新</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            リソース種別
-          </label>
-          <select
-            value={resourceTypeFilter}
-            onChange={(e) => { setResourceTypeFilter(e.target.value); setPage(1); }}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm"
-          >
-            <option value="">すべて</option>
-            <option value="page">ページ</option>
-            <option value="work_order">工番</option>
-          </select>
+            検索
+          </button>
+          {(userFilter || startDate || endDate) && (
+            <button
+              onClick={clearFilters}
+              className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              クリア
+            </button>
+          )}
         </div>
       </div>
 
