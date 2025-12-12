@@ -105,14 +105,18 @@ export default function NewUserPage() {
             >
               <option value="member">Member（作業者）</option>
               <option value="manager">Manager（共有端末用）</option>
-              <option value="admin">Admin（管理者）</option>
-              {/* SuperAdminのみがSuperAdminを作成可能 */}
+              {/* SuperAdminのみがAdmin/SuperAdminを作成可能 */}
               {currentUserRole === 'superAdmin' && (
-                <option value="superAdmin">Super Admin（最高責任者）</option>
+                <>
+                  <option value="admin">Admin（管理者）</option>
+                  <option value="superAdmin">Super Admin（最高責任者）</option>
+                </>
               )}
             </select>
             <p className="mt-1 text-xs text-gray-500">
-              SuperAdmin/Admin/Managerはメールアドレスとパスワードが必要です
+              {currentUserRole === 'superAdmin' 
+                ? 'SuperAdmin/Admin/Managerはメールアドレスとパスワードが必要です'
+                : 'Managerはメールアドレスとパスワードが必要です'}
             </p>
           </div>
 

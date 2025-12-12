@@ -95,6 +95,17 @@ export async function PUT(
       );
     }
 
+    // === AdminはAdmin/SuperAdminを編集できない ===
+    if (currentUserRole === 'admin' && (existingUser.role === 'admin' || existingUser.role === 'superAdmin')) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: '同等以上の権限を持つユーザーは編集できません',
+        },
+        { status: 403 }
+      );
+    }
+
     // === 権限変更の制限 ===
     if (validated.role && validated.role !== existingUser.role) {
       // 1. 自分の権限は変更できない
@@ -114,17 +125,6 @@ export async function PUT(
           {
             success: false,
             error: 'SuperAdminの権限は変更できません',
-          },
-          { status: 403 }
-        );
-      }
-
-      // 3. AdminはAdmin/SuperAdminの権限を変更できない
-      if (currentUserRole === 'admin' && (existingUser.role === 'admin' || existingUser.role === 'superAdmin')) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: '同等以上の権限を持つユーザーの権限は変更できません',
           },
           { status: 403 }
         );
