@@ -9,6 +9,7 @@ import { canManageUser, UserRole } from '@/lib/auth/permissions';
 export default function UsersPage() {
   const { data: session } = useSession();
   const currentUserRole = session?.user?.role as UserRole | undefined;
+  const currentUserId = session?.user?.id;
   
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -240,7 +241,8 @@ export default function UsersPage() {
                       >
                         編集
                       </Link>
-                      {user.isActive && (
+                      {/* 無効化ボタン: 自分自身とSuperAdminは無効化不可 */}
+                      {user.isActive && user.id !== currentUserId && user.role !== 'superAdmin' && (
                         <button
                           onClick={() => handleDelete(user.id, user.name)}
                           className="text-red-600 hover:text-red-900"
