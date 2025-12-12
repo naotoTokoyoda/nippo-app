@@ -7,7 +7,7 @@ import { z } from 'zod';
 // バリデーションスキーマ
 const createUserSchema = z.object({
   name: z.string().min(1, 'ユーザー名は必須です').max(100),
-  role: z.enum(['admin', 'manager', 'member']),
+  role: z.enum(['superAdmin', 'admin', 'manager', 'member']),
   email: z.string().email('有効なメールアドレスを入力してください').optional().or(z.literal('')),
   password: z.string().min(8, 'パスワードは8文字以上必要です').optional().or(z.literal('')),
   pin: z.string().regex(/^\d{4}$/, 'PINは4桁の数字である必要があります'),
@@ -63,13 +63,13 @@ export async function POST(request: NextRequest) {
     let hashedPassword: string | undefined;
     let email: string | undefined;
 
-    if (validated.role === 'admin' || validated.role === 'manager') {
-      // Admin/Managerはemailとpasswordが必要
+    if (validated.role === 'superAdmin' || validated.role === 'admin' || validated.role === 'manager') {
+      // SuperAdmin/Admin/Managerはemailとpasswordが必要
       if (!validated.email || !validated.password) {
         return NextResponse.json(
           {
             success: false,
-            error: 'Admin/Managerにはメールアドレスとパスワードが必要です',
+            error: 'SuperAdmin/Admin/Managerにはメールアドレスとパスワードが必要です',
           },
           { status: 400 }
         );
