@@ -75,7 +75,7 @@ export function canViewAuditLog(user: User | null | undefined): boolean {
  * ユーザーを管理（追加・編集・削除）できるかどうかを判定
  * ルール:
  * - superAdmin: 全ロールを管理可能
- * - admin: superAdmin以外を管理可能（admin, manager, member）
+ * - admin: manager, member のみ管理可能（admin, superAdminは管理不可）
  * - manager: 管理不可
  * - member: 管理不可
  */
@@ -90,9 +90,9 @@ export function canManageUser(
     return true;
   }
   
-  // admin は superAdmin 以外を管理可能
+  // admin は manager, member のみ管理可能（admin, superAdminは管理不可）
   if (currentUserRole === 'admin') {
-    return targetUserRole !== 'superAdmin';
+    return targetUserRole === 'manager' || targetUserRole === 'member';
   }
   
   return false;
@@ -102,7 +102,7 @@ export function canManageUser(
  * 特定のロールを持つユーザーを作成できるかどうかを判定
  * ルール:
  * - superAdmin: 全ロールを作成可能
- * - admin: superAdmin以外を作成可能
+ * - admin: manager, member のみ作成可能（admin, superAdminは作成不可）
  * - manager: 作成不可
  * - member: 作成不可
  */
@@ -117,9 +117,9 @@ export function canCreateUserWithRole(
     return true;
   }
   
-  // admin は superAdmin 以外を作成可能
+  // admin は manager, member のみ作成可能
   if (currentUserRole === 'admin') {
-    return newUserRole !== 'superAdmin';
+    return newUserRole === 'manager' || newUserRole === 'member';
   }
   
   return false;
